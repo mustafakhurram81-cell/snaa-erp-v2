@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
-import { Drawer, Button, StatusBadge } from "@/components/ui/shared";
+import React, { useState } from "react";
+import { Drawer, Button, StatusBadge, DrawerTabs } from "@/components/ui/shared";
 import { formatCurrency, formatDate, getInitials } from "@/lib/utils";
-import { Mail, Phone, MapPin, ShoppingCart, FileText, Receipt } from "lucide-react";
+import { Mail, Phone, MapPin, ShoppingCart, FileText } from "lucide-react";
 
 interface Customer {
     id: string;
@@ -39,6 +39,12 @@ interface CustomerDetailProps {
 
 export function CustomerDetail({ customer, open, onClose }: CustomerDetailProps) {
     if (!customer) return null;
+    const [activeTab, setActiveTab] = useState("orders");
+
+    const tabs = [
+        { key: "orders", label: "Orders", count: relatedOrders.length },
+        { key: "quotations", label: "Quotations", count: relatedQuotations.length },
+    ];
 
     return (
         <Drawer
@@ -62,8 +68,8 @@ export function CustomerDetail({ customer, open, onClose }: CustomerDetailProps)
                 </div>
             }
         >
-            {/* Header */}
-            <div className="flex items-center gap-4 mb-6">
+            {/* Pinned Header */}
+            <div className="flex items-center gap-4 mb-5">
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
                     {getInitials(customer.name)}
                 </div>
@@ -74,7 +80,7 @@ export function CustomerDetail({ customer, open, onClose }: CustomerDetailProps)
                 <StatusBadge status={customer.status} />
             </div>
 
-            {/* Contact Info */}
+            {/* Pinned Contact Info */}
             <div className="rounded-xl border p-4 mb-5" style={{ background: "var(--secondary)", borderColor: "var(--border)" }}>
                 <div className="grid grid-cols-2 gap-3">
                     <div className="flex items-center gap-2 text-sm" style={{ color: "var(--foreground)" }}>
@@ -92,16 +98,18 @@ export function CustomerDetail({ customer, open, onClose }: CustomerDetailProps)
                 </div>
             </div>
 
-            {/* AR Balance */}
+            {/* Pinned AR Balance */}
             <div className="rounded-xl border p-4 mb-5" style={{ borderColor: "var(--border)" }}>
                 <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--muted-foreground)" }}>AR Balance</p>
                 <p className="text-2xl font-bold" style={{ color: "var(--foreground)" }}>{formatCurrency(customer.ar_balance)}</p>
                 <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>Customer since {formatDate(customer.created_at)}</p>
             </div>
 
-            {/* Recent Orders */}
-            <div className="mb-5">
-                <h4 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>Recent Orders</h4>
+            {/* Tabs */}
+            <DrawerTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+
+            {/* Tab: Orders */}
+            {activeTab === "orders" && (
                 <div className="space-y-2">
                     {relatedOrders.map((order) => (
                         <div key={order.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: "var(--border)" }}>
@@ -116,11 +124,10 @@ export function CustomerDetail({ customer, open, onClose }: CustomerDetailProps)
                         </div>
                     ))}
                 </div>
-            </div>
+            )}
 
-            {/* Recent Quotations */}
-            <div>
-                <h4 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>Recent Quotations</h4>
+            {/* Tab: Quotations */}
+            {activeTab === "quotations" && (
                 <div className="space-y-2">
                     {relatedQuotations.map((qt) => (
                         <div key={qt.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: "var(--border)" }}>
@@ -135,7 +142,7 @@ export function CustomerDetail({ customer, open, onClose }: CustomerDetailProps)
                         </div>
                     ))}
                 </div>
-            </div>
+            )}
         </Drawer>
     );
 }

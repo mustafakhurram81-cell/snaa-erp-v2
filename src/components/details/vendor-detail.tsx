@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Drawer, Button, StatusBadge } from "@/components/ui/shared";
+import React, { useState } from "react";
+import { Drawer, Button, StatusBadge, DrawerTabs } from "@/components/ui/shared";
 import { formatCurrency, getInitials } from "@/lib/utils";
 import { Mail, Phone, MapPin, ClipboardList, Edit2 } from "lucide-react";
 
@@ -32,6 +32,11 @@ interface VendorDetailProps {
 
 export function VendorDetail({ vendor, open, onClose }: VendorDetailProps) {
     if (!vendor) return null;
+    const [activeTab, setActiveTab] = useState("pos");
+
+    const tabs = [
+        { key: "pos", label: "Purchase Orders", count: relatedPOs.length },
+    ];
 
     return (
         <Drawer
@@ -55,8 +60,8 @@ export function VendorDetail({ vendor, open, onClose }: VendorDetailProps) {
                 </div>
             }
         >
-            {/* Header */}
-            <div className="flex items-center gap-4 mb-6">
+            {/* Pinned Header */}
+            <div className="flex items-center gap-4 mb-5">
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
                     {getInitials(vendor.name)}
                 </div>
@@ -67,7 +72,7 @@ export function VendorDetail({ vendor, open, onClose }: VendorDetailProps) {
                 <StatusBadge status={vendor.status} />
             </div>
 
-            {/* Contact Info */}
+            {/* Pinned Contact Info */}
             <div className="rounded-xl border p-4 mb-5" style={{ background: "var(--secondary)", borderColor: "var(--border)" }}>
                 <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--muted-foreground)" }}>Contact Person</p>
                 <p className="text-sm font-medium mb-3" style={{ color: "var(--foreground)" }}>{vendor.contact_name}</p>
@@ -87,7 +92,7 @@ export function VendorDetail({ vendor, open, onClose }: VendorDetailProps) {
                 </div>
             </div>
 
-            {/* Stats */}
+            {/* Pinned Stats */}
             <div className="grid grid-cols-2 gap-4 mb-5">
                 <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
                     <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Total Orders</p>
@@ -99,9 +104,11 @@ export function VendorDetail({ vendor, open, onClose }: VendorDetailProps) {
                 </div>
             </div>
 
-            {/* Recent POs */}
-            <div>
-                <h4 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>Recent Purchase Orders</h4>
+            {/* Tabs */}
+            <DrawerTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+
+            {/* Tab: Purchase Orders */}
+            {activeTab === "pos" && (
                 <div className="space-y-2">
                     {relatedPOs.map((po) => (
                         <div key={po.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: "var(--border)" }}>
@@ -116,7 +123,7 @@ export function VendorDetail({ vendor, open, onClose }: VendorDetailProps) {
                         </div>
                     ))}
                 </div>
-            </div>
+            )}
         </Drawer>
     );
 }

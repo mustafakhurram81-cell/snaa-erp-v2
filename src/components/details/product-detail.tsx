@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Drawer, Button, StatusBadge } from "@/components/ui/shared";
+import React, { useState } from "react";
+import { Drawer, Button, StatusBadge, DrawerTabs } from "@/components/ui/shared";
 import { formatCurrency } from "@/lib/utils";
 import { Edit2, Package, TrendingUp } from "lucide-react";
 
@@ -32,10 +32,15 @@ const recentOrders = [
 
 export function ProductDetail({ product, open, onClose }: ProductDetailProps) {
     if (!product) return null;
+    const [activeTab, setActiveTab] = useState("orders");
 
     const margin = product.selling_price > 0
         ? ((product.selling_price - product.unit_cost) / product.selling_price * 100).toFixed(1)
         : "0";
+
+    const tabs = [
+        { key: "orders", label: "Recent Orders", count: recentOrders.length },
+    ];
 
     return (
         <Drawer
@@ -53,8 +58,8 @@ export function ProductDetail({ product, open, onClose }: ProductDetailProps) {
                 </div>
             }
         >
-            {/* Header */}
-            <div className="flex items-center gap-4 mb-6">
+            {/* Pinned Header */}
+            <div className="flex items-center gap-4 mb-5">
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 flex items-center justify-center flex-shrink-0">
                     <Package className="w-6 h-6 text-blue-600" />
                 </div>
@@ -65,7 +70,7 @@ export function ProductDetail({ product, open, onClose }: ProductDetailProps) {
                 <StatusBadge status={product.status} />
             </div>
 
-            {/* Category */}
+            {/* Pinned Category */}
             <div className="rounded-xl border p-4 mb-5" style={{ background: "var(--secondary)", borderColor: "var(--border)" }}>
                 <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -79,7 +84,7 @@ export function ProductDetail({ product, open, onClose }: ProductDetailProps) {
                 </div>
             </div>
 
-            {/* Pricing */}
+            {/* Pinned Pricing */}
             <div className="grid grid-cols-3 gap-4 mb-5">
                 <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
                     <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Unit Cost</p>
@@ -98,7 +103,7 @@ export function ProductDetail({ product, open, onClose }: ProductDetailProps) {
                 </div>
             </div>
 
-            {/* Stock */}
+            {/* Pinned Stock */}
             <div className="rounded-xl border p-4 mb-5" style={{ borderColor: "var(--border)" }}>
                 <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--muted-foreground)" }}>Current Stock</p>
                 <p className={`text-2xl font-bold ${product.stock < 30 ? "text-red-600" : ""}`} style={product.stock >= 30 ? { color: "var(--foreground)" } : undefined}>
@@ -107,9 +112,11 @@ export function ProductDetail({ product, open, onClose }: ProductDetailProps) {
                 {product.stock < 30 && <p className="text-xs text-red-500 font-medium mt-1">⚠ Below reorder point</p>}
             </div>
 
-            {/* Recent Orders */}
-            <div>
-                <h4 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>Recent Orders</h4>
+            {/* Tabs */}
+            <DrawerTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+
+            {/* Tab: Orders */}
+            {activeTab === "orders" && (
                 <div className="space-y-2">
                     {recentOrders.map((order) => (
                         <div key={order.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: "var(--border)" }}>
@@ -121,7 +128,7 @@ export function ProductDetail({ product, open, onClose }: ProductDetailProps) {
                         </div>
                     ))}
                 </div>
-            </div>
+            )}
         </Drawer>
     );
 }

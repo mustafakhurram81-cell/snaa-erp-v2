@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Drawer, Button, StatusBadge } from "@/components/ui/shared";
+import React, { useState } from "react";
+import { Drawer, Button, StatusBadge, DrawerTabs } from "@/components/ui/shared";
 import { formatCurrency, getInitials } from "@/lib/utils";
 import { Mail, Phone, Edit2, Briefcase, Calendar, DollarSign } from "lucide-react";
 
@@ -32,6 +32,11 @@ const payHistory = [
 
 export function EmployeeDetail({ employee, open, onClose }: EmployeeDetailProps) {
     if (!employee) return null;
+    const [activeTab, setActiveTab] = useState("payhistory");
+
+    const tabs = [
+        { key: "payhistory", label: "Pay History", count: payHistory.length },
+    ];
 
     return (
         <Drawer
@@ -49,8 +54,8 @@ export function EmployeeDetail({ employee, open, onClose }: EmployeeDetailProps)
                 </div>
             }
         >
-            {/* Header */}
-            <div className="flex items-center gap-4 mb-6">
+            {/* Pinned Header */}
+            <div className="flex items-center gap-4 mb-5">
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
                     {getInitials(employee.name)}
                 </div>
@@ -61,7 +66,7 @@ export function EmployeeDetail({ employee, open, onClose }: EmployeeDetailProps)
                 <StatusBadge status={employee.status} />
             </div>
 
-            {/* Contact & Info */}
+            {/* Pinned Contact & Info */}
             <div className="rounded-xl border p-4 mb-5" style={{ background: "var(--secondary)", borderColor: "var(--border)" }}>
                 <div className="grid grid-cols-2 gap-3">
                     <div className="flex items-center gap-2 text-sm" style={{ color: "var(--foreground)" }}>
@@ -83,7 +88,7 @@ export function EmployeeDetail({ employee, open, onClose }: EmployeeDetailProps)
                 </div>
             </div>
 
-            {/* Salary */}
+            {/* Pinned Salary */}
             <div className="rounded-xl border p-4 mb-5" style={{ borderColor: "var(--border)" }}>
                 <div className="flex items-center gap-2 mb-1">
                     <DollarSign className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
@@ -92,9 +97,11 @@ export function EmployeeDetail({ employee, open, onClose }: EmployeeDetailProps)
                 <p className="text-2xl font-bold" style={{ color: "var(--foreground)" }}>{formatCurrency(employee.salary)}</p>
             </div>
 
-            {/* Pay History */}
-            <div>
-                <h4 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>Pay History</h4>
+            {/* Tabs */}
+            <DrawerTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+
+            {/* Tab: Pay History */}
+            {activeTab === "payhistory" && (
                 <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
                     <table className="w-full">
                         <thead>
@@ -117,7 +124,7 @@ export function EmployeeDetail({ employee, open, onClose }: EmployeeDetailProps)
                         </tbody>
                     </table>
                 </div>
-            </div>
+            )}
         </Drawer>
     );
 }

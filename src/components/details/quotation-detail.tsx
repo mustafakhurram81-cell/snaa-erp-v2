@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Drawer, Button, StatusBadge } from "@/components/ui/shared";
+import { Drawer, Button, StatusBadge, DrawerTabs } from "@/components/ui/shared";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ArrowRight, Download, Copy, Send, Edit3, Trash2 } from "lucide-react";
 import { generatePDF } from "@/lib/pdf";
@@ -41,6 +41,7 @@ export function QuotationDetail({ quotation, open, onClose }: QuotationDetailPro
     const { toast } = useToast();
     const [showDelete, setShowDelete] = useState(false);
     const [showEmail, setShowEmail] = useState(false);
+    const [activeTab, setActiveTab] = useState("items");
 
     const lineItems = mockLineItems.slice(0, quotation.items_count > 4 ? 4 : quotation.items_count);
     const subtotal = quotation.total;
@@ -59,6 +60,11 @@ export function QuotationDetail({ quotation, open, onClose }: QuotationDetailPro
             terms: "This quotation is valid for 30 days from the date of issue. Prices are subject to change after the validity period. Payment terms: 50% advance, 50% on delivery.",
         });
     };
+
+    const tabs = [
+        { key: "items", label: "Line Items", count: quotation.items_count },
+        { key: "activity", label: "Activity" },
+    ];
 
     return (
         <Drawer
@@ -102,8 +108,8 @@ export function QuotationDetail({ quotation, open, onClose }: QuotationDetailPro
                 </div>
             }
         >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            {/* Pinned Header */}
+            <div className="flex items-center justify-between mb-5">
                 <div>
                     <h3 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>{quotation.quote_number}</h3>
                     <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>{quotation.customer}</p>
@@ -111,8 +117,8 @@ export function QuotationDetail({ quotation, open, onClose }: QuotationDetailPro
                 <StatusBadge status={quotation.status} />
             </div>
 
-            {/* Meta */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            {/* Pinned Meta Cards */}
+            <div className="grid grid-cols-3 gap-4 mb-5">
                 <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
                     <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Date</p>
                     <p className="text-sm font-medium mt-1" style={{ color: "var(--foreground)" }}>{formatDate(quotation.date)}</p>
@@ -127,44 +133,47 @@ export function QuotationDetail({ quotation, open, onClose }: QuotationDetailPro
                 </div>
             </div>
 
-            {/* Line Items */}
-            <div>
-                <h4 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>Line Items</h4>
-                <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
-                    <table className="w-full">
-                        <thead>
-                            <tr style={{ background: "var(--secondary)" }}>
-                                <th className="text-left text-[10px] font-semibold uppercase tracking-wider px-4 py-2.5" style={{ color: "var(--muted-foreground)" }}>Product</th>
-                                <th className="text-right text-[10px] font-semibold uppercase tracking-wider px-4 py-2.5" style={{ color: "var(--muted-foreground)" }}>Qty</th>
-                                <th className="text-right text-[10px] font-semibold uppercase tracking-wider px-4 py-2.5" style={{ color: "var(--muted-foreground)" }}>Unit Price</th>
-                                <th className="text-right text-[10px] font-semibold uppercase tracking-wider px-4 py-2.5" style={{ color: "var(--muted-foreground)" }}>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {lineItems.map((item, idx) => (
-                                <tr key={idx} className="border-t" style={{ borderColor: "var(--border)" }}>
-                                    <td className="px-4 py-3 text-sm" style={{ color: "var(--foreground)" }}>{item.description}</td>
-                                    <td className="px-4 py-3 text-sm text-right" style={{ color: "var(--muted-foreground)" }}>{item.qty}</td>
-                                    <td className="px-4 py-3 text-sm text-right" style={{ color: "var(--muted-foreground)" }}>{formatCurrency(item.unitPrice)}</td>
-                                    <td className="px-4 py-3 text-sm text-right font-medium" style={{ color: "var(--foreground)" }}>{formatCurrency(item.total)}</td>
+            {/* Tabs */}
+            <DrawerTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+
+            {/* Tab: Line Items */}
+            {activeTab === "items" && (
+                <div>
+                    <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
+                        <table className="w-full">
+                            <thead>
+                                <tr style={{ background: "var(--secondary)" }}>
+                                    <th className="text-left text-[10px] font-semibold uppercase tracking-wider px-4 py-2.5" style={{ color: "var(--muted-foreground)" }}>Product</th>
+                                    <th className="text-right text-[10px] font-semibold uppercase tracking-wider px-4 py-2.5" style={{ color: "var(--muted-foreground)" }}>Qty</th>
+                                    <th className="text-right text-[10px] font-semibold uppercase tracking-wider px-4 py-2.5" style={{ color: "var(--muted-foreground)" }}>Unit Price</th>
+                                    <th className="text-right text-[10px] font-semibold uppercase tracking-wider px-4 py-2.5" style={{ color: "var(--muted-foreground)" }}>Total</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    <div className="border-t px-4 py-3 flex justify-end" style={{ borderColor: "var(--border)", background: "var(--secondary)" }}>
-                        <div className="text-right">
-                            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>Total</p>
-                            <p className="text-lg font-bold" style={{ color: "var(--foreground)" }}>{formatCurrency(quotation.total)}</p>
+                            </thead>
+                            <tbody>
+                                {lineItems.map((item, idx) => (
+                                    <tr key={idx} className="border-t" style={{ borderColor: "var(--border)" }}>
+                                        <td className="px-4 py-3 text-sm" style={{ color: "var(--foreground)" }}>{item.description}</td>
+                                        <td className="px-4 py-3 text-sm text-right" style={{ color: "var(--muted-foreground)" }}>{item.qty}</td>
+                                        <td className="px-4 py-3 text-sm text-right" style={{ color: "var(--muted-foreground)" }}>{formatCurrency(item.unitPrice)}</td>
+                                        <td className="px-4 py-3 text-sm text-right font-medium" style={{ color: "var(--foreground)" }}>{formatCurrency(item.total)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        <div className="border-t px-4 py-3 flex justify-end" style={{ borderColor: "var(--border)", background: "var(--secondary)" }}>
+                            <div className="text-right">
+                                <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>Total</p>
+                                <p className="text-lg font-bold" style={{ color: "var(--foreground)" }}>{formatCurrency(quotation.total)}</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
 
-            {/* Activity Log */}
-            <div className="mt-5">
-                <h4 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>Activity</h4>
+            {/* Tab: Activity */}
+            {activeTab === "activity" && (
                 <ActivityLog entries={getMockActivities("Quotation", quotation.id)} />
-            </div>
+            )}
 
             <DeleteConfirmation
                 open={showDelete}

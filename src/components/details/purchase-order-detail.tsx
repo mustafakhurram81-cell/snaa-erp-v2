@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Drawer, Button, StatusBadge } from "@/components/ui/shared";
+import { Drawer, Button, StatusBadge, DrawerTabs } from "@/components/ui/shared";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Download, Truck, CheckCircle, Edit3, Trash2 } from "lucide-react";
 import { generatePDF } from "@/lib/pdf";
@@ -39,6 +39,7 @@ export function PurchaseOrderDetail({ order, open, onClose }: PurchaseOrderDetai
     if (!order) return null;
     const { toast } = useToast();
     const [showDelete, setShowDelete] = useState(false);
+    const [activeTab, setActiveTab] = useState("items");
 
     const lineItems = mockLineItems.slice(0, Math.min(order.items_count, 3));
 
@@ -56,6 +57,11 @@ export function PurchaseOrderDetail({ order, open, onClose }: PurchaseOrderDetai
             terms: "Please ship to: Smith Instruments, Industrial Area, Sialkot. Include a packing list and quality certificate. Payment terms: Net 30.",
         });
     };
+
+    const tabs = [
+        { key: "items", label: "Line Items", count: order.items_count },
+        { key: "activity", label: "Activity" },
+    ];
 
     return (
         <Drawer
@@ -95,8 +101,8 @@ export function PurchaseOrderDetail({ order, open, onClose }: PurchaseOrderDetai
                 </div>
             }
         >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            {/* Pinned Header */}
+            <div className="flex items-center justify-between mb-5">
                 <div>
                     <h3 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>{order.po_number}</h3>
                     <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>{order.vendor}</p>
@@ -104,8 +110,8 @@ export function PurchaseOrderDetail({ order, open, onClose }: PurchaseOrderDetai
                 <StatusBadge status={order.status} />
             </div>
 
-            {/* Meta */}
-            <div className={`grid gap-4 mb-6 ${order.jo_reference ? "grid-cols-4" : "grid-cols-3"}`}>
+            {/* Pinned Meta Cards */}
+            <div className={`grid gap-4 mb-5 ${order.jo_reference ? "grid-cols-4" : "grid-cols-3"}`}>
                 <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
                     <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Order Date</p>
                     <p className="text-sm font-medium mt-1" style={{ color: "var(--foreground)" }}>{formatDate(order.date)}</p>
@@ -127,41 +133,44 @@ export function PurchaseOrderDetail({ order, open, onClose }: PurchaseOrderDetai
                 )}
             </div>
 
-            {/* Line Items */}
-            <div>
-                <h4 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>Line Items ({order.items_count} items)</h4>
-                <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
-                    <table className="w-full">
-                        <thead>
-                            <tr style={{ background: "var(--secondary)" }}>
-                                <th className="text-left text-[10px] font-semibold uppercase tracking-wider px-4 py-2.5" style={{ color: "var(--muted-foreground)" }}>Item</th>
-                                <th className="text-right text-[10px] font-semibold uppercase tracking-wider px-4 py-2.5" style={{ color: "var(--muted-foreground)" }}>Qty</th>
-                                <th className="text-right text-[10px] font-semibold uppercase tracking-wider px-4 py-2.5" style={{ color: "var(--muted-foreground)" }}>Unit Cost</th>
-                                <th className="text-right text-[10px] font-semibold uppercase tracking-wider px-4 py-2.5" style={{ color: "var(--muted-foreground)" }}>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {lineItems.map((item, idx) => (
-                                <tr key={idx} className="border-t" style={{ borderColor: "var(--border)" }}>
-                                    <td className="px-4 py-3 text-sm" style={{ color: "var(--foreground)" }}>{item.description}</td>
-                                    <td className="px-4 py-3 text-sm text-right" style={{ color: "var(--muted-foreground)" }}>{item.qty}</td>
-                                    <td className="px-4 py-3 text-sm text-right" style={{ color: "var(--muted-foreground)" }}>{formatCurrency(item.unitPrice)}</td>
-                                    <td className="px-4 py-3 text-sm text-right font-medium" style={{ color: "var(--foreground)" }}>{formatCurrency(item.total)}</td>
+            {/* Tabs */}
+            <DrawerTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+
+            {/* Tab: Line Items */}
+            {activeTab === "items" && (
+                <div>
+                    <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
+                        <table className="w-full">
+                            <thead>
+                                <tr style={{ background: "var(--secondary)" }}>
+                                    <th className="text-left text-[10px] font-semibold uppercase tracking-wider px-4 py-2.5" style={{ color: "var(--muted-foreground)" }}>Item</th>
+                                    <th className="text-right text-[10px] font-semibold uppercase tracking-wider px-4 py-2.5" style={{ color: "var(--muted-foreground)" }}>Qty</th>
+                                    <th className="text-right text-[10px] font-semibold uppercase tracking-wider px-4 py-2.5" style={{ color: "var(--muted-foreground)" }}>Unit Cost</th>
+                                    <th className="text-right text-[10px] font-semibold uppercase tracking-wider px-4 py-2.5" style={{ color: "var(--muted-foreground)" }}>Total</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    <div className="border-t px-4 py-3 flex justify-end" style={{ borderColor: "var(--border)", background: "var(--secondary)" }}>
-                        <p className="text-lg font-bold" style={{ color: "var(--foreground)" }}>{formatCurrency(order.total)}</p>
+                            </thead>
+                            <tbody>
+                                {lineItems.map((item, idx) => (
+                                    <tr key={idx} className="border-t" style={{ borderColor: "var(--border)" }}>
+                                        <td className="px-4 py-3 text-sm" style={{ color: "var(--foreground)" }}>{item.description}</td>
+                                        <td className="px-4 py-3 text-sm text-right" style={{ color: "var(--muted-foreground)" }}>{item.qty}</td>
+                                        <td className="px-4 py-3 text-sm text-right" style={{ color: "var(--muted-foreground)" }}>{formatCurrency(item.unitPrice)}</td>
+                                        <td className="px-4 py-3 text-sm text-right font-medium" style={{ color: "var(--foreground)" }}>{formatCurrency(item.total)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        <div className="border-t px-4 py-3 flex justify-end" style={{ borderColor: "var(--border)", background: "var(--secondary)" }}>
+                            <p className="text-lg font-bold" style={{ color: "var(--foreground)" }}>{formatCurrency(order.total)}</p>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
-            {/* Activity Log */}
-            <div className="mt-5">
-                <h4 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>Activity</h4>
+            {/* Tab: Activity */}
+            {activeTab === "activity" && (
                 <ActivityLog entries={getMockActivities("Purchase Order", order.id)} />
-            </div>
+            )}
 
             <DeleteConfirmation
                 open={showDelete}
