@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Truck, Plus, Mail, Phone, MapPin } from "lucide-react";
-import { PageHeader, Button, DataTable, StatusBadge, Drawer, Input, SearchInput } from "@/components/ui/shared";
+import { Plus, Mail, MapPin } from "lucide-react";
+import { PageHeader, Button, Drawer, Input, StatusBadge } from "@/components/ui/shared";
+import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { VendorDetail } from "@/components/details/vendor-detail";
 import { formatCurrency, getInitials } from "@/lib/utils";
 
@@ -17,7 +18,6 @@ interface Vendor {
     city: string;
     status: string;
     ap_balance: number;
-    [key: string]: unknown;
 }
 
 const mockVendors: Vendor[] = [
@@ -28,18 +28,65 @@ const mockVendors: Vendor[] = [
     { id: "5", vendor_code: "V-005", name: "Packaging World", contact_name: "Nadia Khan", email: "nadia@packworld.pk", phone: "+92-42-987-6543", city: "Lahore", status: "inactive", ap_balance: 0 },
 ];
 
+const columns: ColumnDef<Vendor, unknown>[] = [
+    {
+        accessorKey: "name",
+        header: "Vendor",
+        cell: ({ row }) => (
+            <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center text-white text-[11px] font-semibold flex-shrink-0">
+                    {getInitials(row.original.name)}
+                </div>
+                <div>
+                    <p className="font-medium text-sm" style={{ color: "var(--foreground)" }}>{row.original.name}</p>
+                    <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{row.original.vendor_code}</p>
+                </div>
+            </div>
+        ),
+    },
+    {
+        accessorKey: "contact_name",
+        header: "Contact",
+        cell: ({ row }) => (
+            <div className="space-y-0.5">
+                <p className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.contact_name}</p>
+                <p className="text-xs flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
+                    <Mail className="w-3 h-3" /> {row.original.email}
+                </p>
+            </div>
+        ),
+    },
+    {
+        accessorKey: "city",
+        header: "Location",
+        cell: ({ row }) => (
+            <span className="text-sm flex items-center gap-1.5" style={{ color: "var(--foreground)" }}>
+                <MapPin className="w-3 h-3" style={{ color: "var(--muted-foreground)" }} />
+                {row.original.city}
+            </span>
+        ),
+    },
+    {
+        accessorKey: "ap_balance",
+        header: "AP Balance",
+        cell: ({ row }) => (
+            <span className="font-medium text-sm" style={{ color: "var(--foreground)" }}>
+                {formatCurrency(row.original.ap_balance)}
+            </span>
+        ),
+    },
+    {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => <StatusBadge status={row.original.status} />,
+    },
+];
+
 export default function VendorsPage() {
     const [vendors, setVendors] = useState<Vendor[]>(mockVendors);
-    const [search, setSearch] = useState("");
     const [showDialog, setShowDialog] = useState(false);
     const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
     const [formData, setFormData] = useState({ vendor_code: "", name: "", contact_name: "", email: "", phone: "", city: "" });
-
-    const filtered = vendors.filter((v) =>
-        [v.name, v.contact_name, v.vendor_code, v.city].some((val) =>
-            val.toLowerCase().includes(search.toLowerCase())
-        )
-    );
 
     const handleCreate = () => {
         const newVendor: Vendor = {
@@ -53,59 +100,10 @@ export default function VendorsPage() {
         setFormData({ vendor_code: "", name: "", contact_name: "", email: "", phone: "", city: "" });
     };
 
-    const columns = [
-        {
-            key: "name",
-            label: "Vendor",
-            render: (item: Vendor) => (
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center text-white text-[11px] font-semibold flex-shrink-0">
-                        {getInitials(item.name)}
-                    </div>
-                    <div>
-                        <p className="font-medium text-sm" style={{ color: "var(--foreground)" }}>{item.name}</p>
-                        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.vendor_code}</p>
-                    </div>
-                </div>
-            ),
-        },
-        {
-            key: "contact_name",
-            label: "Contact",
-            render: (item: Vendor) => (
-                <div className="space-y-0.5">
-                    <p className="text-sm" style={{ color: "var(--foreground)" }}>{item.contact_name}</p>
-                    <p className="text-xs flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
-                        <Mail className="w-3 h-3" /> {item.email}
-                    </p>
-                </div>
-            ),
-        },
-        {
-            key: "city",
-            label: "Location",
-            render: (item: Vendor) => (
-                <span className="text-sm flex items-center gap-1.5" style={{ color: "var(--foreground)" }}>
-                    <MapPin className="w-3 h-3" style={{ color: "var(--muted-foreground)" }} />
-                    {item.city}
-                </span>
-            ),
-        },
-        {
-            key: "ap_balance",
-            label: "AP Balance",
-            render: (item: Vendor) => (
-                <span className="font-medium text-sm" style={{ color: "var(--foreground)" }}>
-                    {formatCurrency(item.ap_balance)}
-                </span>
-            ),
-        },
-        {
-            key: "status",
-            label: "Status",
-            render: (item: Vendor) => <StatusBadge status={item.status} />,
-        },
-    ];
+    const handleUpdateVendor = (updated: typeof vendors[0]) => {
+        setVendors(vendors.map((v) => v.id === updated.id ? updated : v));
+        setSelectedVendor(updated);
+    };
 
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -120,13 +118,20 @@ export default function VendorsPage() {
                 }
             />
 
-            <div className="mb-4 max-w-sm">
-                <SearchInput value={search} onChange={setSearch} placeholder="Search vendors..." />
-            </div>
+            <DataTable
+                columns={columns}
+                data={vendors}
+                searchPlaceholder="Search vendors..."
+                emptyMessage="No vendors found"
+                onRowClick={(item) => setSelectedVendor(item)}
+            />
 
-            <DataTable columns={columns} data={filtered} emptyMessage="No vendors found" onRowClick={(item) => setSelectedVendor(item as Vendor)} />
-
-            <VendorDetail vendor={selectedVendor} open={!!selectedVendor} onClose={() => setSelectedVendor(null)} />
+            <VendorDetail
+                vendor={selectedVendor}
+                open={!!selectedVendor}
+                onClose={() => setSelectedVendor(null)}
+                onUpdate={handleUpdateVendor}
+            />
 
             <Drawer
                 open={showDialog}

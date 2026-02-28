@@ -51,7 +51,6 @@ export interface JobOrder {
     due_date: string;
     status: string;
     stages: JobStage[];
-    [key: string]: unknown;
 }
 
 interface JobOrderDetailProps {
@@ -164,8 +163,8 @@ export function JobOrderDetail({ jobOrder, open, onClose }: JobOrderDetailProps)
                                 >
                                     {/* Stage number */}
                                     <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${jobStage.status === "completed" ? "bg-emerald-500 text-white" :
-                                            jobStage.status === "in_progress" ? "bg-blue-500 text-white" :
-                                                "border-2 text-[var(--muted-foreground)]"
+                                        jobStage.status === "in_progress" ? "bg-blue-500 text-white" :
+                                            "border-2 text-[var(--muted-foreground)]"
                                         }`} style={jobStage.status === "not_started" ? { borderColor: "var(--border)" } : undefined}>
                                         {jobStage.status === "completed" ? <CheckCircle2 className="w-3.5 h-3.5" /> : stage.id}
                                     </div>
@@ -178,7 +177,7 @@ export function JobOrderDetail({ jobOrder, open, onClose }: JobOrderDetailProps)
 
                                     {/* Type badge */}
                                     <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${jobStage.type === "vendor" ? "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
-                                            "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                        "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
                                         }`}>
                                         {jobStage.type === "vendor" ? <Store className="w-2.5 h-2.5" /> : <Building2 className="w-2.5 h-2.5" />}
                                         {jobStage.type === "vendor" ? (jobStage.vendor || "Vendor") : "In-house"}

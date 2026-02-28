@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { UserCog, Plus, Users, DollarSign, Calendar, Briefcase, Mail, Phone } from "lucide-react";
-import { PageHeader, Button, Card, DataTable, StatusBadge, Drawer, Input, SearchInput, Tabs, StatCard } from "@/components/ui/shared";
+import { PageHeader, Button, Card, StatusBadge, Drawer, Input, Tabs, StatCard } from "@/components/ui/shared";
+import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { EmployeeDetail } from "@/components/details/employee-detail";
 import { formatCurrency, getInitials } from "@/lib/utils";
 
@@ -17,7 +18,6 @@ interface Employee {
   hire_date: string;
   salary: number;
   status: string;
-  [key: string]: unknown;
 }
 
 interface PayrollRun {
@@ -28,7 +28,6 @@ interface PayrollRun {
   deductions: number;
   net_total: number;
   status: string;
-  [key: string]: unknown;
 }
 
 const mockEmployees: Employee[] = [
@@ -65,9 +64,92 @@ const statusDot: Record<string, string> = {
   leave: "bg-amber-500",
 };
 
+const employeeColumns: ColumnDef<Employee, unknown>[] = [
+  {
+    accessorKey: "name",
+    header: "Employee",
+    cell: ({ row }) => (
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-[11px] font-semibold flex-shrink-0">
+          {getInitials(row.original.name)}
+        </div>
+        <div>
+          <p className="font-medium text-sm" style={{ color: "var(--foreground)" }}>{row.original.name}</p>
+          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{row.original.position}</p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "department",
+    header: "Department",
+    cell: ({ row }) => (
+      <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: "var(--secondary)", color: "var(--foreground)" }}>
+        {row.original.department}
+      </span>
+    ),
+  },
+  {
+    accessorKey: "email",
+    header: "Contact",
+    cell: ({ row }) => (
+      <div className="space-y-0.5">
+        <p className="text-sm flex items-center gap-1" style={{ color: "var(--foreground)" }}>
+          <Mail className="w-3 h-3" style={{ color: "var(--muted-foreground)" }} /> {row.original.email}
+        </p>
+        <p className="text-xs flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
+          <Phone className="w-3 h-3" /> {row.original.phone}
+        </p>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "salary",
+    header: "Salary",
+    cell: ({ row }) => (
+      <span className="font-medium text-sm" style={{ color: "var(--foreground)" }}>
+        {formatCurrency(row.original.salary)}
+      </span>
+    ),
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => <StatusBadge status={row.original.status} />,
+  },
+];
+
+const payrollColumns: ColumnDef<PayrollRun, unknown>[] = [
+  { accessorKey: "month", header: "Month" },
+  {
+    accessorKey: "employees",
+    header: "Employees",
+    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.employees}</span>,
+  },
+  {
+    accessorKey: "gross_total",
+    header: "Gross",
+    cell: ({ row }) => <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>{formatCurrency(row.original.gross_total)}</span>,
+  },
+  {
+    accessorKey: "deductions",
+    header: "Deductions",
+    cell: ({ row }) => <span className="text-sm text-red-500">{formatCurrency(row.original.deductions)}</span>,
+  },
+  {
+    accessorKey: "net_total",
+    header: "Net Total",
+    cell: ({ row }) => <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{formatCurrency(row.original.net_total)}</span>,
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => <StatusBadge status={row.original.status} />,
+  },
+];
+
 export default function HRPage() {
-  const [employees] = useState<Employee[]>(mockEmployees);
-  const [search, setSearch] = useState("");
+  const [employees, setEmployees] = useState<Employee[]>(mockEmployees);
   const [activeDept, setActiveDept] = useState("All");
   const [activeTab, setActiveTab] = useState("employees");
   const [showDialog, setShowDialog] = useState(false);
@@ -77,96 +159,9 @@ export default function HRPage() {
   const totalPayroll = activeEmployees.reduce((sum, e) => sum + e.salary, 0);
 
   const filtered = employees.filter((e) => {
-    const matchesSearch = [e.name, e.email, e.department, e.position].some((v) =>
-      v.toLowerCase().includes(search.toLowerCase())
-    );
     const matchesDept = activeDept === "All" || e.department === activeDept;
-    return matchesSearch && matchesDept;
+    return matchesDept;
   });
-
-  const employeeColumns = [
-    {
-      key: "name",
-      label: "Employee",
-      render: (item: Employee) => (
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-[11px] font-semibold flex-shrink-0">
-            {getInitials(item.name)}
-          </div>
-          <div>
-            <p className="font-medium text-sm" style={{ color: "var(--foreground)" }}>{item.name}</p>
-            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.position}</p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: "department",
-      label: "Department",
-      render: (item: Employee) => (
-        <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: "var(--secondary)", color: "var(--foreground)" }}>
-          {item.department}
-        </span>
-      ),
-    },
-    {
-      key: "email",
-      label: "Contact",
-      render: (item: Employee) => (
-        <div className="space-y-0.5">
-          <p className="text-sm flex items-center gap-1" style={{ color: "var(--foreground)" }}>
-            <Mail className="w-3 h-3" style={{ color: "var(--muted-foreground)" }} /> {item.email}
-          </p>
-          <p className="text-xs flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
-            <Phone className="w-3 h-3" /> {item.phone}
-          </p>
-        </div>
-      ),
-    },
-    {
-      key: "salary",
-      label: "Salary",
-      render: (item: Employee) => (
-        <span className="font-medium text-sm" style={{ color: "var(--foreground)" }}>
-          {formatCurrency(item.salary)}
-        </span>
-      ),
-    },
-    {
-      key: "status",
-      label: "Status",
-      render: (item: Employee) => <StatusBadge status={item.status} />,
-    },
-  ];
-
-  const payrollColumns = [
-    { key: "month", label: "Month" },
-    {
-      key: "employees",
-      label: "Employees",
-      render: (item: PayrollRun) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{item.employees}</span>,
-    },
-    {
-      key: "gross_total",
-      label: "Gross",
-      render: (item: PayrollRun) => <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>{formatCurrency(item.gross_total)}</span>,
-    },
-    {
-      key: "deductions",
-      label: "Deductions",
-      render: (item: PayrollRun) => <span className="text-sm text-red-500">{formatCurrency(item.deductions)}</span>,
-    },
-    {
-      key: "net_total",
-      label: "Net Total",
-      render: (item: PayrollRun) => <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{formatCurrency(item.net_total)}</span>,
-    },
-    {
-      key: "status",
-      label: "Status",
-      render: (item: PayrollRun) => <StatusBadge status={item.status} />,
-    },
-  ];
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -200,32 +195,39 @@ export default function HRPage() {
           onChange={setActiveTab}
         />
         {activeTab === "employees" && (
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1 overflow-x-auto">
-              {departments.map((dept) => (
-                <button
-                  key={dept}
-                  onClick={() => setActiveDept(dept)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${activeDept === dept ? "bg-blue-600 text-white" : "text-[var(--muted-foreground)] hover:bg-[var(--secondary)]"
-                    }`}
-                >
-                  {dept}
-                </button>
-              ))}
-            </div>
-            <div className="max-w-xs">
-              <SearchInput value={search} onChange={setSearch} placeholder="Search..." />
-            </div>
+          <div className="flex items-center gap-1 overflow-x-auto">
+            {departments.map((dept) => (
+              <button
+                key={dept}
+                onClick={() => setActiveDept(dept)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${activeDept === dept ? "bg-blue-600 text-white" : "text-[var(--muted-foreground)] hover:bg-[var(--secondary)]"
+                  }`}
+              >
+                {dept}
+              </button>
+            ))}
           </div>
         )}
       </div>
 
       {activeTab === "employees" && (
-        <DataTable columns={employeeColumns} data={filtered} emptyMessage="No employees found" onRowClick={(item) => setSelectedEmployee(item as Employee)} />
+        <DataTable
+          columns={employeeColumns}
+          data={filtered}
+          emptyMessage="No employees found"
+          searchPlaceholder="Search employees..."
+          onRowClick={(item) => setSelectedEmployee(item)}
+        />
       )}
 
       {activeTab === "payroll" && (
-        <DataTable columns={payrollColumns} data={mockPayrollRuns} emptyMessage="No payroll runs" />
+        <DataTable
+          columns={payrollColumns}
+          data={mockPayrollRuns}
+          emptyMessage="No payroll runs"
+          searchPlaceholder="Search payroll..."
+          enablePagination={false}
+        />
       )}
 
       {activeTab === "attendance" && (
@@ -286,7 +288,12 @@ export default function HRPage() {
         </Card>
       )}
 
-      <EmployeeDetail employee={selectedEmployee} open={!!selectedEmployee} onClose={() => setSelectedEmployee(null)} />
+      <EmployeeDetail
+        employee={selectedEmployee}
+        open={!!selectedEmployee}
+        onClose={() => setSelectedEmployee(null)}
+        onUpdate={(updated) => { setEmployees(employees.map((e) => e.id === updated.id ? updated : e)); setSelectedEmployee(updated); }}
+      />
 
       <Drawer
         open={showDialog}

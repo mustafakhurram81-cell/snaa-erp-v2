@@ -9,13 +9,16 @@ import {
   Receipt,
   TrendingUp,
   ArrowUpRight,
-  ArrowDownRight,
   Plus,
   FileText,
   Users,
   Package,
   Clock,
   Truck,
+  AlertTriangle,
+  CreditCard,
+  BarChart3,
+  ClipboardList,
 } from "lucide-react";
 import {
   AreaChart,
@@ -79,19 +82,32 @@ const activities = [
   { action: "New vendor MediTech added", actor: "Charlie Procure", time: "Yesterday", icon: Truck },
 ];
 
-// --- Animation configuration ---
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-};
+const lowStockProducts = [
+  { name: "Mayo Scissors 6.5\"", sku: "SKU-001", stock: 12, reorder: 30 },
+  { name: "Adson Forceps 4.75\"", sku: "SKU-002", stock: 8, reorder: 25 },
+  { name: "Kelly Clamp 5.5\"", sku: "SKU-004", stock: 22, reorder: 30 },
+];
 
-const item = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { type: "tween" as const, duration: 0.3 } },
-};
+const invoicePipeline = [
+  { status: "Draft", count: 3, amount: 8500, color: "#94a3b8" },
+  { status: "Sent", count: 5, amount: 24500, color: "#3b82f6" },
+  { status: "Partial", count: 2, amount: 18000, color: "#f59e0b" },
+  { status: "Overdue", count: 2, amount: 15300, color: "#ef4444" },
+  { status: "Paid", count: 12, amount: 95000, color: "#10b981" },
+];
+
+const quickActions = [
+  { label: "New Quote", icon: FileText, href: "/quotations", color: "from-blue-500 to-blue-600" },
+  { label: "New Order", icon: ShoppingCart, href: "/sales-orders", color: "from-violet-500 to-violet-600" },
+  { label: "New Invoice", icon: Receipt, href: "/invoices", color: "from-emerald-500 to-emerald-600" },
+  { label: "Add Product", icon: Package, href: "/products", color: "from-amber-500 to-amber-600" },
+  { label: "Add Customer", icon: Users, href: "/customers", color: "from-rose-500 to-rose-600" },
+  { label: "View Reports", icon: BarChart3, href: "/reports", color: "from-indigo-500 to-indigo-600" },
+];
+
+// --- Animation ---
+const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };
+const item = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { type: "tween" as const, duration: 0.3 } } };
 
 export default function DashboardPage() {
   return (
@@ -99,54 +115,31 @@ export default function DashboardPage() {
       <PageHeader
         title="Dashboard"
         description="Welcome back, Mustafa. Here's your business overview."
-        actions={
-          <div className="flex items-center gap-2">
-            <Link href="/quotations?action=new">
-              <Button variant="secondary" size="sm">
-                <Plus className="w-3.5 h-3.5" />
-                New Quote
-              </Button>
-            </Link>
-            <Link href="/sales-orders?action=new">
-              <Button size="sm">
-                <Plus className="w-3.5 h-3.5" />
-                New Order
-              </Button>
-            </Link>
-          </div>
-        }
       />
+
+      {/* Quick Actions */}
+      <motion.div variants={item} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+        {quickActions.map((action) => {
+          const Icon = action.icon;
+          return (
+            <Link key={action.label} href={action.href}>
+              <div className="group rounded-xl border p-4 text-center cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5" style={{ borderColor: "var(--border)" }}>
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform`}>
+                  <Icon className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>{action.label}</span>
+              </div>
+            </Link>
+          );
+        })}
+      </motion.div>
 
       {/* KPI Cards */}
       <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard
-          title="Total Revenue"
-          value={formatCurrency(523000)}
-          change="+12.5% vs last month"
-          changeType="positive"
-          icon={<DollarSign className="w-5 h-5 text-blue-500" />}
-        />
-        <StatCard
-          title="Open Orders"
-          value="24"
-          change="3 pending shipment"
-          changeType="neutral"
-          icon={<ShoppingCart className="w-5 h-5 text-violet-500" />}
-        />
-        <StatCard
-          title="Production"
-          value="18"
-          change="5 completing today"
-          changeType="positive"
-          icon={<Factory className="w-5 h-5 text-amber-500" />}
-        />
-        <StatCard
-          title="Pending Invoices"
-          value={formatCurrency(67800)}
-          change="2 overdue"
-          changeType="negative"
-          icon={<Receipt className="w-5 h-5 text-emerald-500" />}
-        />
+        <StatCard title="Total Revenue" value={formatCurrency(523000)} change="+12.5% vs last month" changeType="positive" icon={<DollarSign className="w-5 h-5 text-blue-500" />} />
+        <StatCard title="Open Orders" value="24" change="3 pending shipment" changeType="neutral" icon={<ShoppingCart className="w-5 h-5 text-violet-500" />} />
+        <StatCard title="Production" value="18" change="5 completing today" changeType="positive" icon={<Factory className="w-5 h-5 text-amber-500" />} />
+        <StatCard title="Pending Invoices" value={formatCurrency(67800)} change="2 overdue" changeType="negative" icon={<Receipt className="w-5 h-5 text-emerald-500" />} />
       </motion.div>
 
       {/* Charts Row */}
@@ -159,8 +152,7 @@ export default function DashboardPage() {
               <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>Monthly revenue trend</p>
             </div>
             <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
-              <TrendingUp className="w-3.5 h-3.5" />
-              +18.2%
+              <TrendingUp className="w-3.5 h-3.5" /> +18.2%
             </div>
           </div>
           <ResponsiveContainer width="100%" height={260}>
@@ -172,35 +164,10 @@ export default function DashboardPage() {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis
-                dataKey="month"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-                tickFormatter={(v) => `$${v / 1000}k`}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: "var(--card)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                }}
-                formatter={(value: number | undefined) => [formatCurrency(value ?? 0), "Revenue"]}
-              />
-              <Area
-                type="monotone"
-                dataKey="revenue"
-                stroke="#2563eb"
-                strokeWidth={2}
-                fill="url(#revenueGradient)"
-              />
+              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} tickFormatter={(v) => `$${v / 1000}k`} />
+              <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} formatter={(value: number | undefined) => [formatCurrency(value ?? 0), "Revenue"]} />
+              <Area type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} fill="url(#revenueGradient)" />
             </AreaChart>
           </ResponsiveContainer>
         </Card>
@@ -212,27 +179,10 @@ export default function DashboardPage() {
           <div className="flex items-center justify-center">
             <ResponsiveContainer width="100%" height={180}>
               <PieChart>
-                <Pie
-                  data={ordersByCategory}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={75}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
-                  {ordersByCategory.map((entry, index) => (
-                    <Cell key={index} fill={entry.color} />
-                  ))}
+                <Pie data={ordersByCategory} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
+                  {ordersByCategory.map((entry, index) => (<Cell key={index} fill={entry.color} />))}
                 </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                  }}
-                />
+                <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -250,7 +200,7 @@ export default function DashboardPage() {
         </Card>
       </motion.div>
 
-      {/* Second Row */}
+      {/* Second Row: Production + AR/AP + Inventory Alerts */}
       <motion.div variants={item} className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         {/* Production Chart */}
         <Card>
@@ -259,29 +209,104 @@ export default function DashboardPage() {
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={productionData} barGap={4}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis
-                dataKey="name"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: "var(--card)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                }}
-              />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
+              <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} />
               <Bar dataKey="planned" fill="#93c5fd" radius={[4, 4, 0, 0]} barSize={16} />
               <Bar dataKey="completed" fill="#2563eb" radius={[4, 4, 0, 0]} barSize={16} />
             </BarChart>
           </ResponsiveContainer>
+        </Card>
+
+        {/* AR/AP Summary */}
+        <Card>
+          <h3 className="text-sm font-semibold mb-1" style={{ color: "var(--foreground)" }}>AR / AP Summary</h3>
+          <p className="text-xs mb-4" style={{ color: "var(--muted-foreground)" }}>Receivables & Payables</p>
+          <div className="space-y-4">
+            <div className="rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Accounts Receivable</span>
+                <CreditCard className="w-3.5 h-3.5 text-blue-500" />
+              </div>
+              <p className="text-2xl font-bold text-blue-600">{formatCurrency(182500)}</p>
+              <div className="flex items-center gap-3 mt-2">
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 font-semibold">Current: {formatCurrency(125000)}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 font-semibold">Overdue: {formatCurrency(57500)}</span>
+              </div>
+            </div>
+            <div className="rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Accounts Payable</span>
+                <Truck className="w-3.5 h-3.5 text-violet-500" />
+              </div>
+              <p className="text-2xl font-bold text-violet-600">{formatCurrency(170500)}</p>
+              <div className="flex items-center gap-3 mt-2">
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 font-semibold">Current: {formatCurrency(142500)}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-semibold">Due soon: {formatCurrency(28000)}</span>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Inventory Alerts */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Inventory Alerts</h3>
+              <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>Products below reorder point</p>
+            </div>
+            <Link href="/products">
+              <Button variant="ghost" size="sm">View All <ArrowUpRight className="w-3.5 h-3.5" /></Button>
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {lowStockProducts.map((product) => (
+              <div key={product.sku} className="flex items-center gap-3 p-3 rounded-xl border" style={{ borderColor: "var(--border)" }}>
+                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${product.stock < 15 ? "bg-red-500" : "bg-amber-500"}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>{product.name}</p>
+                  <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{product.sku}</p>
+                </div>
+                <div className="text-right">
+                  <p className={`text-sm font-bold ${product.stock < 15 ? "text-red-600" : "text-amber-600"}`}>{product.stock}</p>
+                  <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>/ {product.reorder}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </motion.div>
+
+      {/* Third Row: Invoice Pipeline + Recent Orders */}
+      <motion.div variants={item} className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        {/* Invoice Pipeline */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Invoice Pipeline</h3>
+              <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>By status</p>
+            </div>
+            <Link href="/invoices">
+              <Button variant="ghost" size="sm">View All <ArrowUpRight className="w-3.5 h-3.5" /></Button>
+            </Link>
+          </div>
+          <div className="space-y-2.5">
+            {invoicePipeline.map((stage) => (
+              <div key={stage.status} className="flex items-center gap-3">
+                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: stage.color }} />
+                <span className="text-xs w-14" style={{ color: "var(--muted-foreground)" }}>{stage.status}</span>
+                <div className="flex-1 h-4 rounded-full overflow-hidden" style={{ background: "var(--secondary)" }}>
+                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.max(stage.count * 8, 4)}%`, background: stage.color }} />
+                </div>
+                <span className="text-xs font-semibold w-5 text-right" style={{ color: "var(--foreground)" }}>{stage.count}</span>
+                <span className="text-xs font-medium w-16 text-right" style={{ color: "var(--muted-foreground)" }}>{formatCurrency(stage.amount)}</span>
+              </div>
+            ))}
+          </div>
+          <div className="border-t mt-4 pt-3 flex justify-between" style={{ borderColor: "var(--border)" }}>
+            <span className="text-xs font-semibold" style={{ color: "var(--muted-foreground)" }}>Total Outstanding</span>
+            <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{formatCurrency(invoicePipeline.reduce((s, p) => s + (p.status !== "Paid" ? p.amount : 0), 0))}</span>
+          </div>
         </Card>
 
         {/* Recent Orders */}
@@ -292,10 +317,7 @@ export default function DashboardPage() {
               <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>Latest sales orders</p>
             </div>
             <Link href="/sales-orders">
-              <Button variant="ghost" size="sm">
-                View All
-                <ArrowUpRight className="w-3.5 h-3.5" />
-              </Button>
+              <Button variant="ghost" size="sm">View All <ArrowUpRight className="w-3.5 h-3.5" /></Button>
             </Link>
           </div>
           <div className="overflow-x-auto">
@@ -325,21 +347,15 @@ export default function DashboardPage() {
         </Card>
       </motion.div>
 
-      {/* Production Pipeline Row */}
+      {/* Fourth Row: JO Pipeline + Attention Needed */}
       <motion.div variants={item} className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        {/* JO Stage Pipeline */}
         <Card>
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>JO Pipeline</h3>
               <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>Active job orders by stage</p>
             </div>
-            <Link href="/production">
-              <Button variant="ghost" size="sm">
-                View All
-                <ArrowUpRight className="w-3.5 h-3.5" />
-              </Button>
-            </Link>
+            <Link href="/production"><Button variant="ghost" size="sm">View All <ArrowUpRight className="w-3.5 h-3.5" /></Button></Link>
           </div>
           <div className="space-y-2">
             {[
@@ -357,10 +373,7 @@ export default function DashboardPage() {
               <div key={s.stage} className="flex items-center gap-3">
                 <span className="text-[11px] w-24 truncate" style={{ color: "var(--muted-foreground)" }}>{s.stage}</span>
                 <div className="flex-1 h-4 rounded-full overflow-hidden" style={{ background: "var(--secondary)" }}>
-                  <div
-                    className="h-full rounded-full transition-all duration-700"
-                    style={{ width: `${Math.max(s.count * 25, s.count ? 8 : 0)}%`, background: s.color }}
-                  />
+                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.max(s.count * 25, s.count ? 8 : 0)}%`, background: s.color }} />
                 </div>
                 <span className="text-xs font-semibold w-5 text-right" style={{ color: s.count > 0 ? "var(--foreground)" : "var(--muted-foreground)" }}>{s.count}</span>
               </div>
@@ -368,7 +381,6 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        {/* Stages Needing Attention */}
         <Card>
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -389,14 +401,9 @@ export default function DashboardPage() {
                     <span className="text-xs font-semibold" style={{ color: "var(--primary)" }}>{item.jo}</span>
                     <span className="text-xs" style={{ color: "var(--foreground)" }}>{item.product}</span>
                   </div>
-                  <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                    {item.stage} · {item.vendor} · {item.days} days
-                  </p>
+                  <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>{item.stage} · {item.vendor} · {item.days} days</p>
                 </div>
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${item.risk === "delayed" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
-                    item.risk === "at-risk" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
-                      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                  }`}>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${item.risk === "delayed" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : item.risk === "at-risk" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"}`}>
                   {item.risk === "delayed" ? "Delayed" : item.risk === "at-risk" ? "At Risk" : "On Track"}
                 </span>
               </div>
@@ -422,9 +429,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm" style={{ color: "var(--foreground)" }}>{activity.action}</p>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                      {activity.actor} · {activity.time}
-                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>{activity.actor} · {activity.time}</p>
                   </div>
                 </div>
               );

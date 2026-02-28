@@ -2,9 +2,10 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { BarChart3, Download, Calendar, TrendingUp, DollarSign, Package, ShoppingCart, Users, Factory, Clock } from "lucide-react";
+import { BarChart3, Download, Calendar, TrendingUp, DollarSign, Package, ShoppingCart, Users, Factory, Clock, AlertTriangle } from "lucide-react";
 import { PageHeader, Button, Card, Tabs, StatCard } from "@/components/ui/shared";
 import { formatCurrency } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
 import {
   AreaChart,
   Area,
@@ -46,6 +47,14 @@ const topCustomers = [
   { name: "National Hospital", revenue: 85000, orders: 10 },
   { name: "Metro Medical", revenue: 67000, orders: 8 },
   { name: "Central Clinic", revenue: 52000, orders: 7 },
+];
+
+const customerAging = [
+  { customer: "Gulf Healthcare", current: 45000, "30": 22000, "60": 8000, "90": 0, total: 75000 },
+  { customer: "City Hospital", current: 32000, "30": 15000, "60": 5000, "90": 3000, total: 55000 },
+  { customer: "National Hospital", current: 28000, "30": 10000, "60": 0, "90": 0, total: 38000 },
+  { customer: "Metro Medical", current: 18000, "30": 7000, "60": 4000, "90": 2500, total: 31500 },
+  { customer: "Central Clinic", current: 12000, "30": 5000, "60": 0, "90": 0, total: 17000 },
 ];
 
 const purchasingData = [
@@ -99,8 +108,76 @@ const stageAvgDays = [
   { stage: "Pack", days: 0.5 },
 ];
 
+const inventoryByCategory = [
+  { category: "Scissors", value: 450, color: "#2563eb" },
+  { category: "Forceps", value: 320, color: "#3b82f6" },
+  { category: "Retractors", value: 180, color: "#60a5fa" },
+  { category: "Clamps", value: 250, color: "#93c5fd" },
+  { category: "Needle Holders", value: 140, color: "#bfdbfe" },
+];
+
+const stockLevels = [
+  { product: "Mayo Scissors 6.5\"", sku: "SKU-001", stock: 120, reorder: 30, unitCost: 24, value: 2880 },
+  { product: "Adson Forceps 4.75\"", sku: "SKU-002", stock: 85, reorder: 25, unitCost: 15, value: 1275 },
+  { product: "Kelly Clamp 5.5\"", sku: "SKU-004", stock: 22, reorder: 30, unitCost: 20, value: 440, low: true },
+  { product: "Army-Navy Retractor", sku: "SKU-005", stock: 45, reorder: 20, unitCost: 52, value: 2340 },
+  { product: "Debakey Forceps 8\"", sku: "SKU-006", stock: 12, reorder: 20, unitCost: 35, value: 420, low: true },
+  { product: "Mayo-Hegar Needle Holder", sku: "SKU-007", stock: 8, reorder: 15, unitCost: 30, value: 240, low: true },
+  { product: "Metzenbaum Scissors 7\"", sku: "SKU-008", stock: 65, reorder: 25, unitCost: 28, value: 1820 },
+  { product: "Allis Clamp 6\"", sku: "SKU-009", stock: 90, reorder: 20, unitCost: 22, value: 1980 },
+];
+
+// CSV helper
+function exportCSV(headers: string[], rows: string[][], filename: string) {
+  const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState("production");
+  const [activePeriod, setActivePeriod] = useState("YTD");
+  const { toast } = useToast();
+
+  const handleExportCSV = () => {
+    if (activeTab === "sales") {
+      exportCSV(
+        ["Month", "Revenue", "Cost", "Profit"],
+        salesData.map((d) => [d.month, String(d.revenue), String(d.cost), String(d.profit)]),
+        "sales-report.csv"
+      );
+    } else if (activeTab === "purchasing") {
+      exportCSV(
+        ["Month", "Amount"],
+        purchasingData.map((d) => [d.month, String(d.amount)]),
+        "purchasing-report.csv"
+      );
+    } else if (activeTab === "financial") {
+      exportCSV(
+        ["Category", "Amount"],
+        expenseBreakdown.map((d) => [d.name, String(d.value)]),
+        "financial-report.csv"
+      );
+    } else if (activeTab === "inventory") {
+      exportCSV(
+        ["Product", "SKU", "Stock", "Reorder Point", "Unit Cost", "Value"],
+        stockLevels.map((p) => [p.product, p.sku, String(p.stock), String(p.reorder), String(p.unitCost), String(p.value)]),
+        "inventory-report.csv"
+      );
+    } else {
+      exportCSV(
+        ["Vendor", "Jobs", "On-Time %", "Quality %", "Avg Days"],
+        vendorPerformance.map((v) => [v.vendor, String(v.jobs), String(v.onTime), String(v.quality), String(v.avgDays)]),
+        "production-report.csv"
+      );
+    }
+    toast("success", "CSV exported", `${activeTab} report downloaded`);
+  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -108,19 +185,20 @@ export default function ReportsPage() {
         title="Reports"
         description="Business analytics and performance insights"
         actions={
-          <Button variant="secondary">
+          <Button variant="secondary" onClick={handleExportCSV}>
             <Download className="w-3.5 h-3.5" />
-            Export PDF
+            Export CSV
           </Button>
         }
       />
 
-      {/* Period Quick Select */}
+      {/* Tabs + Period Quick Select */}
       <div className="flex items-center justify-between mb-6">
         <Tabs
           tabs={[
             { key: "production", label: "Production" },
             { key: "sales", label: "Sales" },
+            { key: "inventory", label: "Inventory" },
             { key: "purchasing", label: "Purchasing" },
             { key: "financial", label: "Financial" },
           ]}
@@ -131,7 +209,8 @@ export default function ReportsPage() {
           {["7D", "30D", "90D", "YTD", "1Y"].map((period) => (
             <button
               key={period}
-              className="px-2.5 py-1 rounded-md text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+              onClick={() => setActivePeriod(period)}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${activePeriod === period ? "bg-[var(--background)] text-[var(--foreground)] shadow-sm" : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"}`}
             >
               {period}
             </button>
@@ -139,6 +218,7 @@ export default function ReportsPage() {
         </div>
       </div>
 
+      {/* ========== PRODUCTION ========== */}
       {activeTab === "production" && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
@@ -159,9 +239,7 @@ export default function ReportsPage() {
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} allowDecimals={false} />
                   <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} />
                   <Bar dataKey="count" radius={[6, 6, 0, 0]} barSize={28}>
-                    {stagePipeline.map((entry, idx) => (
-                      <Cell key={idx} fill={entry.color} />
-                    ))}
+                    {stagePipeline.map((entry, idx) => (<Cell key={idx} fill={entry.color} />))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -200,12 +278,8 @@ export default function ReportsPage() {
                   <tr key={v.vendor} className="border-b last:border-b-0 hover:bg-[var(--secondary)] transition-colors" style={{ borderColor: "var(--border)" }}>
                     <td className="px-5 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>{v.vendor}</td>
                     <td className="px-5 py-3 text-sm" style={{ color: "var(--foreground)" }}>{v.jobs}</td>
-                    <td className="px-5 py-3">
-                      <span className={`text-sm font-semibold ${v.onTime >= 90 ? "text-emerald-600" : v.onTime >= 85 ? "text-amber-600" : "text-red-600"}`}>{v.onTime}%</span>
-                    </td>
-                    <td className="px-5 py-3">
-                      <span className={`text-sm font-semibold ${v.quality >= 95 ? "text-emerald-600" : v.quality >= 90 ? "text-amber-600" : "text-red-600"}`}>{v.quality}%</span>
-                    </td>
+                    <td className="px-5 py-3"><span className={`text-sm font-semibold ${v.onTime >= 90 ? "text-emerald-600" : v.onTime >= 85 ? "text-amber-600" : "text-red-600"}`}>{v.onTime}%</span></td>
+                    <td className="px-5 py-3"><span className={`text-sm font-semibold ${v.quality >= 95 ? "text-emerald-600" : v.quality >= 90 ? "text-amber-600" : "text-red-600"}`}>{v.quality}%</span></td>
                     <td className="px-5 py-3 text-sm" style={{ color: "var(--muted-foreground)" }}>{v.avgDays} days</td>
                   </tr>
                 ))}
@@ -215,9 +289,9 @@ export default function ReportsPage() {
         </>
       )}
 
+      {/* ========== SALES ========== */}
       {activeTab === "sales" && (
         <>
-          {/* Sales KPIs */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
             <StatCard title="Total Revenue" value={formatCurrency(523000)} change="+18.2% vs last period" changeType="positive" icon={<DollarSign className="w-5 h-5 text-blue-500" />} />
             <StatCard title="Total Orders" value="156" change="+12 this month" changeType="positive" icon={<ShoppingCart className="w-5 h-5 text-violet-500" />} />
@@ -225,7 +299,6 @@ export default function ReportsPage() {
             <StatCard title="Active Customers" value="42" change="+3 new" changeType="positive" icon={<Users className="w-5 h-5 text-amber-500" />} />
           </div>
 
-          {/* Revenue vs Profit Chart */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
             <Card className="lg:col-span-2">
               <h3 className="text-sm font-semibold mb-1" style={{ color: "var(--foreground)" }}>Revenue vs Profit</h3>
@@ -244,7 +317,6 @@ export default function ReportsPage() {
               </ResponsiveContainer>
             </Card>
 
-            {/* Top Products */}
             <Card>
               <h3 className="text-sm font-semibold mb-1" style={{ color: "var(--foreground)" }}>Top Products</h3>
               <p className="text-xs mb-4" style={{ color: "var(--muted-foreground)" }}>By revenue</p>
@@ -252,21 +324,11 @@ export default function ReportsPage() {
                 {topProducts.map((product, idx) => (
                   <div key={product.name} className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>
-                        {idx + 1}. {product.name}
-                      </span>
-                      <span className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>
-                        {formatCurrency(product.revenue)}
-                      </span>
+                      <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>{idx + 1}. {product.name}</span>
+                      <span className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>{formatCurrency(product.revenue)}</span>
                     </div>
                     <div className="w-full h-1.5 rounded-full" style={{ background: "var(--secondary)" }}>
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${(product.revenue / topProducts[0].revenue) * 100}%`,
-                          background: product.color,
-                        }}
-                      />
+                      <div className="h-full rounded-full" style={{ width: `${(product.revenue / topProducts[0].revenue) * 100}%`, background: product.color }} />
                     </div>
                   </div>
                 ))}
@@ -275,7 +337,7 @@ export default function ReportsPage() {
           </div>
 
           {/* Top Customers */}
-          <Card padding={false}>
+          <Card padding={false} className="mb-6">
             <div className="px-5 pt-5 pb-3">
               <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Top Customers</h3>
               <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>By revenue contribution</p>
@@ -301,9 +363,137 @@ export default function ReportsPage() {
               </tbody>
             </table>
           </Card>
+
+          {/* Customer Aging */}
+          <Card padding={false}>
+            <div className="px-5 pt-5 pb-3">
+              <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Customer Aging Report</h3>
+              <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>Outstanding receivables by age</p>
+            </div>
+            <table className="w-full">
+              <thead>
+                <tr className="border-b" style={{ borderColor: "var(--border)" }}>
+                  {["Customer", "Current", "31-60 Days", "61-90 Days", "90+ Days", "Total"].map((h) => (
+                    <th key={h} className="text-left text-[11px] font-semibold uppercase tracking-wider px-5 py-2.5" style={{ color: "var(--muted-foreground)", background: "var(--secondary)" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {customerAging.map((row) => (
+                  <tr key={row.customer} className="border-b last:border-b-0 hover:bg-[var(--secondary)] transition-colors" style={{ borderColor: "var(--border)" }}>
+                    <td className="px-5 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>{row.customer}</td>
+                    <td className="px-5 py-3 text-sm" style={{ color: "var(--foreground)" }}>{formatCurrency(row.current)}</td>
+                    <td className="px-5 py-3 text-sm" style={{ color: row["30"] > 0 ? "var(--foreground)" : "var(--muted-foreground)" }}>{formatCurrency(row["30"])}</td>
+                    <td className="px-5 py-3 text-sm" style={{ color: row["60"] > 0 ? "#f59e0b" : "var(--muted-foreground)" }}>{formatCurrency(row["60"])}</td>
+                    <td className="px-5 py-3"><span className={`text-sm font-semibold ${row["90"] > 0 ? "text-red-600" : "text-[var(--muted-foreground)]"}`}>{formatCurrency(row["90"])}</span></td>
+                    <td className="px-5 py-3 text-sm font-semibold" style={{ color: "var(--foreground)" }}>{formatCurrency(row.total)}</td>
+                  </tr>
+                ))}
+                <tr style={{ background: "var(--secondary)" }}>
+                  <td className="px-5 py-3 text-sm font-bold" style={{ color: "var(--foreground)" }}>Total</td>
+                  <td className="px-5 py-3 text-sm font-bold" style={{ color: "var(--foreground)" }}>{formatCurrency(customerAging.reduce((s, r) => s + r.current, 0))}</td>
+                  <td className="px-5 py-3 text-sm font-bold" style={{ color: "var(--foreground)" }}>{formatCurrency(customerAging.reduce((s, r) => s + r["30"], 0))}</td>
+                  <td className="px-5 py-3 text-sm font-bold text-amber-600">{formatCurrency(customerAging.reduce((s, r) => s + r["60"], 0))}</td>
+                  <td className="px-5 py-3 text-sm font-bold text-red-600">{formatCurrency(customerAging.reduce((s, r) => s + r["90"], 0))}</td>
+                  <td className="px-5 py-3 text-sm font-bold" style={{ color: "var(--foreground)" }}>{formatCurrency(customerAging.reduce((s, r) => s + r.total, 0))}</td>
+                </tr>
+              </tbody>
+            </table>
+          </Card>
         </>
       )}
 
+      {/* ========== INVENTORY ========== */}
+      {activeTab === "inventory" && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+            <StatCard title="Total SKUs" value={String(stockLevels.length)} change="Active products" changeType="neutral" icon={<Package className="w-5 h-5 text-blue-500" />} />
+            <StatCard title="Total Value" value={formatCurrency(stockLevels.reduce((s, p) => s + p.value, 0))} change="At cost" changeType="neutral" icon={<DollarSign className="w-5 h-5 text-emerald-500" />} />
+            <StatCard title="Low Stock" value={String(stockLevels.filter((p) => p.low).length)} change="Below reorder point" changeType="negative" icon={<AlertTriangle className="w-5 h-5 text-red-500" />} />
+            <StatCard title="Reorder Value" value={formatCurrency(stockLevels.filter((p) => p.low).reduce((s, p) => s + (p.reorder - p.stock) * p.unitCost, 0))} change="To replenish" changeType="neutral" icon={<ShoppingCart className="w-5 h-5 text-amber-500" />} />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+            {/* Stock by Category */}
+            <Card>
+              <h3 className="text-sm font-semibold mb-1" style={{ color: "var(--foreground)" }}>Stock by Category</h3>
+              <p className="text-xs mb-4" style={{ color: "var(--muted-foreground)" }}>Units in stock</p>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={inventoryByCategory} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value" nameKey="category">
+                    {inventoryByCategory.map((entry, idx) => (<Cell key={idx} fill={entry.color} />))}
+                  </Pie>
+                  <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-2 mt-2">
+                {inventoryByCategory.map((cat) => (
+                  <div key={cat.category} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ background: cat.color }} />
+                      <span style={{ color: "var(--foreground)" }}>{cat.category}</span>
+                    </div>
+                    <span className="font-medium" style={{ color: "var(--muted-foreground)" }}>{cat.value} units</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Stock Levels Bar Chart */}
+            <Card className="lg:col-span-2">
+              <h3 className="text-sm font-semibold mb-1" style={{ color: "var(--foreground)" }}>Stock vs Reorder Point</h3>
+              <p className="text-xs mb-4" style={{ color: "var(--muted-foreground)" }}>Products with stock level comparison</p>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={stockLevels} barGap={2}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="sku" axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
+                  <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} />
+                  <Legend />
+                  <Bar dataKey="stock" name="Current Stock" fill="#2563eb" radius={[4, 4, 0, 0]} barSize={16} />
+                  <Bar dataKey="reorder" name="Reorder Point" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={16} />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+          </div>
+
+          {/* Stock Detail Table */}
+          <Card padding={false}>
+            <div className="px-5 pt-5 pb-3">
+              <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Stock Detail</h3>
+              <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>Complete inventory overview</p>
+            </div>
+            <table className="w-full">
+              <thead>
+                <tr className="border-b" style={{ borderColor: "var(--border)" }}>
+                  {["Product", "SKU", "Stock", "Reorder Pt", "Unit Cost", "Value", "Status"].map((h) => (
+                    <th key={h} className="text-left text-[11px] font-semibold uppercase tracking-wider px-5 py-2.5" style={{ color: "var(--muted-foreground)", background: "var(--secondary)" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {stockLevels.map((item) => (
+                  <tr key={item.sku} className="border-b last:border-b-0 hover:bg-[var(--secondary)] transition-colors" style={{ borderColor: "var(--border)" }}>
+                    <td className="px-5 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>{item.product}</td>
+                    <td className="px-5 py-3 text-sm" style={{ color: "var(--muted-foreground)" }}>{item.sku}</td>
+                    <td className="px-5 py-3"><span className={`text-sm font-semibold ${item.low ? "text-red-600" : "text-emerald-600"}`}>{item.stock}</span></td>
+                    <td className="px-5 py-3 text-sm" style={{ color: "var(--muted-foreground)" }}>{item.reorder}</td>
+                    <td className="px-5 py-3 text-sm" style={{ color: "var(--foreground)" }}>{formatCurrency(item.unitCost)}</td>
+                    <td className="px-5 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>{formatCurrency(item.value)}</td>
+                    <td className="px-5 py-3">
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${item.low ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"}`}>
+                        {item.low ? "Low Stock" : "In Stock"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </>
+      )}
+
+      {/* ========== PURCHASING ========== */}
       {activeTab === "purchasing" && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -327,6 +517,7 @@ export default function ReportsPage() {
         </>
       )}
 
+      {/* ========== FINANCIAL ========== */}
       {activeTab === "financial" && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
@@ -368,9 +559,7 @@ export default function ReportsPage() {
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                   <Pie data={expenseBreakdown} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={3} dataKey="value">
-                    {expenseBreakdown.map((entry, idx) => (
-                      <Cell key={idx} fill={entry.color} />
-                    ))}
+                    {expenseBreakdown.map((entry, idx) => (<Cell key={idx} fill={entry.color} />))}
                   </Pie>
                   <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} formatter={(value: number | undefined) => [formatCurrency(value ?? 0), ""]} />
                 </PieChart>

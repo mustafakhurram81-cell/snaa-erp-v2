@@ -2,10 +2,11 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Package, Plus, Grid3x3, List, Filter } from "lucide-react";
-import { PageHeader, Button, Card, StatusBadge, Drawer, Input, SearchInput, Tabs } from "@/components/ui/shared";
+import { Package, Plus, Grid3x3, List } from "lucide-react";
+import { PageHeader, Button, Card, StatusBadge, Drawer, Input, SearchInput } from "@/components/ui/shared";
 import { ProductDetail } from "@/components/details/product-detail";
 import { formatCurrency } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
 
 interface Product {
     id: string;
@@ -17,29 +18,61 @@ interface Product {
     selling_price: number;
     stock: number;
     status: string;
-    [key: string]: unknown;
 }
 
-const mockProducts: Product[] = [
-    { id: "1", sku: "SI-SC-001", name: "Mayo Scissors 6.5\" Straight", category: "Scissors", subcategory: "Mayo", unit_cost: 8.50, selling_price: 24.00, stock: 150, status: "active" },
-    { id: "2", sku: "SI-SC-002", name: "Metzenbaum Scissors 7\" Curved", category: "Scissors", subcategory: "Metzenbaum", unit_cost: 9.00, selling_price: 28.00, stock: 120, status: "active" },
-    { id: "3", sku: "SI-FP-001", name: "Adson Forceps 4.75\"", category: "Forceps", subcategory: "Adson", unit_cost: 5.50, selling_price: 15.00, stock: 200, status: "active" },
-    { id: "4", sku: "SI-FP-002", name: "Debakey Forceps 8\"", category: "Forceps", subcategory: "DeBakey", unit_cost: 12.00, selling_price: 35.00, stock: 85, status: "active" },
+const initialProducts: Product[] = [
+    { id: "1", sku: "SI-SC-001", name: 'Mayo Scissors 6.5" Straight', category: "Scissors", subcategory: "Mayo", unit_cost: 8.50, selling_price: 24.00, stock: 150, status: "active" },
+    { id: "2", sku: "SI-SC-002", name: 'Metzenbaum Scissors 7" Curved', category: "Scissors", subcategory: "Metzenbaum", unit_cost: 9.00, selling_price: 28.00, stock: 120, status: "active" },
+    { id: "3", sku: "SI-FP-001", name: 'Adson Forceps 4.75"', category: "Forceps", subcategory: "Adson", unit_cost: 5.50, selling_price: 15.00, stock: 200, status: "active" },
+    { id: "4", sku: "SI-FP-002", name: 'Debakey Forceps 8"', category: "Forceps", subcategory: "DeBakey", unit_cost: 12.00, selling_price: 35.00, stock: 85, status: "active" },
     { id: "5", sku: "SI-RT-001", name: "Army-Navy Retractor Set", category: "Retractors", subcategory: "Hand-held", unit_cost: 18.00, selling_price: 52.00, stock: 60, status: "active" },
-    { id: "6", sku: "SI-CL-001", name: "Kelly Clamp 5.5\" Curved", category: "Clamps", subcategory: "Kelly", unit_cost: 7.00, selling_price: 20.00, stock: 175, status: "active" },
-    { id: "7", sku: "SI-NH-001", name: "Mayo-Hegar Needle Holder 7\"", category: "Needle Holders", subcategory: "Mayo-Hegar", unit_cost: 10.00, selling_price: 30.00, stock: 95, status: "active" },
-    { id: "8", sku: "SI-SC-003", name: "Iris Scissors 4.5\" Straight", category: "Scissors", subcategory: "Iris", unit_cost: 6.00, selling_price: 18.00, stock: 0, status: "inactive" },
+    { id: "6", sku: "SI-CL-001", name: 'Kelly Clamp 5.5" Curved', category: "Clamps", subcategory: "Kelly", unit_cost: 7.00, selling_price: 20.00, stock: 175, status: "active" },
+    { id: "7", sku: "SI-NH-001", name: 'Mayo-Hegar Needle Holder 7"', category: "Needle Holders", subcategory: "Mayo-Hegar", unit_cost: 10.00, selling_price: 30.00, stock: 95, status: "active" },
+    { id: "8", sku: "SI-SC-003", name: 'Iris Scissors 4.5" Straight', category: "Scissors", subcategory: "Iris", unit_cost: 6.00, selling_price: 18.00, stock: 0, status: "inactive" },
 ];
 
 const categories = ["All", "Scissors", "Forceps", "Retractors", "Clamps", "Needle Holders"];
 
 export default function ProductsPage() {
-    const [products] = useState<Product[]>(mockProducts);
+    const [products, setProducts] = useState<Product[]>(initialProducts);
     const [search, setSearch] = useState("");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [activeCategory, setActiveCategory] = useState("All");
     const [showDialog, setShowDialog] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const { toast } = useToast();
+
+    // Form state
+    const [formData, setFormData] = useState({ name: "", sku: "", category: "", subcategory: "", unit_cost: "", selling_price: "", stock: "" });
+
+    const resetForm = () => setFormData({ name: "", sku: "", category: "", subcategory: "", unit_cost: "", selling_price: "", stock: "" });
+
+    const handleCreate = () => {
+        if (!formData.name.trim() || !formData.sku.trim()) {
+            toast("error", "Name and SKU are required");
+            return;
+        }
+        const newProduct: Product = {
+            id: Date.now().toString(),
+            sku: formData.sku,
+            name: formData.name,
+            category: formData.category || "Uncategorized",
+            subcategory: formData.subcategory || "",
+            unit_cost: parseFloat(formData.unit_cost) || 0,
+            selling_price: parseFloat(formData.selling_price) || 0,
+            stock: parseInt(formData.stock) || 0,
+            status: "active",
+        };
+        setProducts([newProduct, ...products]);
+        setShowDialog(false);
+        resetForm();
+        toast("success", `Product ${newProduct.name} created`);
+    };
+
+    const handleUpdateProduct = (updated: typeof products[0]) => {
+        setProducts(products.map((p) => p.id === updated.id ? updated : p));
+        setSelectedProduct(updated);
+    };
 
     const filtered = products.filter((p) => {
         const matchesSearch = [p.name, p.sku, p.category].some((v) =>
@@ -55,7 +88,7 @@ export default function ProductsPage() {
                 title="Products"
                 description={`${products.length} surgical instruments in catalog`}
                 actions={
-                    <Button onClick={() => setShowDialog(true)}>
+                    <Button onClick={() => { resetForm(); setShowDialog(true); }}>
                         <Plus className="w-3.5 h-3.5" />
                         Add Product
                     </Button>
@@ -112,7 +145,6 @@ export default function ProductsPage() {
                             transition={{ delay: idx * 0.03 }}
                         >
                             <Card className="hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group" onClick={() => setSelectedProduct(product)}>
-                                {/* Product Icon */}
                                 <div className="w-full h-32 rounded-lg mb-3 flex items-center justify-center" style={{ background: "var(--secondary)" }}>
                                     <Package className="w-10 h-10 transition-transform group-hover:scale-110" style={{ color: "var(--muted-foreground)" }} />
                                 </div>
@@ -180,7 +212,12 @@ export default function ProductsPage() {
                 </div>
             )}
 
-            <ProductDetail product={selectedProduct} open={!!selectedProduct} onClose={() => setSelectedProduct(null)} />
+            <ProductDetail
+                product={selectedProduct}
+                open={!!selectedProduct}
+                onClose={() => setSelectedProduct(null)}
+                onUpdate={handleUpdateProduct}
+            />
 
             <Drawer
                 open={showDialog}
@@ -189,24 +226,38 @@ export default function ProductsPage() {
                 footer={
                     <div className="flex justify-end gap-2">
                         <Button variant="secondary" onClick={() => setShowDialog(false)}>Cancel</Button>
-                        <Button onClick={() => setShowDialog(false)}>Create Product</Button>
+                        <Button onClick={handleCreate}>Create Product</Button>
                     </div>
                 }
             >
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
-                        <Input label="Product Name" placeholder='Mayo Scissors 6.5"' />
-                        <Input label="SKU" placeholder="SI-SC-001" />
+                        <Input label="Product Name" placeholder='Mayo Scissors 6.5"' value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                        <Input label="SKU" placeholder="SI-SC-001" value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        <Input label="Category" placeholder="Scissors" />
-                        <Input label="Subcategory" placeholder="Mayo" />
+                        <Input label="Category" placeholder="Scissors" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} />
+                        <Input label="Subcategory" placeholder="Mayo" value={formData.subcategory} onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })} />
                     </div>
                     <div className="grid grid-cols-3 gap-4">
-                        <Input label="Unit Cost" type="number" placeholder="0.00" />
-                        <Input label="Selling Price" type="number" placeholder="0.00" />
-                        <Input label="Initial Stock" type="number" placeholder="0" />
+                        <Input label="Unit Cost" type="number" placeholder="0.00" value={formData.unit_cost} onChange={(e) => setFormData({ ...formData, unit_cost: e.target.value })} />
+                        <Input label="Selling Price" type="number" placeholder="0.00" value={formData.selling_price} onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })} />
+                        <Input label="Initial Stock" type="number" placeholder="0" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} />
                     </div>
+                    {/* Margin Preview */}
+                    {formData.unit_cost && formData.selling_price && (
+                        <div className="rounded-lg border p-3" style={{ borderColor: "var(--border)", background: "var(--secondary)" }}>
+                            <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--muted-foreground)" }}>Margin Preview</p>
+                            <div className="flex items-center gap-4 mt-1">
+                                <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>
+                                    {formatCurrency(parseFloat(formData.selling_price) - parseFloat(formData.unit_cost))} per unit
+                                </span>
+                                <span className="text-xs font-semibold text-emerald-600">
+                                    {((parseFloat(formData.selling_price) - parseFloat(formData.unit_cost)) / parseFloat(formData.selling_price) * 100).toFixed(1)}% margin
+                                </span>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </Drawer>
         </motion.div>

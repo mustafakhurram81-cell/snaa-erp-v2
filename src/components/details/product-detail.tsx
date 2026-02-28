@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
-import { Drawer, Button, StatusBadge, DrawerTabs } from "@/components/ui/shared";
+import React, { useState, useEffect } from "react";
+import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
 import { formatCurrency } from "@/lib/utils";
-import { Edit2, Package, TrendingUp } from "lucide-react";
+import { Edit3, Package, TrendingUp, Save, X } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 
 interface Product {
     id: string;
@@ -15,13 +16,13 @@ interface Product {
     selling_price: number;
     stock: number;
     status: string;
-    [key: string]: unknown;
 }
 
 interface ProductDetailProps {
     product: Product | null;
     open: boolean;
     onClose: () => void;
+    onUpdate?: (product: Product) => void;
 }
 
 const recentOrders = [
@@ -30,12 +31,28 @@ const recentOrders = [
     { id: "SO-2026-030", customer: "Global Health", qty: 100, date: "Feb 10, 2026" },
 ];
 
-export function ProductDetail({ product, open, onClose }: ProductDetailProps) {
+export function ProductDetail({ product, open, onClose, onUpdate }: ProductDetailProps) {
     if (!product) return null;
+    const { toast } = useToast();
     const [activeTab, setActiveTab] = useState("orders");
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState({ ...product });
 
-    const margin = product.selling_price > 0
-        ? ((product.selling_price - product.unit_cost) / product.selling_price * 100).toFixed(1)
+    useEffect(() => {
+        if (product) { setEditData({ ...product }); setIsEditing(false); }
+    }, [product]);
+
+    const handleSave = () => {
+        if (onUpdate) onUpdate(editData);
+        setIsEditing(false);
+        toast("success", "Product updated", `${editData.name} saved successfully`);
+    };
+
+    const handleCancel = () => { setEditData({ ...product }); setIsEditing(false); };
+
+    const displayProduct = isEditing ? editData : product;
+    const margin = displayProduct.selling_price > 0
+        ? ((displayProduct.selling_price - displayProduct.unit_cost) / displayProduct.selling_price * 100).toFixed(1)
         : "0";
 
     const tabs = [
@@ -45,89 +62,146 @@ export function ProductDetail({ product, open, onClose }: ProductDetailProps) {
     return (
         <Drawer
             open={open}
-            onClose={onClose}
-            title="Product Details"
+            onClose={() => { handleCancel(); onClose(); }}
+            title={isEditing ? "Edit Product" : "Product Details"}
             width="max-w-xl"
             footer={
                 <div className="flex justify-between">
-                    <Button variant="secondary" onClick={onClose}>Close</Button>
-                    <Button variant="secondary">
-                        <Edit2 className="w-3.5 h-3.5" />
-                        Edit Product
-                    </Button>
+                    <Button variant="secondary" onClick={() => { handleCancel(); onClose(); }}>Close</Button>
+                    <div className="flex gap-2">
+                        {isEditing ? (
+                            <>
+                                <Button variant="secondary" onClick={handleCancel}><X className="w-3.5 h-3.5" /> Cancel</Button>
+                                <Button onClick={handleSave}><Save className="w-3.5 h-3.5" /> Save Changes</Button>
+                            </>
+                        ) : (
+                            <Button variant="secondary" onClick={() => setIsEditing(true)}>
+                                <Edit3 className="w-3.5 h-3.5" /> Edit Product
+                            </Button>
+                        )}
+                    </div>
                 </div>
             }
         >
-            {/* Pinned Header */}
+            {/* Header */}
             <div className="flex items-center gap-4 mb-5">
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 flex items-center justify-center flex-shrink-0">
                     <Package className="w-6 h-6 text-blue-600" />
                 </div>
                 <div className="flex-1">
-                    <h3 className="text-lg font-bold" style={{ color: "var(--foreground)" }}>{product.name}</h3>
-                    <p className="text-sm font-mono" style={{ color: "var(--muted-foreground)" }}>{product.sku}</p>
-                </div>
-                <StatusBadge status={product.status} />
-            </div>
-
-            {/* Pinned Category */}
-            <div className="rounded-xl border p-4 mb-5" style={{ background: "var(--secondary)", borderColor: "var(--border)" }}>
-                <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Category</p>
-                        <p className="text-sm font-medium mt-0.5" style={{ color: "var(--foreground)" }}>{product.category}</p>
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Subcategory</p>
-                        <p className="text-sm font-medium mt-0.5" style={{ color: "var(--foreground)" }}>{product.subcategory}</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Pinned Pricing */}
-            <div className="grid grid-cols-3 gap-4 mb-5">
-                <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Unit Cost</p>
-                    <p className="text-lg font-bold mt-0.5" style={{ color: "var(--foreground)" }}>{formatCurrency(product.unit_cost)}</p>
-                </div>
-                <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Selling Price</p>
-                    <p className="text-lg font-bold mt-0.5" style={{ color: "var(--foreground)" }}>{formatCurrency(product.selling_price)}</p>
-                </div>
-                <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Margin</p>
-                    <p className="text-lg font-bold mt-0.5 text-emerald-600 flex items-center gap-1">
-                        <TrendingUp className="w-4 h-4" />
-                        {margin}%
-                    </p>
-                </div>
-            </div>
-
-            {/* Pinned Stock */}
-            <div className="rounded-xl border p-4 mb-5" style={{ borderColor: "var(--border)" }}>
-                <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--muted-foreground)" }}>Current Stock</p>
-                <p className={`text-2xl font-bold ${product.stock < 30 ? "text-red-600" : ""}`} style={product.stock >= 30 ? { color: "var(--foreground)" } : undefined}>
-                    {product.stock} units
-                </p>
-                {product.stock < 30 && <p className="text-xs text-red-500 font-medium mt-1">⚠ Below reorder point</p>}
-            </div>
-
-            {/* Tabs */}
-            <DrawerTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
-
-            {/* Tab: Orders */}
-            {activeTab === "orders" && (
-                <div className="space-y-2">
-                    {recentOrders.map((order) => (
-                        <div key={order.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: "var(--border)" }}>
-                            <div>
-                                <p className="text-sm font-medium" style={{ color: "var(--primary)" }}>{order.id}</p>
-                                <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{order.customer} · {order.date}</p>
-                            </div>
-                            <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{order.qty} units</span>
+                    {isEditing ? (
+                        <div className="space-y-2">
+                            <Input value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} placeholder="Product name" />
+                            <Input value={editData.sku} onChange={(e) => setEditData({ ...editData, sku: e.target.value })} placeholder="SKU" />
                         </div>
-                    ))}
+                    ) : (
+                        <>
+                            <h3 className="text-lg font-bold" style={{ color: "var(--foreground)" }}>{product.name}</h3>
+                            <p className="text-sm font-mono" style={{ color: "var(--muted-foreground)" }}>{product.sku}</p>
+                        </>
+                    )}
                 </div>
+                {!isEditing && <StatusBadge status={product.status} />}
+                {isEditing && (
+                    <select
+                        value={editData.status}
+                        onChange={(e) => setEditData({ ...editData, status: e.target.value })}
+                        className="h-8 px-3 rounded-lg border text-xs font-medium"
+                        style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+                    >
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                )}
+            </div>
+
+            {/* Category */}
+            <div className="rounded-xl border p-4 mb-5" style={{ background: "var(--secondary)", borderColor: "var(--border)" }}>
+                {isEditing ? (
+                    <div className="grid grid-cols-2 gap-3">
+                        <Input label="Category" value={editData.category} onChange={(e) => setEditData({ ...editData, category: e.target.value })} />
+                        <Input label="Subcategory" value={editData.subcategory} onChange={(e) => setEditData({ ...editData, subcategory: e.target.value })} />
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Category</p>
+                            <p className="text-sm font-medium mt-0.5" style={{ color: "var(--foreground)" }}>{product.category}</p>
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Subcategory</p>
+                            <p className="text-sm font-medium mt-0.5" style={{ color: "var(--foreground)" }}>{product.subcategory}</p>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Pricing */}
+            <div className="grid grid-cols-3 gap-4 mb-5">
+                {isEditing ? (
+                    <>
+                        <Input label="Unit Cost" type="number" value={String(editData.unit_cost)} onChange={(e) => setEditData({ ...editData, unit_cost: parseFloat(e.target.value) || 0 })} />
+                        <Input label="Selling Price" type="number" value={String(editData.selling_price)} onChange={(e) => setEditData({ ...editData, selling_price: parseFloat(e.target.value) || 0 })} />
+                        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Margin</p>
+                            <p className="text-lg font-bold mt-0.5 text-emerald-600 flex items-center gap-1">
+                                <TrendingUp className="w-4 h-4" />{margin}%
+                            </p>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Unit Cost</p>
+                            <p className="text-lg font-bold mt-0.5" style={{ color: "var(--foreground)" }}>{formatCurrency(product.unit_cost)}</p>
+                        </div>
+                        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Selling Price</p>
+                            <p className="text-lg font-bold mt-0.5" style={{ color: "var(--foreground)" }}>{formatCurrency(product.selling_price)}</p>
+                        </div>
+                        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Margin</p>
+                            <p className="text-lg font-bold mt-0.5 text-emerald-600 flex items-center gap-1">
+                                <TrendingUp className="w-4 h-4" />{margin}%
+                            </p>
+                        </div>
+                    </>
+                )}
+            </div>
+
+            {/* Stock */}
+            <div className="rounded-xl border p-4 mb-5" style={{ borderColor: "var(--border)" }}>
+                {isEditing ? (
+                    <Input label="Current Stock" type="number" value={String(editData.stock)} onChange={(e) => setEditData({ ...editData, stock: parseInt(e.target.value) || 0 })} />
+                ) : (
+                    <>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--muted-foreground)" }}>Current Stock</p>
+                        <p className={`text-2xl font-bold ${displayProduct.stock < 30 ? "text-red-600" : ""}`} style={displayProduct.stock >= 30 ? { color: "var(--foreground)" } : undefined}>
+                            {displayProduct.stock} units
+                        </p>
+                        {displayProduct.stock < 30 && <p className="text-xs text-red-500 font-medium mt-1">⚠ Below reorder point</p>}
+                    </>
+                )}
+            </div>
+
+            {/* Tabs (hidden during edit) */}
+            {!isEditing && (
+                <>
+                    <DrawerTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+                    {activeTab === "orders" && (
+                        <div className="space-y-2">
+                            {recentOrders.map((order) => (
+                                <div key={order.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: "var(--border)" }}>
+                                    <div>
+                                        <p className="text-sm font-medium" style={{ color: "var(--primary)" }}>{order.id}</p>
+                                        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{order.customer} · {order.date}</p>
+                                    </div>
+                                    <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{order.qty} units</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </>
             )}
         </Drawer>
     );

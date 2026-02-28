@@ -3,7 +3,8 @@
 import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Plus, LayoutGrid, List, Filter, Search, ClipboardList } from "lucide-react";
-import { PageHeader, Button, Card, StatusBadge, SearchInput, DataTable } from "@/components/ui/shared";
+import { PageHeader, Button, Card, StatusBadge, SearchInput } from "@/components/ui/shared";
+import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { formatDate } from "@/lib/utils";
 import { MANUFACTURING_STAGES, type JobStage, type StageStatus, getProgress, getCurrentStage } from "@/lib/stages";
 import { JobOrderDetail, type JobOrder } from "@/components/details/job-order-detail";
@@ -132,15 +133,15 @@ export default function ProductionPage() {
     return groups;
   }, [filtered]);
 
-  const columns = [
-    { key: "jo_number", label: "JO #", render: (jo: JobOrder) => <span className="font-mono font-semibold" style={{ color: "var(--primary)" }}>{jo.jo_number}</span> },
-    { key: "product", label: "Product" },
-    { key: "so_number", label: "Sales Order", render: (jo: JobOrder) => <span className="font-mono text-xs" style={{ color: "var(--muted-foreground)" }}>{jo.so_number}</span> },
-    { key: "customer", label: "Customer" },
-    { key: "quantity", label: "Qty", render: (jo: JobOrder) => <span>{jo.quantity} pcs</span> },
+  const listColumns: ColumnDef<JobOrder, unknown>[] = [
+    { accessorKey: "jo_number", header: "JO #", cell: ({ row }) => <span className="font-mono font-semibold" style={{ color: "var(--primary)" }}>{row.original.jo_number}</span> },
+    { accessorKey: "product", header: "Product" },
+    { accessorKey: "so_number", header: "Sales Order", cell: ({ row }) => <span className="font-mono text-xs" style={{ color: "var(--muted-foreground)" }}>{row.original.so_number}</span> },
+    { accessorKey: "customer", header: "Customer" },
+    { accessorKey: "quantity", header: "Qty", cell: ({ row }) => <span>{row.original.quantity} pcs</span> },
     {
-      key: "progress", label: "Progress", render: (jo: JobOrder) => {
-        const p = getProgress(jo.stages);
+      id: "progress", header: "Progress", enableSorting: false, cell: ({ row }) => {
+        const p = getProgress(row.original.stages);
         return (
           <div className="flex items-center gap-2">
             <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--secondary)" }}>
@@ -152,15 +153,15 @@ export default function ProductionPage() {
       }
     },
     {
-      key: "current_stage", label: "Current Stage", render: (jo: JobOrder) => {
-        if (jo.status === "completed") return <StatusBadge status="completed" />;
-        const stageId = getCurrentStage(jo.stages);
+      id: "current_stage", header: "Current Stage", enableSorting: false, cell: ({ row }) => {
+        if (row.original.status === "completed") return <StatusBadge status="completed" />;
+        const stageId = getCurrentStage(row.original.stages);
         const stage = MANUFACTURING_STAGES.find(s => s.id === stageId);
         return <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>{stage?.name || "—"}</span>;
       }
     },
-    { key: "due_date", label: "Due Date", render: (jo: JobOrder) => <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{formatDate(jo.due_date)}</span> },
-    { key: "status", label: "Status", render: (jo: JobOrder) => <StatusBadge status={jo.status} /> },
+    { accessorKey: "due_date", header: "Due Date", cell: ({ row }) => <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{formatDate(row.original.due_date)}</span> },
+    { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusBadge status={row.original.status} /> },
   ];
 
   return (
@@ -279,13 +280,13 @@ export default function ProductionPage() {
       {/* List View */}
       {view === "list" && (
         <motion.div variants={item}>
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           <DataTable
-            columns={columns as any}
-            data={filtered as any}
+            columns={listColumns}
+            data={filtered}
             emptyMessage="No job orders found"
-            onRowClick={(item) => setSelectedJO(item as unknown as JobOrder)}
-            bulkActions
+            searchPlaceholder="Search job orders..."
+            onRowClick={(item) => setSelectedJO(item)}
+            enableSelection
           />
         </motion.div>
       )}

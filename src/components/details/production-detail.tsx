@@ -16,7 +16,6 @@ interface ProductionOrder {
     due_date: string;
     status: string;
     priority: string;
-    [key: string]: unknown;
 }
 
 interface ProductionDetailProps {
@@ -121,9 +120,8 @@ export function ProductionDetail({ order, open, onClose }: ProductionDetailProps
                     {timeline.map((step, idx) => (
                         <div key={idx} className="flex gap-3">
                             <div className="flex flex-col items-center">
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                    step.done ? "bg-blue-600" : "border-2"
-                                }`} style={!step.done ? { borderColor: "var(--border)" } : undefined}>
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${step.done ? "bg-blue-600" : "border-2"
+                                    }`} style={!step.done ? { borderColor: "var(--border)" } : undefined}>
                                     {step.done ? (
                                         <CheckCircle2 className="w-3.5 h-3.5 text-white" />
                                     ) : (
