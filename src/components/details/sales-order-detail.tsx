@@ -4,11 +4,12 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Download, Receipt, Truck, ClipboardList, Edit3, Trash2, Save, X } from "lucide-react";
+import { Download, Receipt, Truck, ClipboardList, Edit3, Trash2, Save, X, Send } from "lucide-react";
 import { generatePDF } from "@/lib/pdf";
 import { useToast } from "@/components/ui/toast";
 import { ActivityLog, getMockActivities } from "@/components/shared/activity-log";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
+import { EmailSend } from "@/components/shared/email-send";
 
 interface SalesOrder {
     id: string;
@@ -45,6 +46,7 @@ export function SalesOrderDetail({ order, open, onClose, onCreateInvoice, onCrea
     const router = useRouter();
     const { toast } = useToast();
     const [showDelete, setShowDelete] = useState(false);
+    const [showEmail, setShowEmail] = useState(false);
     const [activeTab, setActiveTab] = useState("details");
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({ customer: order.customer, delivery_date: order.delivery_date, status: order.status });
@@ -102,6 +104,7 @@ export function SalesOrderDetail({ order, open, onClose, onCreateInvoice, onCrea
                     {!isEditing && (
                         <div className="flex gap-2">
                             <Button variant="secondary" onClick={handleDownloadPDF}><Download className="w-3.5 h-3.5" /> PDF</Button>
+                            <Button variant="secondary" onClick={() => setShowEmail(true)}><Send className="w-3.5 h-3.5" /> Send</Button>
                             {(order.status === "confirmed" || order.status === "in_progress") && !order.invoice_number && onCreateInvoice && (
                                 <Button variant="secondary" onClick={() => { onCreateInvoice(order); onClose(); }}><Receipt className="w-3.5 h-3.5" /> Create Invoice</Button>
                             )}
@@ -240,6 +243,14 @@ export function SalesOrderDetail({ order, open, onClose, onCreateInvoice, onCrea
             <DeleteConfirmation open={showDelete} onClose={() => setShowDelete(false)}
                 onConfirm={() => { setShowDelete(false); if (onDelete) { onDelete(order); } toast("success", "Order deleted", `${order.order_number} deleted`); onClose(); }}
                 title={`Delete ${order.order_number}?`} description="This action cannot be undone. The sales order and all linked data will be permanently removed." />
+
+            <EmailSend
+                open={showEmail}
+                onClose={() => setShowEmail(false)}
+                documentType="Sales Order"
+                documentNumber={order.order_number}
+                recipientName={order.customer}
+            />
         </Drawer>
     );
 }

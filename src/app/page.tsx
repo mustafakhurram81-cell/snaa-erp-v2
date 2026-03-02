@@ -76,10 +76,16 @@ const recentOrders = [
 ];
 
 const activities = [
-  { action: "New sales order SO-2024-089 created", actor: "Alice Cooper", time: "2 hours ago", icon: ShoppingCart },
-  { action: "Production batch PRD-442 completed", actor: "System", time: "4 hours ago", icon: Factory },
-  { action: "Payment received for INV-992", actor: "Bob Finance", time: "5 hours ago", icon: Receipt },
-  { action: "New vendor MediTech added", actor: "Charlie Procure", time: "Yesterday", icon: Truck },
+  { action: "New sales order SO-2026-089 created", actor: "Mustafa Khurram", time: "10 min ago", icon: ShoppingCart, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-900/20" },
+  { action: "Payment of $12,500 received for INV-2026-156", actor: "System", time: "25 min ago", icon: CreditCard, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
+  { action: "Production batch JO-2026-001 moved to QC stage", actor: "Ali Raza", time: "1 hour ago", icon: Factory, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20" },
+  { action: "Purchase order PO-2026-028 sent to Premium Steel", actor: "Mustafa Khurram", time: "2 hours ago", icon: ClipboardList, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
+  { action: "Quotation QT-2026-089 converted to Sales Order", actor: "System", time: "3 hours ago", icon: FileText, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-900/20" },
+  { action: "New customer Metro General Hospital added", actor: "Mustafa Khurram", time: "4 hours ago", icon: Users, color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-900/20" },
+  { action: "Low stock alert: Adson Forceps below reorder point", actor: "System", time: "5 hours ago", icon: AlertTriangle, color: "text-red-500", bg: "bg-red-50 dark:bg-red-900/20" },
+  { action: "Invoice INV-2026-155 marked as overdue", actor: "System", time: "6 hours ago", icon: Receipt, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-900/20" },
+  { action: "New vendor MediTech Supplies onboarded", actor: "Mustafa Khurram", time: "Yesterday", icon: Truck, color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-900/20" },
+  { action: "Weekly sales report generated", actor: "System", time: "Yesterday", icon: BarChart3, color: "text-sky-500", bg: "bg-sky-50 dark:bg-sky-900/20" },
 ];
 
 const lowStockProducts = [
@@ -104,8 +110,6 @@ const quickActions = [
   { label: "Add Customer", icon: Users, href: "/customers", color: "from-rose-500 to-rose-600" },
   { label: "View Reports", icon: BarChart3, href: "/reports", color: "from-indigo-500 to-indigo-600" },
 ];
-
-// --- Animation ---
 const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };
 const item = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { type: "tween" as const, duration: 0.3 } } };
 
@@ -412,26 +416,42 @@ export default function DashboardPage() {
         </Card>
       </motion.div>
 
-      {/* Activity Feed */}
+      {/* Activity Feed - Enhanced */}
       <motion.div variants={item}>
         <Card>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Recent Activity</h3>
-            <Clock className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
+            <div>
+              <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Activity Feed</h3>
+              <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>Real-time updates across all modules</p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-medium text-emerald-600">Live</span>
+            </div>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-1">
             {activities.map((activity, idx) => {
               const Icon = activity.icon;
               return (
-                <div key={idx} className="flex items-start gap-3 py-2">
-                  <div className="p-2 rounded-lg flex-shrink-0" style={{ background: "var(--secondary)" }}>
-                    <Icon className="w-3.5 h-3.5" style={{ color: "var(--muted-foreground)" }} />
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className="flex items-start gap-3 p-3 rounded-xl hover:bg-[var(--secondary)] transition-colors cursor-pointer group"
+                >
+                  <div className={`p-2 rounded-lg flex-shrink-0 ${activity.bg} transition-transform group-hover:scale-105`}>
+                    <Icon className={`w-3.5 h-3.5 ${activity.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm" style={{ color: "var(--foreground)" }}>{activity.action}</p>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>{activity.actor} · {activity.time}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{activity.actor}</span>
+                      <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>·</span>
+                      <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{activity.time}</span>
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>

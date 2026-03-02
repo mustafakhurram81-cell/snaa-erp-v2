@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, ImageIcon } from "lucide-react";
 import { PageHeader, Button, Drawer, Input, Card, StatusBadge, Tabs } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { SalesOrderDetail } from "@/components/details/sales-order-detail";
@@ -287,7 +287,8 @@ function SalesOrdersContent() {
             </div>
             <Card className="!p-3 space-y-2">
               <div className="grid grid-cols-12 gap-2 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
-                <span className="col-span-5">Product</span>
+                <span className="col-span-1"></span>
+                <span className="col-span-4">Product</span>
                 <span className="col-span-2">Qty</span>
                 <span className="col-span-2">Unit Price</span>
                 <span className="col-span-2">Total</span>
@@ -295,7 +296,20 @@ function SalesOrdersContent() {
               </div>
               {formLineItems.map((li) => (
                 <div key={li.id} className="grid grid-cols-12 gap-2 items-center">
-                  <div className="col-span-5">
+                  <div className="col-span-1">
+                    <div className="group relative">
+                      <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center cursor-pointer border border-transparent hover:border-blue-300 transition-colors">
+                        <ImageIcon className="w-3.5 h-3.5 text-zinc-400" />
+                      </div>
+                      <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50">
+                        <div className="w-32 h-32 rounded-xl bg-zinc-100 dark:bg-zinc-800 border shadow-lg flex flex-col items-center justify-center gap-1" style={{ borderColor: "var(--border)" }}>
+                          <ImageIcon className="w-8 h-8 text-zinc-300" />
+                          <span className="text-[9px] text-zinc-400">No image yet</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-span-4">
                     <select
                       value={li.product}
                       onChange={(e) => handleProductSelect(li.id, e.target.value)}

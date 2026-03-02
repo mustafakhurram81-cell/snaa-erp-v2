@@ -2,10 +2,9 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Package, Plus, Grid3x3, List } from "lucide-react";
+import { Package, Plus, Grid3x3, List, ImageIcon } from "lucide-react";
 import { PageHeader, Button, Card, StatusBadge, Drawer, Input, SearchInput } from "@/components/ui/shared";
 import { ProductDetail } from "@/components/details/product-detail";
-import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 
 interface Product {
@@ -36,16 +35,16 @@ const categories = ["All", "Scissors", "Forceps", "Retractors", "Clamps", "Needl
 export default function ProductsPage() {
     const [products, setProducts] = useState<Product[]>(initialProducts);
     const [search, setSearch] = useState("");
-    const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+    const [viewMode, setViewMode] = useState<"grid" | "list">("list");
     const [activeCategory, setActiveCategory] = useState("All");
     const [showDialog, setShowDialog] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const { toast } = useToast();
 
     // Form state
-    const [formData, setFormData] = useState({ name: "", sku: "", category: "", subcategory: "", unit_cost: "", selling_price: "", stock: "" });
+    const [formData, setFormData] = useState({ name: "", sku: "", category: "", subcategory: "" });
 
-    const resetForm = () => setFormData({ name: "", sku: "", category: "", subcategory: "", unit_cost: "", selling_price: "", stock: "" });
+    const resetForm = () => setFormData({ name: "", sku: "", category: "", subcategory: "" });
 
     const handleCreate = () => {
         if (!formData.name.trim() || !formData.sku.trim()) {
@@ -58,9 +57,9 @@ export default function ProductsPage() {
             name: formData.name,
             category: formData.category || "Uncategorized",
             subcategory: formData.subcategory || "",
-            unit_cost: parseFloat(formData.unit_cost) || 0,
-            selling_price: parseFloat(formData.selling_price) || 0,
-            stock: parseInt(formData.stock) || 0,
+            unit_cost: 0,
+            selling_price: 0,
+            stock: 0,
             status: "active",
         };
         setProducts([newProduct, ...products]);
@@ -72,6 +71,11 @@ export default function ProductsPage() {
     const handleUpdateProduct = (updated: typeof products[0]) => {
         setProducts(products.map((p) => p.id === updated.id ? updated : p));
         setSelectedProduct(updated);
+    };
+
+    const handleDeleteProduct = (product: typeof products[0]) => {
+        setProducts(products.filter((p) => p.id !== product.id));
+        setSelectedProduct(null);
     };
 
     const filtered = products.filter((p) => {
@@ -149,30 +153,24 @@ export default function ProductsPage() {
                                     <Package className="w-10 h-10 transition-transform group-hover:scale-110" style={{ color: "var(--muted-foreground)" }} />
                                 </div>
                                 <div className="space-y-2">
-                                    <div className="flex items-start justify-between">
-                                        <div>
-                                            <p className="text-xs font-mono" style={{ color: "var(--muted-foreground)" }}>{product.sku}</p>
-                                            <h3 className="text-sm font-semibold mt-0.5 line-clamp-2" style={{ color: "var(--foreground)" }}>
-                                                {product.name}
-                                            </h3>
-                                        </div>
+                                    <div>
+                                        <p className="text-xs font-mono" style={{ color: "var(--muted-foreground)" }}>{product.sku}</p>
+                                        <h3 className="text-sm font-semibold mt-0.5 line-clamp-2" style={{ color: "var(--foreground)" }}>
+                                            {product.name}
+                                        </h3>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
                                             {product.category}
                                         </span>
+                                        {product.subcategory && (
+                                            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
+                                                {product.subcategory}
+                                            </span>
+                                        )}
                                     </div>
                                     <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: "var(--border)" }}>
-                                        <div>
-                                            <p className="text-lg font-bold" style={{ color: "var(--foreground)" }}>{formatCurrency(product.selling_price)}</p>
-                                            <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Cost: {formatCurrency(product.unit_cost)}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-sm font-semibold" style={{ color: product.stock > 0 ? "var(--foreground)" : "#ef4444" }}>
-                                                {product.stock}
-                                            </p>
-                                            <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>In stock</p>
-                                        </div>
+                                        <StatusBadge status={product.status} />
                                     </div>
                                 </div>
                             </Card>
@@ -180,7 +178,7 @@ export default function ProductsPage() {
                     ))}
                 </div>
             ) : (
-                /* List View */
+                /* List/Table View */
                 <div
                     className="rounded-xl border overflow-hidden"
                     style={{ background: "var(--card)", borderColor: "var(--border)" }}
@@ -188,22 +186,34 @@ export default function ProductsPage() {
                     <table className="w-full">
                         <thead>
                             <tr className="border-b" style={{ borderColor: "var(--border)" }}>
+                                <th className="text-left text-[11px] font-semibold uppercase tracking-wider px-4 py-3 w-10" style={{ color: "var(--muted-foreground)", background: "var(--secondary)" }}></th>
                                 <th className="text-left text-[11px] font-semibold uppercase tracking-wider px-4 py-3" style={{ color: "var(--muted-foreground)", background: "var(--secondary)" }}>Product</th>
                                 <th className="text-left text-[11px] font-semibold uppercase tracking-wider px-4 py-3" style={{ color: "var(--muted-foreground)", background: "var(--secondary)" }}>SKU</th>
                                 <th className="text-left text-[11px] font-semibold uppercase tracking-wider px-4 py-3" style={{ color: "var(--muted-foreground)", background: "var(--secondary)" }}>Category</th>
-                                <th className="text-left text-[11px] font-semibold uppercase tracking-wider px-4 py-3" style={{ color: "var(--muted-foreground)", background: "var(--secondary)" }}>Price</th>
-                                <th className="text-left text-[11px] font-semibold uppercase tracking-wider px-4 py-3" style={{ color: "var(--muted-foreground)", background: "var(--secondary)" }}>Stock</th>
+                                <th className="text-left text-[11px] font-semibold uppercase tracking-wider px-4 py-3" style={{ color: "var(--muted-foreground)", background: "var(--secondary)" }}>Subcategory</th>
                                 <th className="text-left text-[11px] font-semibold uppercase tracking-wider px-4 py-3" style={{ color: "var(--muted-foreground)", background: "var(--secondary)" }}>Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filtered.map((product) => (
                                 <tr key={product.id} className="border-b last:border-b-0 hover:bg-[var(--secondary)] transition-colors cursor-pointer" style={{ borderColor: "var(--border)" }} onClick={() => setSelectedProduct(product)}>
+                                    <td className="px-4 py-3">
+                                        <div className="group relative">
+                                            <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center border border-transparent hover:border-blue-300 transition-colors">
+                                                <ImageIcon className="w-4 h-4 text-zinc-400" />
+                                            </div>
+                                            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50">
+                                                <div className="w-36 h-36 rounded-xl bg-zinc-100 dark:bg-zinc-800 border shadow-lg flex flex-col items-center justify-center gap-1" style={{ borderColor: "var(--border)" }}>
+                                                    <Package className="w-10 h-10 text-zinc-300" />
+                                                    <span className="text-[9px] text-zinc-400">No image yet</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
                                     <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>{product.name}</td>
                                     <td className="px-4 py-3 text-sm font-mono" style={{ color: "var(--muted-foreground)" }}>{product.sku}</td>
                                     <td className="px-4 py-3 text-sm" style={{ color: "var(--foreground)" }}>{product.category}</td>
-                                    <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>{formatCurrency(product.selling_price)}</td>
-                                    <td className="px-4 py-3 text-sm" style={{ color: product.stock > 0 ? "var(--foreground)" : "#ef4444" }}>{product.stock}</td>
+                                    <td className="px-4 py-3 text-sm" style={{ color: "var(--muted-foreground)" }}>{product.subcategory}</td>
                                     <td className="px-4 py-3"><StatusBadge status={product.status} /></td>
                                 </tr>
                             ))}
@@ -217,6 +227,7 @@ export default function ProductsPage() {
                 open={!!selectedProduct}
                 onClose={() => setSelectedProduct(null)}
                 onUpdate={handleUpdateProduct}
+                onDelete={handleDeleteProduct}
             />
 
             <Drawer
@@ -232,32 +243,13 @@ export default function ProductsPage() {
             >
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
-                        <Input label="Product Name" placeholder='Mayo Scissors 6.5"' value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-                        <Input label="SKU" placeholder="SI-SC-001" value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} />
+                        <Input label="Product Name *" placeholder='Mayo Scissors 6.5"' value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                        <Input label="SKU *" placeholder="SI-SC-001" value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <Input label="Category" placeholder="Scissors" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} />
                         <Input label="Subcategory" placeholder="Mayo" value={formData.subcategory} onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })} />
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
-                        <Input label="Unit Cost" type="number" placeholder="0.00" value={formData.unit_cost} onChange={(e) => setFormData({ ...formData, unit_cost: e.target.value })} />
-                        <Input label="Selling Price" type="number" placeholder="0.00" value={formData.selling_price} onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })} />
-                        <Input label="Initial Stock" type="number" placeholder="0" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} />
-                    </div>
-                    {/* Margin Preview */}
-                    {formData.unit_cost && formData.selling_price && (
-                        <div className="rounded-lg border p-3" style={{ borderColor: "var(--border)", background: "var(--secondary)" }}>
-                            <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--muted-foreground)" }}>Margin Preview</p>
-                            <div className="flex items-center gap-4 mt-1">
-                                <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>
-                                    {formatCurrency(parseFloat(formData.selling_price) - parseFloat(formData.unit_cost))} per unit
-                                </span>
-                                <span className="text-xs font-semibold text-emerald-600">
-                                    {((parseFloat(formData.selling_price) - parseFloat(formData.unit_cost)) / parseFloat(formData.selling_price) * 100).toFixed(1)}% margin
-                                </span>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </Drawer>
         </motion.div>

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Save, Building2, Globe, Receipt, Palette, Hash, Bell, User, Lock, Eye, EyeOff } from "lucide-react";
+import { Save, Building2, Globe, Receipt, Palette, Hash, Bell, User, Lock, Eye, EyeOff, Mail } from "lucide-react";
 import { PageHeader, Button, Card, Input } from "@/components/ui/shared";
 import { useToast } from "@/components/ui/toast";
 import { useCurrency, currencies } from "@/lib/currency";
@@ -59,6 +59,8 @@ export default function SettingsPage() {
 
     const [showPassword, setShowPassword] = useState(false);
     const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" });
+    const [newEmail, setNewEmail] = useState("");
+    const [emailConfirmPassword, setEmailConfirmPassword] = useState("");
 
     const handleSave = () => {
         toast("success", "Settings saved", "All settings have been updated");
@@ -236,7 +238,7 @@ export default function SettingsPage() {
             </motion.div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
-                {/* User Profile */}
+                {/* User Profile & Email Change */}
                 <motion.div variants={item}>
                     <Card>
                         <div className="flex items-center gap-2 mb-5">
@@ -256,9 +258,50 @@ export default function SettingsPage() {
                                 <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>Full Name</label>
                                 <Input value={profile.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProfile({ ...profile, name: e.target.value })} />
                             </div>
-                            <div>
-                                <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>Email</label>
-                                <Input value={profile.email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProfile({ ...profile, email: e.target.value })} />
+
+                            {/* Change Email Section */}
+                            <div className="pt-3 border-t" style={{ borderColor: "var(--border)" }}>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Mail className="w-3.5 h-3.5" style={{ color: "var(--primary)" }} />
+                                    <h4 className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--foreground)" }}>Change Email</h4>
+                                </div>
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>Current Email</label>
+                                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm" style={{ background: "var(--secondary)", borderColor: "var(--border)", color: "var(--muted-foreground)" }}>
+                                            {profile.email}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>New Email Address</label>
+                                        <Input
+                                            type="email"
+                                            placeholder="new-email@example.com"
+                                            value={newEmail}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewEmail(e.target.value)}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>Confirm Password (to change email)</label>
+                                        <Input
+                                            type="password"
+                                            placeholder="Enter your current password"
+                                            value={emailConfirmPassword}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmailConfirmPassword(e.target.value)}
+                                        />
+                                    </div>
+                                    <Button variant="secondary" onClick={() => {
+                                        if (!newEmail.trim()) { toast("error", "Please enter a new email address"); return; }
+                                        if (!newEmail.includes("@") || !newEmail.includes(".")) { toast("error", "Please enter a valid email address"); return; }
+                                        if (!emailConfirmPassword.trim()) { toast("error", "Please enter your password to confirm"); return; }
+                                        setProfile({ ...profile, email: newEmail });
+                                        setNewEmail("");
+                                        setEmailConfirmPassword("");
+                                        toast("success", "Email updated", `Email changed to ${newEmail}`);
+                                    }}>
+                                        <Mail className="w-3.5 h-3.5" /> Update Email
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </Card>
@@ -275,7 +318,7 @@ export default function SettingsPage() {
                             <div>
                                 <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>Current Password</label>
                                 <div className="relative">
-                                    <Input type={showPassword ? "text" : "password"} value={passwords.current} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswords({ ...passwords, current: e.target.value })} />
+                                    <Input type={showPassword ? "text" : "password"} value={passwords.current} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswords({ ...passwords, current: e.target.value })} placeholder="Enter current password" />
                                     <button onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded" style={{ color: "var(--muted-foreground)" }}>
                                         {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                     </button>
@@ -283,13 +326,52 @@ export default function SettingsPage() {
                             </div>
                             <div>
                                 <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>New Password</label>
-                                <Input type={showPassword ? "text" : "password"} value={passwords.new} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswords({ ...passwords, new: e.target.value })} />
+                                <Input type={showPassword ? "text" : "password"} value={passwords.new} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswords({ ...passwords, new: e.target.value })} placeholder="Enter new password" />
+                                {/* Password Strength */}
+                                {passwords.new && (() => {
+                                    const len = passwords.new.length;
+                                    const hasUpper = /[A-Z]/.test(passwords.new);
+                                    const hasNumber = /[0-9]/.test(passwords.new);
+                                    const hasSpecial = /[^A-Za-z0-9]/.test(passwords.new);
+                                    const score = (len >= 8 ? 1 : 0) + (len >= 12 ? 1 : 0) + (hasUpper ? 1 : 0) + (hasNumber ? 1 : 0) + (hasSpecial ? 1 : 0);
+                                    const strengthLabel = score <= 1 ? "Weak" : score <= 3 ? "Medium" : "Strong";
+                                    const strengthColor = score <= 1 ? "#ef4444" : score <= 3 ? "#f59e0b" : "#10b981";
+                                    return (
+                                        <div className="mt-2">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--secondary)" }}>
+                                                    <div className="h-full rounded-full transition-all duration-300" style={{ width: `${Math.min(100, score * 20)}%`, background: strengthColor }} />
+                                                </div>
+                                                <span className="text-[10px] font-semibold" style={{ color: strengthColor }}>{strengthLabel}</span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                                                <span style={{ color: len >= 8 ? "#10b981" : undefined }}>✓ 8+ chars</span>
+                                                <span style={{ color: hasUpper ? "#10b981" : undefined }}>✓ Uppercase</span>
+                                                <span style={{ color: hasNumber ? "#10b981" : undefined }}>✓ Number</span>
+                                                <span style={{ color: hasSpecial ? "#10b981" : undefined }}>✓ Special char</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                             <div>
-                                <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>Confirm Password</label>
-                                <Input type={showPassword ? "text" : "password"} value={passwords.confirm} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswords({ ...passwords, confirm: e.target.value })} />
+                                <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>Confirm New Password</label>
+                                <Input type={showPassword ? "text" : "password"} value={passwords.confirm} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswords({ ...passwords, confirm: e.target.value })} placeholder="Confirm new password" />
+                                {passwords.confirm && passwords.new !== passwords.confirm && (
+                                    <p className="text-[10px] mt-1 text-red-500 font-medium">Passwords do not match</p>
+                                )}
+                                {passwords.confirm && passwords.new === passwords.confirm && passwords.confirm.length > 0 && (
+                                    <p className="text-[10px] mt-1 text-emerald-500 font-medium">✓ Passwords match</p>
+                                )}
                             </div>
-                            <Button variant="secondary" onClick={() => { if (passwords.new && passwords.new === passwords.confirm) { toast("success", "Password updated", "Your password has been changed"); setPasswords({ current: "", new: "", confirm: "" }); } else { toast("error", "Error", "Passwords do not match"); } }}>
+                            <Button variant="secondary" onClick={() => {
+                                if (!passwords.current.trim()) { toast("error", "Please enter your current password"); return; }
+                                if (!passwords.new.trim()) { toast("error", "Please enter a new password"); return; }
+                                if (passwords.new.length < 8) { toast("error", "Password must be at least 8 characters"); return; }
+                                if (passwords.new !== passwords.confirm) { toast("error", "Passwords do not match"); return; }
+                                toast("success", "Password updated", "Your password has been changed successfully");
+                                setPasswords({ current: "", new: "", confirm: "" });
+                            }}>
                                 <Lock className="w-3.5 h-3.5" /> Update Password
                             </Button>
                         </div>

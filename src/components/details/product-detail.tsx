@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
 import { formatCurrency } from "@/lib/utils";
-import { Edit3, Package, TrendingUp, Save, X } from "lucide-react";
+import { Edit3, Package, TrendingUp, Save, X, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
+import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 
 interface Product {
     id: string;
@@ -23,6 +24,7 @@ interface ProductDetailProps {
     open: boolean;
     onClose: () => void;
     onUpdate?: (product: Product) => void;
+    onDelete?: (product: Product) => void;
 }
 
 const recentOrders = [
@@ -31,9 +33,10 @@ const recentOrders = [
     { id: "SO-2026-030", customer: "Global Health", qty: 100, date: "Feb 10, 2026" },
 ];
 
-export function ProductDetail({ product, open, onClose, onUpdate }: ProductDetailProps) {
+export function ProductDetail({ product, open, onClose, onUpdate, onDelete }: ProductDetailProps) {
     if (!product) return null;
     const { toast } = useToast();
+    const [showDelete, setShowDelete] = useState(false);
     const [activeTab, setActiveTab] = useState("orders");
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({ ...product });
@@ -75,9 +78,12 @@ export function ProductDetail({ product, open, onClose, onUpdate }: ProductDetai
                                 <Button onClick={handleSave}><Save className="w-3.5 h-3.5" /> Save Changes</Button>
                             </>
                         ) : (
-                            <Button variant="secondary" onClick={() => setIsEditing(true)}>
-                                <Edit3 className="w-3.5 h-3.5" /> Edit Product
-                            </Button>
+                            <>
+                                <Button variant="secondary" onClick={() => setIsEditing(true)}>
+                                    <Edit3 className="w-3.5 h-3.5" /> Edit Product
+                                </Button>
+                                <button onClick={() => setShowDelete(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </>
                         )}
                     </div>
                 </div>
@@ -203,6 +209,14 @@ export function ProductDetail({ product, open, onClose, onUpdate }: ProductDetai
                     )}
                 </>
             )}
+
+            <DeleteConfirmation
+                open={showDelete}
+                onClose={() => setShowDelete(false)}
+                onConfirm={() => { setShowDelete(false); if (onDelete) { onDelete(product); } toast("success", "Product deleted", `${product.name} deleted`); onClose(); }}
+                title={`Delete ${product.name}?`}
+                description="This action cannot be undone. The product will be permanently removed from your catalog."
+            />
         </Drawer>
     );
 }

@@ -3,13 +3,27 @@
 import React, { useState, useEffect } from "react";
 import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
 import { formatCurrency, formatDate, getInitials } from "@/lib/utils";
-import { Mail, Phone, MapPin, ShoppingCart, FileText, Edit3, Save, X } from "lucide-react";
+import { Mail, Phone, MapPin, ShoppingCart, FileText, Edit3, Save, X, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
+import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
+import { CUSTOMER_TYPES } from "@/app/customers/page";
+
+const typeColors: Record<string, string> = {
+    hospital: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    distributor: "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
+    private_practitioner: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    clinic: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+    government: "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
+};
+
+function getTypeLabel(type: string) {
+    return CUSTOMER_TYPES.find(t => t.value === type)?.label || type;
+}
 
 interface Customer {
     id: string;
     name: string;
-    company: string;
+    type: string;
     email: string;
     phone: string;
     city: string;
@@ -36,11 +50,13 @@ interface CustomerDetailProps {
     open: boolean;
     onClose: () => void;
     onUpdate?: (customer: Customer) => void;
+    onDelete?: (customer: Customer) => void;
 }
 
-export function CustomerDetail({ customer, open, onClose, onUpdate }: CustomerDetailProps) {
+export function CustomerDetail({ customer, open, onClose, onUpdate, onDelete }: CustomerDetailProps) {
     if (!customer) return null;
     const { toast } = useToast();
+    const [showDelete, setShowDelete] = useState(false);
     const [activeTab, setActiveTab] = useState("orders");
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({ ...customer });
@@ -95,6 +111,7 @@ export function CustomerDetail({ customer, open, onClose, onUpdate }: CustomerDe
                                 <Button variant="secondary" onClick={() => setIsEditing(true)}>
                                     <Edit3 className="w-3.5 h-3.5" /> Edit
                                 </Button>
+                                <button onClick={() => setShowDelete(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                                 <Button variant="secondary">
                                     <FileText className="w-3.5 h-3.5" /> New Quote
                                 </Button>
@@ -116,12 +133,24 @@ export function CustomerDetail({ customer, open, onClose, onUpdate }: CustomerDe
                     {isEditing ? (
                         <div className="space-y-2">
                             <Input value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} placeholder="Customer name" />
-                            <Input value={editData.company} onChange={(e) => setEditData({ ...editData, company: e.target.value })} placeholder="Company" />
+                            <div>
+                                <label className="block text-xs font-semibold mb-1" style={{ color: "var(--foreground)" }}>Customer Type</label>
+                                <select
+                                    value={editData.type}
+                                    onChange={(e) => setEditData({ ...editData, type: e.target.value })}
+                                    className="w-full h-8 px-3 rounded-lg border text-xs font-medium"
+                                    style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+                                >
+                                    {CUSTOMER_TYPES.map((t) => (<option key={t.value} value={t.value}>{t.label}</option>))}
+                                </select>
+                            </div>
                         </div>
                     ) : (
                         <>
                             <h3 className="text-lg font-bold" style={{ color: "var(--foreground)" }}>{customer.name}</h3>
-                            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>{customer.company}</p>
+                            <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-full mt-1 ${typeColors[customer.type] || "bg-zinc-100 text-zinc-600"}`}>
+                                {getTypeLabel(customer.type)}
+                            </span>
                         </>
                     )}
                 </div>
@@ -213,6 +242,14 @@ export function CustomerDetail({ customer, open, onClose, onUpdate }: CustomerDe
                     )}
                 </>
             )}
+
+            <DeleteConfirmation
+                open={showDelete}
+                onClose={() => setShowDelete(false)}
+                onConfirm={() => { setShowDelete(false); if (onDelete) { onDelete(customer); } toast("success", "Customer deleted", `${customer.name} deleted`); onClose(); }}
+                title={`Delete ${customer.name}?`}
+                description="This action cannot be undone. The customer and all associated data will be permanently removed."
+            />
         </Drawer>
     );
 }

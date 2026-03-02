@@ -100,7 +100,7 @@ const item = {
 
 export default function ProductionPage() {
   const [search, setSearch] = useState("");
-  const [view, setView] = useState<"kanban" | "list">("kanban");
+  const [view, setView] = useState<"kanban" | "list">("list");
   const [selectedJO, setSelectedJO] = useState<JobOrder | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
 

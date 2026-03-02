@@ -2,11 +2,11 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Mail, MapPin } from "lucide-react";
+import { Plus } from "lucide-react";
 import { PageHeader, Button, Drawer, Input, StatusBadge } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { VendorDetail } from "@/components/details/vendor-detail";
-import { formatCurrency, getInitials } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
 
 interface Vendor {
     id: string;
@@ -31,48 +31,18 @@ const mockVendors: Vendor[] = [
 const columns: ColumnDef<Vendor, unknown>[] = [
     {
         accessorKey: "name",
-        header: "Vendor",
+        header: "Vendor Name",
         cell: ({ row }) => (
-            <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center text-white text-[11px] font-semibold flex-shrink-0">
-                    {getInitials(row.original.name)}
-                </div>
-                <div>
-                    <p className="font-medium text-sm" style={{ color: "var(--foreground)" }}>{row.original.name}</p>
-                    <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{row.original.vendor_code}</p>
-                </div>
+            <div>
+                <p className="font-medium text-sm" style={{ color: "var(--foreground)" }}>{row.original.name}</p>
             </div>
         ),
     },
     {
-        accessorKey: "contact_name",
-        header: "Contact",
+        accessorKey: "vendor_code",
+        header: "Vendor Code",
         cell: ({ row }) => (
-            <div className="space-y-0.5">
-                <p className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.contact_name}</p>
-                <p className="text-xs flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
-                    <Mail className="w-3 h-3" /> {row.original.email}
-                </p>
-            </div>
-        ),
-    },
-    {
-        accessorKey: "city",
-        header: "Location",
-        cell: ({ row }) => (
-            <span className="text-sm flex items-center gap-1.5" style={{ color: "var(--foreground)" }}>
-                <MapPin className="w-3 h-3" style={{ color: "var(--muted-foreground)" }} />
-                {row.original.city}
-            </span>
-        ),
-    },
-    {
-        accessorKey: "ap_balance",
-        header: "AP Balance",
-        cell: ({ row }) => (
-            <span className="font-medium text-sm" style={{ color: "var(--foreground)" }}>
-                {formatCurrency(row.original.ap_balance)}
-            </span>
+            <span className="font-mono text-sm" style={{ color: "var(--muted-foreground)" }}>{row.original.vendor_code}</span>
         ),
     },
     {
@@ -86,23 +56,38 @@ export default function VendorsPage() {
     const [vendors, setVendors] = useState<Vendor[]>(mockVendors);
     const [showDialog, setShowDialog] = useState(false);
     const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
-    const [formData, setFormData] = useState({ vendor_code: "", name: "", contact_name: "", email: "", phone: "", city: "" });
+    const [formData, setFormData] = useState({ vendor_code: "", name: "" });
+    const { toast } = useToast();
 
     const handleCreate = () => {
+        if (!formData.name.trim()) { toast("error", "Vendor name is required"); return; }
+        if (!formData.vendor_code.trim()) { toast("error", "Vendor code is required"); return; }
+
         const newVendor: Vendor = {
             id: Date.now().toString(),
-            ...formData,
+            vendor_code: formData.vendor_code,
+            name: formData.name,
+            contact_name: "",
+            email: "",
+            phone: "",
+            city: "",
             status: "active",
             ap_balance: 0,
         };
         setVendors([newVendor, ...vendors]);
         setShowDialog(false);
-        setFormData({ vendor_code: "", name: "", contact_name: "", email: "", phone: "", city: "" });
+        setFormData({ vendor_code: "", name: "" });
+        toast("success", "Vendor created", `${formData.name} added successfully`);
     };
 
     const handleUpdateVendor = (updated: typeof vendors[0]) => {
         setVendors(vendors.map((v) => v.id === updated.id ? updated : v));
         setSelectedVendor(updated);
+    };
+
+    const handleDeleteVendor = (vendor: typeof vendors[0]) => {
+        setVendors(vendors.filter((v) => v.id !== vendor.id));
+        setSelectedVendor(null);
     };
 
     return (
@@ -131,6 +116,7 @@ export default function VendorsPage() {
                 open={!!selectedVendor}
                 onClose={() => setSelectedVendor(null)}
                 onUpdate={handleUpdateVendor}
+                onDelete={handleDeleteVendor}
             />
 
             <Drawer
@@ -145,18 +131,8 @@ export default function VendorsPage() {
                 }
             >
                 <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input label="Vendor Code" value={formData.vendor_code} onChange={(e) => setFormData({ ...formData, vendor_code: e.target.value })} placeholder="V-006" />
-                        <Input label="Company Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Steel Corp" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input label="Contact Person" value={formData.contact_name} onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })} placeholder="Full name" />
-                        <Input label="Email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="email@example.com" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input label="Phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+1-555-0000" />
-                        <Input label="City" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} placeholder="City" />
-                    </div>
+                    <Input label="Vendor Name *" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Steel Corp" />
+                    <Input label="Vendor Code *" value={formData.vendor_code} onChange={(e) => setFormData({ ...formData, vendor_code: e.target.value })} placeholder="V-006" />
                 </div>
             </Drawer>
         </motion.div>

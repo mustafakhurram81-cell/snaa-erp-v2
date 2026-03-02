@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
 import { formatCurrency, getInitials } from "@/lib/utils";
-import { Mail, Phone, MapPin, ClipboardList, Edit3, Save, X } from "lucide-react";
+import { Mail, Phone, MapPin, ClipboardList, Edit3, Save, X, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
+import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 
 interface Vendor {
     id: string;
@@ -30,11 +31,13 @@ interface VendorDetailProps {
     open: boolean;
     onClose: () => void;
     onUpdate?: (vendor: Vendor) => void;
+    onDelete?: (vendor: Vendor) => void;
 }
 
-export function VendorDetail({ vendor, open, onClose, onUpdate }: VendorDetailProps) {
+export function VendorDetail({ vendor, open, onClose, onUpdate, onDelete }: VendorDetailProps) {
     if (!vendor) return null;
     const { toast } = useToast();
+    const [showDelete, setShowDelete] = useState(false);
     const [activeTab, setActiveTab] = useState("pos");
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({ ...vendor });
@@ -75,6 +78,7 @@ export function VendorDetail({ vendor, open, onClose, onUpdate }: VendorDetailPr
                                 <Button variant="secondary" onClick={() => setIsEditing(true)}>
                                     <Edit3 className="w-3.5 h-3.5" /> Edit
                                 </Button>
+                                <button onClick={() => setShowDelete(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                                 <Button><ClipboardList className="w-3.5 h-3.5" /> New PO</Button>
                             </>
                         )}
@@ -176,6 +180,14 @@ export function VendorDetail({ vendor, open, onClose, onUpdate }: VendorDetailPr
                     )}
                 </>
             )}
+
+            <DeleteConfirmation
+                open={showDelete}
+                onClose={() => setShowDelete(false)}
+                onConfirm={() => { setShowDelete(false); if (onDelete) { onDelete(vendor); } toast("success", "Vendor deleted", `${vendor.name} deleted`); onClose(); }}
+                title={`Delete ${vendor.name}?`}
+                description="This action cannot be undone. The vendor and all associated data will be permanently removed."
+            />
         </Drawer>
     );
 }

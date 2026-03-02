@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Sidebar, SidebarProvider, useSidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { KeyboardShortcuts } from "@/components/shared/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 
 function AppContent({ children }: { children: React.ReactNode }) {
@@ -58,6 +59,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
                     {children}
                 </div>
             </main>
+            <KeyboardShortcuts />
         </>
     );
 }

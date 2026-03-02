@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/toast";
 import { ActivityLog, getMockActivities } from "@/components/shared/activity-log";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 import { EmailSend } from "@/components/shared/email-send";
+import { RecordPayment, type PaymentRecord } from "@/components/shared/record-payment";
 
 interface Invoice {
     id: string;
@@ -40,16 +41,16 @@ interface InvoiceDetailProps {
     invoice: Invoice | null;
     open: boolean;
     onClose: () => void;
-    onRecordPayment?: () => void;
     onUpdate?: (invoice: Invoice) => void;
     onDelete?: (invoice: Invoice) => void;
 }
 
-export function InvoiceDetail({ invoice, open, onClose, onRecordPayment, onUpdate, onDelete }: InvoiceDetailProps) {
+export function InvoiceDetail({ invoice, open, onClose, onUpdate, onDelete }: InvoiceDetailProps) {
     if (!invoice) return null;
     const { toast } = useToast();
     const [showDelete, setShowDelete] = useState(false);
     const [showEmail, setShowEmail] = useState(false);
+    const [showPayment, setShowPayment] = useState(false);
     const [activeTab, setActiveTab] = useState("details");
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({ customer: invoice.customer, due_date: invoice.due_date, status: invoice.status });
@@ -107,7 +108,7 @@ export function InvoiceDetail({ invoice, open, onClose, onRecordPayment, onUpdat
                         <div className="flex gap-2">
                             <Button variant="secondary" onClick={handleDownloadPDF}><Download className="w-3.5 h-3.5" /> PDF</Button>
                             <Button variant="secondary" onClick={() => setShowEmail(true)}><Send className="w-3.5 h-3.5" /> Send</Button>
-                            {invoice.status !== "paid" && (<Button onClick={onRecordPayment}><DollarSign className="w-3.5 h-3.5" /> Record Payment</Button>)}
+                            {invoice.status !== "paid" && (<Button onClick={() => setShowPayment(true)}><DollarSign className="w-3.5 h-3.5" /> Record Payment</Button>)}
                         </div>
                     )}
                 </div>
@@ -230,6 +231,21 @@ export function InvoiceDetail({ invoice, open, onClose, onRecordPayment, onUpdat
                 title={`Delete ${invoice.invoice_number}?`} description="This action cannot be undone. The invoice and payment history will be permanently removed." />
 
             <EmailSend open={showEmail} onClose={() => setShowEmail(false)} documentType="Invoice" documentNumber={invoice.invoice_number} recipientName={invoice.customer} />
+
+            <RecordPayment
+                open={showPayment}
+                onClose={() => setShowPayment(false)}
+                invoiceNumber={invoice.invoice_number}
+                invoiceTotal={invoice.total}
+                invoicePaid={invoice.paid}
+                onRecord={(payment: PaymentRecord) => {
+                    const newPaid = invoice.paid + payment.amount;
+                    const newStatus = newPaid >= invoice.total ? "paid" : "partial";
+                    if (onUpdate) {
+                        onUpdate({ ...invoice, paid: newPaid, status: newStatus });
+                    }
+                }}
+            />
         </Drawer>
     );
 }

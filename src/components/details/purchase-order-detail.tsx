@@ -3,11 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Download, Truck, CheckCircle, Edit3, Trash2, Save, X } from "lucide-react";
+import { Download, Truck, CheckCircle, Edit3, Trash2, Save, X, Send } from "lucide-react";
 import { generatePDF } from "@/lib/pdf";
 import { useToast } from "@/components/ui/toast";
 import { ActivityLog, getMockActivities } from "@/components/shared/activity-log";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
+import { EmailSend } from "@/components/shared/email-send";
 
 interface PurchaseOrder {
     id: string;
@@ -41,6 +42,7 @@ export function PurchaseOrderDetail({ order, open, onClose, onUpdate, onDelete }
     if (!order) return null;
     const { toast } = useToast();
     const [showDelete, setShowDelete] = useState(false);
+    const [showEmail, setShowEmail] = useState(false);
     const [activeTab, setActiveTab] = useState("items");
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({ vendor: order.vendor, expected_date: order.expected_date, status: order.status });
@@ -94,6 +96,7 @@ export function PurchaseOrderDetail({ order, open, onClose, onUpdate, onDelete }
                     {!isEditing && (
                         <div className="flex gap-2">
                             <Button variant="secondary" onClick={handleDownloadPDF}><Download className="w-3.5 h-3.5" /> PDF</Button>
+                            <Button variant="secondary" onClick={() => setShowEmail(true)}><Send className="w-3.5 h-3.5" /> Send</Button>
                             {order.status === "sent" && (
                                 <Button onClick={() => { toast("success", "PO received", `${order.po_number} marked as received`); onClose(); }}><Truck className="w-3.5 h-3.5" /> Mark Received</Button>
                             )}
@@ -205,6 +208,14 @@ export function PurchaseOrderDetail({ order, open, onClose, onUpdate, onDelete }
             <DeleteConfirmation open={showDelete} onClose={() => setShowDelete(false)}
                 onConfirm={() => { setShowDelete(false); if (onDelete) { onDelete(order); } toast("success", "PO deleted", `${order.po_number} deleted`); onClose(); }}
                 title={`Delete ${order.po_number}?`} description="This action cannot be undone. The purchase order will be permanently removed." />
+
+            <EmailSend
+                open={showEmail}
+                onClose={() => setShowEmail(false)}
+                documentType="Purchase Order"
+                documentNumber={order.po_number}
+                recipientName={order.vendor}
+            />
         </Drawer>
     );
 }
