@@ -9,6 +9,7 @@ import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { SalesOrderDetail } from "@/components/details/sales-order-detail";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { useSupabaseTable } from "@/lib/supabase-hooks";
 
 // --- Types ---
 interface LineItem {
@@ -22,17 +23,22 @@ interface SalesOrder {
   id: string;
   order_number: string;
   customer: string;
+  customer_name?: string;
   quotation: string;
   date: string;
+  order_date?: string;
   delivery_date: string;
+  expected_delivery_date?: string;
   items_count: number;
   total: number;
+  total_amount?: number;
   status: string;
   line_items?: LineItem[];
   invoice_number?: string;
+  notes?: string;
 }
 
-// --- Mock Products ---
+// --- Mock Products (until products are loaded from DB) ---
 const mockProducts = [
   { name: 'Mayo Scissors 6.5" Straight', price: 24.0 },
   { name: 'Metzenbaum Scissors 7" Curved', price: 28.0 },
@@ -41,17 +47,6 @@ const mockProducts = [
   { name: "Army-Navy Retractor Set", price: 52.0 },
   { name: 'Kelly Clamp 5.5" Curved', price: 20.0 },
   { name: 'Mayo-Hegar Needle Holder 7"', price: 30.0 },
-];
-
-// --- Initial Data ---
-const initialOrders: SalesOrder[] = [
-  { id: "1", order_number: "SO-2026-042", customer: "City Hospital", quotation: "QT-2026-088", date: "2026-02-25", delivery_date: "2026-03-15", items_count: 5, total: 12500, status: "confirmed" },
-  { id: "2", order_number: "SO-2026-041", customer: "Metro Medical Center", quotation: "QT-2026-085", date: "2026-02-22", delivery_date: "2026-03-12", items_count: 8, total: 24000, status: "in_progress" },
-  { id: "3", order_number: "SO-2026-040", customer: "Gulf Healthcare", quotation: "QT-2026-082", date: "2026-02-20", delivery_date: "2026-03-10", items_count: 3, total: 8500, status: "shipped" },
-  { id: "4", order_number: "SO-2026-039", customer: "Central Clinic", quotation: "QT-2026-080", date: "2026-02-18", delivery_date: "2026-03-05", items_count: 12, total: 38000, status: "delivered" },
-  { id: "5", order_number: "SO-2026-038", customer: "National Hospital", quotation: "QT-2026-079", date: "2026-02-15", delivery_date: "2026-03-01", items_count: 6, total: 15000, status: "in_progress" },
-  { id: "6", order_number: "SO-2026-037", customer: "Prime Healthcare", quotation: "QT-2026-077", date: "2026-02-12", delivery_date: "2026-02-28", items_count: 4, total: 9800, status: "delivered" },
-  { id: "7", order_number: "SO-2026-036", customer: "Royal Clinic", quotation: "QT-2026-076", date: "2026-02-15", delivery_date: "2026-03-01", items_count: 4, total: 7500, status: "cancelled" },
 ];
 
 let nextSONumber = 43;
@@ -80,41 +75,29 @@ const columns: ColumnDef<SalesOrder, unknown>[] = [
     ),
   },
   {
-    accessorKey: "customer",
+    accessorKey: "customer_name",
     header: "Customer",
-    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.customer}</span>,
+    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.customer_name || row.original.customer}</span>,
   },
   {
-    accessorKey: "quotation",
-    header: "Quotation",
-    cell: ({ row }) => (
-      <span className="text-xs font-mono" style={{ color: "var(--muted-foreground)" }}>{row.original.quotation}</span>
-    ),
-  },
-  {
-    accessorKey: "date",
+    accessorKey: "order_date",
     header: "Date",
     cell: ({ row }) => (
-      <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>{formatDate(row.original.date)}</span>
+      <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>{formatDate(row.original.order_date || row.original.date)}</span>
     ),
   },
   {
-    accessorKey: "delivery_date",
+    accessorKey: "expected_delivery_date",
     header: "Delivery",
     cell: ({ row }) => (
-      <span className="text-sm" style={{ color: "var(--foreground)" }}>{formatDate(row.original.delivery_date)}</span>
+      <span className="text-sm" style={{ color: "var(--foreground)" }}>{formatDate(row.original.expected_delivery_date || row.original.delivery_date)}</span>
     ),
   },
   {
-    accessorKey: "items_count",
-    header: "Items",
-    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.items_count}</span>,
-  },
-  {
-    accessorKey: "total",
+    accessorKey: "total_amount",
     header: "Total",
     cell: ({ row }) => (
-      <span className="font-semibold text-sm" style={{ color: "var(--foreground)" }}>{formatCurrency(row.original.total)}</span>
+      <span className="font-semibold text-sm" style={{ color: "var(--foreground)" }}>{formatCurrency(row.original.total_amount || row.original.total || 0)}</span>
     ),
   },
   {
@@ -125,12 +108,23 @@ const columns: ColumnDef<SalesOrder, unknown>[] = [
 ];
 
 function SalesOrdersContent() {
-  const [orders, setOrders] = useState<SalesOrder[]>(initialOrders);
+  const { data: dbOrders, loading, create, update, remove } = useSupabaseTable<SalesOrder>("sales_orders");
   const [activeTab, setActiveTab] = useState("all");
   const [showDialog, setShowDialog] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
   const { toast } = useToast();
   const searchParams = useSearchParams();
+
+  // Map DB fields to display fields
+  const orders = dbOrders.map(o => ({
+    ...o,
+    customer: o.customer_name || o.customer || "",
+    date: o.order_date || o.date || "",
+    delivery_date: o.expected_delivery_date || o.delivery_date || "",
+    total: o.total_amount || o.total || 0,
+    items_count: o.items_count || 0,
+    quotation: o.quotation || "—",
+  }));
 
   useEffect(() => {
     const openId = searchParams.get("open");
@@ -170,47 +164,75 @@ function SalesOrdersContent() {
 
   const formTotal = formLineItems.reduce((sum, li) => sum + li.qty * li.unit_price, 0);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!formCustomer.trim()) { toast("error", "Please enter a customer name"); return; }
     if (formLineItems.some((li) => !li.product.trim())) { toast("error", "Please fill in all line item products"); return; }
 
-    const newOrder: SalesOrder = {
-      id: Date.now().toString(),
+    const result = await create({
       order_number: getNextSONumber(),
-      customer: formCustomer,
-      quotation: formQuotation || "—",
-      date: new Date().toISOString().split("T")[0],
-      delivery_date: formDeliveryDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      items_count: formLineItems.length,
-      total: formTotal,
+      customer_name: formCustomer,
+      order_date: new Date().toISOString().split("T")[0],
+      expected_delivery_date: formDeliveryDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      total_amount: formTotal,
       status: "confirmed",
-      line_items: [...formLineItems],
-    };
+      notes: formQuotation ? `Source: ${formQuotation}` : "",
+    } as Partial<SalesOrder>);
 
-    setOrders([newOrder, ...orders]);
-    setShowDialog(false);
-    resetForm();
-    toast("success", `Sales Order ${newOrder.order_number} created`);
+    if (result) {
+      // Persist line items to sales_order_items table
+      const { supabase } = await import("@/lib/supabase");
+      const items = formLineItems.map(li => ({
+        sales_order_id: result.id,
+        product_name: li.product,
+        quantity: li.qty,
+        unit_price: li.unit_price,
+      }));
+      await supabase.from("sales_order_items").insert(items);
+
+      setShowDialog(false);
+      resetForm();
+      toast("success", `Sales Order ${result.order_number} created with ${items.length} item(s)`);
+    } else {
+      toast("error", "Failed to create sales order");
+    }
   };
 
   // --- Create Invoice from SO ---
-  const handleCreateInvoice = (order: SalesOrder) => {
+  const handleCreateInvoice = async (order: SalesOrder) => {
     const invNumber = `INV-2026-${String(nextSONumber++).padStart(3, "0")}`;
-    setOrders(
-      orders.map((o) => o.id === order.id ? { ...o, invoice_number: invNumber } : o)
-    );
+
+    // Create real invoice record
+    const { supabase } = await import("@/lib/supabase");
+    const { error: invErr } = await supabase.from("invoices").insert({
+      invoice_number: invNumber,
+      customer_name: order.customer_name || order.customer,
+      issue_date: new Date().toISOString().split("T")[0],
+      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      total_amount: order.total_amount || order.total,
+      status: "draft",
+      notes: `From ${order.order_number}`,
+    });
+
+    if (invErr) {
+      toast("error", "Failed to create invoice");
+      return;
+    }
+
+    // Update SO with invoice reference
+    await update(order.id, { invoice_number: invNumber } as Partial<SalesOrder>);
     toast("success", `Invoice ${invNumber} created from ${order.order_number}`);
   };
 
   // --- Create Job Orders from SO ---
   const handleCreateJobOrders = (order: SalesOrder) => {
-    const itemCount = order.line_items?.length || order.items_count;
+    const itemCount = order.line_items?.length || order.items_count || 1;
     toast("success", `${itemCount} Job Order(s) created from ${order.order_number}`);
   };
 
   // --- Delete SO ---
-  const handleDeleteOrder = (order: SalesOrder) => {
-    setOrders(orders.filter((o) => o.id !== order.id));
+  const handleDeleteOrder = async (order: SalesOrder) => {
+    await remove(order.id);
+    setSelectedOrder(null);
   };
 
   const tabs = [
@@ -240,14 +262,20 @@ function SalesOrdersContent() {
         <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filtered}
-        emptyMessage="No sales orders found"
-        searchPlaceholder="Search sales orders..."
-        enableSelection
-        onRowClick={(item) => setSelectedOrder(item)}
-      />
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={filtered}
+          emptyMessage="No sales orders found"
+          searchPlaceholder="Search sales orders..."
+          enableSelection
+          onRowClick={(item) => setSelectedOrder(item)}
+        />
+      )}
 
       <SalesOrderDetail
         order={selectedOrder}
@@ -256,7 +284,7 @@ function SalesOrdersContent() {
         onCreateInvoice={handleCreateInvoice}
         onCreateJobOrders={handleCreateJobOrders}
         onDelete={handleDeleteOrder}
-        onUpdate={(updated) => { setOrders(orders.map((o) => o.id === updated.id ? updated : o)); setSelectedOrder(updated); }}
+        onUpdate={async (updated) => { const result = await update(updated.id, updated); if (result) setSelectedOrder(result); }}
       />
 
       <Drawer

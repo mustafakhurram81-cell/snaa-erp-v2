@@ -2,12 +2,13 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Eye, Truck as TruckIcon, Trash2, ImageIcon } from "lucide-react";
+import { Plus, Trash2, ImageIcon } from "lucide-react";
 import { PageHeader, Button, Drawer, Input, Card, StatusBadge, Tabs } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { PurchaseOrderDetail } from "@/components/details/purchase-order-detail";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { useSupabaseTable } from "@/lib/supabase-hooks";
 
 interface LineItem {
   id: string;
@@ -20,26 +21,22 @@ interface PurchaseOrder {
   id: string;
   po_number: string;
   vendor: string;
+  vendor_name?: string;
   date: string;
+  order_date?: string;
   expected_date: string;
+  expected_delivery_date?: string;
   items_count: number;
   total: number;
+  total_amount?: number;
   status: string;
   jo_reference?: string;
   jo_stage?: string;
   line_items?: LineItem[];
+  notes?: string;
 }
 
 const mockVendors = ["Premium Steel Corp", "Global Stainless Ltd", "Euro Metals GMBH", "Precision Parts Ltd", "Packaging World"];
-
-const initialPOs: PurchaseOrder[] = [
-  { id: "1", po_number: "PO-2026-028", vendor: "Premium Steel Corp", date: "2026-02-24", expected_date: "2026-03-10", items_count: 6, total: 28000, status: "sent", jo_reference: "JO-2026-001", jo_stage: "Heat Treatment" },
-  { id: "2", po_number: "PO-2026-027", vendor: "Global Stainless Ltd", date: "2026-02-20", expected_date: "2026-03-05", items_count: 10, total: 45000, status: "received", jo_reference: "JO-2026-002", jo_stage: "Grinding" },
-  { id: "3", po_number: "PO-2026-026", vendor: "Euro Metals GMBH", date: "2026-02-18", expected_date: "2026-03-15", items_count: 4, total: 12500, status: "sent", jo_reference: "JO-2026-003", jo_stage: "Forging" },
-  { id: "4", po_number: "PO-2026-025", vendor: "Precision Parts Ltd", date: "2026-02-15", expected_date: "2026-03-01", items_count: 8, total: 18000, status: "received", jo_reference: "JO-2026-004", jo_stage: "Electroplating" },
-  { id: "5", po_number: "PO-2026-024", vendor: "Premium Steel Corp", date: "2026-02-10", expected_date: "2026-02-25", items_count: 3, total: 9500, status: "closed", jo_reference: "JO-2026-005", jo_stage: "Filing" },
-  { id: "6", po_number: "PO-2026-023", vendor: "Packaging World", date: "2026-02-08", expected_date: "2026-02-20", items_count: 5, total: 3200, status: "draft" },
-];
 
 let nextPONumber = 29;
 function getNextPONumber() {
@@ -56,36 +53,25 @@ const columns: ColumnDef<PurchaseOrder, unknown>[] = [
     header: "PO #",
     cell: ({ row }) => <span className="font-medium text-sm" style={{ color: "var(--primary)" }}>{row.original.po_number}</span>,
   },
-  { accessorKey: "vendor", header: "Vendor" },
   {
-    accessorKey: "jo_reference",
-    header: "Job Order",
-    cell: ({ row }) => row.original.jo_reference ? (
-      <div>
-        <span className="text-xs font-mono font-semibold" style={{ color: "var(--primary)" }}>{row.original.jo_reference}</span>
-        {row.original.jo_stage && <span className="text-[10px] ml-1" style={{ color: "var(--muted-foreground)" }}>· {row.original.jo_stage}</span>}
-      </div>
-    ) : <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>—</span>,
+    accessorKey: "vendor_name",
+    header: "Vendor",
+    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.vendor_name || row.original.vendor}</span>,
   },
   {
-    accessorKey: "date",
+    accessorKey: "order_date",
     header: "Date",
-    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>{formatDate(row.original.date)}</span>,
+    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>{formatDate(row.original.order_date || row.original.date)}</span>,
   },
   {
-    accessorKey: "expected_date",
+    accessorKey: "expected_delivery_date",
     header: "Expected",
-    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{formatDate(row.original.expected_date)}</span>,
+    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{formatDate(row.original.expected_delivery_date || row.original.expected_date)}</span>,
   },
   {
-    accessorKey: "items_count",
-    header: "Items",
-    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.items_count}</span>,
-  },
-  {
-    accessorKey: "total",
+    accessorKey: "total_amount",
     header: "Total",
-    cell: ({ row }) => <span className="font-semibold text-sm" style={{ color: "var(--foreground)" }}>{formatCurrency(row.original.total)}</span>,
+    cell: ({ row }) => <span className="font-semibold text-sm" style={{ color: "var(--foreground)" }}>{formatCurrency(row.original.total_amount || row.original.total || 0)}</span>,
   },
   {
     accessorKey: "status",
@@ -95,11 +81,21 @@ const columns: ColumnDef<PurchaseOrder, unknown>[] = [
 ];
 
 export default function PurchaseOrdersPage() {
-  const [orders, setOrders] = useState<PurchaseOrder[]>(initialPOs);
+  const { data: dbOrders, loading, create, update, remove } = useSupabaseTable<PurchaseOrder>("purchase_orders");
   const [activeTab, setActiveTab] = useState("all");
   const [showDialog, setShowDialog] = useState(false);
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
   const { toast } = useToast();
+
+  // Map DB fields
+  const orders = dbOrders.map(o => ({
+    ...o,
+    vendor: o.vendor_name || o.vendor || "",
+    date: o.order_date || o.date || "",
+    expected_date: o.expected_delivery_date || o.expected_date || "",
+    total: o.total_amount || o.total || 0,
+    items_count: o.items_count || 0,
+  }));
 
   // Form state
   const [formVendor, setFormVendor] = useState("");
@@ -115,26 +111,27 @@ export default function PurchaseOrdersPage() {
 
   const formTotal = formLineItems.reduce((sum, li) => sum + li.qty * li.unit_cost, 0);
 
-  const handleCreate = (asDraft: boolean) => {
+  const handleCreate = async (asDraft: boolean) => {
     if (!formVendor.trim()) { toast("error", "Please select a vendor"); return; }
     if (formLineItems.some((li) => !li.item.trim())) { toast("error", "Please fill in all line items"); return; }
 
-    const newPO: PurchaseOrder = {
-      id: Date.now().toString(),
+    const result = await create({
       po_number: getNextPONumber(),
-      vendor: formVendor,
-      date: new Date().toISOString().split("T")[0],
-      expected_date: formExpectedDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      items_count: formLineItems.length,
-      total: formTotal,
+      vendor_name: formVendor,
+      order_date: new Date().toISOString().split("T")[0],
+      expected_delivery_date: formExpectedDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      total_amount: formTotal,
       status: asDraft ? "draft" : "sent",
-      line_items: [...formLineItems],
-    };
+      notes: "",
+    } as Partial<PurchaseOrder>);
 
-    setOrders([newPO, ...orders]);
-    setShowDialog(false);
-    resetForm();
-    toast("success", `Purchase Order ${newPO.po_number} created`);
+    if (result) {
+      setShowDialog(false);
+      resetForm();
+      toast("success", `Purchase Order ${result.po_number} created`);
+    } else {
+      toast("error", "Failed to create purchase order");
+    }
   };
 
   const tabs = [
@@ -164,21 +161,27 @@ export default function PurchaseOrdersPage() {
         <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filtered}
-        emptyMessage="No purchase orders found"
-        searchPlaceholder="Search POs..."
-        enableSelection
-        onRowClick={(item) => setSelectedPO(item)}
-      />
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={filtered}
+          emptyMessage="No purchase orders found"
+          searchPlaceholder="Search POs..."
+          enableSelection
+          onRowClick={(item) => setSelectedPO(item)}
+        />
+      )}
 
       <PurchaseOrderDetail
         order={selectedPO}
         open={!!selectedPO}
         onClose={() => setSelectedPO(null)}
-        onUpdate={(updated) => { setOrders(orders.map((p) => p.id === updated.id ? updated : p)); setSelectedPO(updated); }}
-        onDelete={(po) => { setOrders(orders.filter((p) => p.id !== po.id)); setSelectedPO(null); }}
+        onUpdate={async (updated) => { const result = await update(updated.id, updated); if (result) setSelectedPO(result); }}
+        onDelete={async (po) => { await remove(po.id); setSelectedPO(null); }}
       />
 
       <Drawer

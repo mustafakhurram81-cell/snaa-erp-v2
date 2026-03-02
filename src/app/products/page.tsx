@@ -6,6 +6,7 @@ import { Package, Plus, Grid3x3, List, ImageIcon } from "lucide-react";
 import { PageHeader, Button, Card, StatusBadge, Drawer, Input, SearchInput } from "@/components/ui/shared";
 import { ProductDetail } from "@/components/details/product-detail";
 import { useToast } from "@/components/ui/toast";
+import { useSupabaseTable } from "@/lib/supabase-hooks";
 
 interface Product {
     id: string;
@@ -19,21 +20,10 @@ interface Product {
     status: string;
 }
 
-const initialProducts: Product[] = [
-    { id: "1", sku: "SI-SC-001", name: 'Mayo Scissors 6.5" Straight', category: "Scissors", subcategory: "Mayo", unit_cost: 8.50, selling_price: 24.00, stock: 150, status: "active" },
-    { id: "2", sku: "SI-SC-002", name: 'Metzenbaum Scissors 7" Curved', category: "Scissors", subcategory: "Metzenbaum", unit_cost: 9.00, selling_price: 28.00, stock: 120, status: "active" },
-    { id: "3", sku: "SI-FP-001", name: 'Adson Forceps 4.75"', category: "Forceps", subcategory: "Adson", unit_cost: 5.50, selling_price: 15.00, stock: 200, status: "active" },
-    { id: "4", sku: "SI-FP-002", name: 'Debakey Forceps 8"', category: "Forceps", subcategory: "DeBakey", unit_cost: 12.00, selling_price: 35.00, stock: 85, status: "active" },
-    { id: "5", sku: "SI-RT-001", name: "Army-Navy Retractor Set", category: "Retractors", subcategory: "Hand-held", unit_cost: 18.00, selling_price: 52.00, stock: 60, status: "active" },
-    { id: "6", sku: "SI-CL-001", name: 'Kelly Clamp 5.5" Curved', category: "Clamps", subcategory: "Kelly", unit_cost: 7.00, selling_price: 20.00, stock: 175, status: "active" },
-    { id: "7", sku: "SI-NH-001", name: 'Mayo-Hegar Needle Holder 7"', category: "Needle Holders", subcategory: "Mayo-Hegar", unit_cost: 10.00, selling_price: 30.00, stock: 95, status: "active" },
-    { id: "8", sku: "SI-SC-003", name: 'Iris Scissors 4.5" Straight', category: "Scissors", subcategory: "Iris", unit_cost: 6.00, selling_price: 18.00, stock: 0, status: "inactive" },
-];
-
 const categories = ["All", "Scissors", "Forceps", "Retractors", "Clamps", "Needle Holders"];
 
 export default function ProductsPage() {
-    const [products, setProducts] = useState<Product[]>(initialProducts);
+    const { data: products, loading, create, update, remove } = useSupabaseTable<Product>("products");
     const [search, setSearch] = useState("");
     const [viewMode, setViewMode] = useState<"grid" | "list">("list");
     const [activeCategory, setActiveCategory] = useState("All");
@@ -46,13 +36,12 @@ export default function ProductsPage() {
 
     const resetForm = () => setFormData({ name: "", sku: "", category: "", subcategory: "" });
 
-    const handleCreate = () => {
+    const handleCreate = async () => {
         if (!formData.name.trim() || !formData.sku.trim()) {
             toast("error", "Name and SKU are required");
             return;
         }
-        const newProduct: Product = {
-            id: Date.now().toString(),
+        const result = await create({
             sku: formData.sku,
             name: formData.name,
             category: formData.category || "Uncategorized",
@@ -61,30 +50,49 @@ export default function ProductsPage() {
             selling_price: 0,
             stock: 0,
             status: "active",
-        };
-        setProducts([newProduct, ...products]);
-        setShowDialog(false);
-        resetForm();
-        toast("success", `Product ${newProduct.name} created`);
+        } as Partial<Product>);
+
+        if (result) {
+            setShowDialog(false);
+            resetForm();
+            toast("success", `Product ${result.name} created`);
+        } else {
+            toast("error", "Failed to create product");
+        }
     };
 
-    const handleUpdateProduct = (updated: typeof products[0]) => {
-        setProducts(products.map((p) => p.id === updated.id ? updated : p));
-        setSelectedProduct(updated);
+    const handleUpdateProduct = async (updated: Product) => {
+        const result = await update(updated.id, updated);
+        if (result) {
+            setSelectedProduct(result);
+        }
     };
 
-    const handleDeleteProduct = (product: typeof products[0]) => {
-        setProducts(products.filter((p) => p.id !== product.id));
-        setSelectedProduct(null);
+    const handleDeleteProduct = async (product: Product) => {
+        const success = await remove(product.id);
+        if (success) {
+            setSelectedProduct(null);
+        }
     };
 
     const filtered = products.filter((p) => {
         const matchesSearch = [p.name, p.sku, p.category].some((v) =>
-            v.toLowerCase().includes(search.toLowerCase())
+            (v || "").toLowerCase().includes(search.toLowerCase())
         );
         const matchesCategory = activeCategory === "All" || p.category === activeCategory;
         return matchesSearch && matchesCategory;
     });
+
+    if (loading) {
+        return (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <PageHeader title="Products" description="Loading..." />
+                <div className="flex items-center justify-center py-20">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+                </div>
+            </motion.div>
+        );
+    }
 
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>

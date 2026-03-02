@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Search, X, Users, FileText, ShoppingCart, Factory, Package,
     ClipboardList, Truck, Receipt, ArrowRight, Command
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 interface SearchItem {
     id: string;
@@ -17,41 +18,17 @@ interface SearchItem {
     href: string;
 }
 
-const allSearchItems: SearchItem[] = [
-    // Customers
-    { id: "c1", title: "Dr. Ahmed Khan", subtitle: "City Hospital", module: "Customers", icon: <Users className="w-3.5 h-3.5" />, href: "/customers" },
-    { id: "c2", title: "Sarah Williams", subtitle: "Metro Medical Center", module: "Customers", icon: <Users className="w-3.5 h-3.5" />, href: "/customers" },
-    { id: "c3", title: "Dr. Fatima Al-Rashid", subtitle: "Gulf Healthcare", module: "Customers", icon: <Users className="w-3.5 h-3.5" />, href: "/customers" },
-    { id: "c4", title: "James Anderson", subtitle: "Central Clinic", module: "Customers", icon: <Users className="w-3.5 h-3.5" />, href: "/customers" },
-    // Products
-    { id: "p1", title: "Mayo Scissors 6.5\" Straight", subtitle: "SC-MAY-065S · $24.00", module: "Products", icon: <Package className="w-3.5 h-3.5" />, href: "/products" },
-    { id: "p2", title: "Adson Forceps 4.75\"", subtitle: "FC-ADS-475 · $15.00", module: "Products", icon: <Package className="w-3.5 h-3.5" />, href: "/products" },
-    { id: "p3", title: "Kelly Clamp 5.5\" Curved", subtitle: "CL-KEL-055C · $20.00", module: "Products", icon: <Package className="w-3.5 h-3.5" />, href: "/products" },
-    { id: "p4", title: "Metzenbaum Scissors 7\"", subtitle: "SC-MET-070C · $28.00", module: "Products", icon: <Package className="w-3.5 h-3.5" />, href: "/products" },
-    // Quotations
-    { id: "q1", title: "QT-2026-089", subtitle: "Gulf Healthcare · $42,000", module: "Quotations", icon: <FileText className="w-3.5 h-3.5" />, href: "/quotations" },
-    { id: "q2", title: "QT-2026-088", subtitle: "City Hospital · $12,500", module: "Quotations", icon: <FileText className="w-3.5 h-3.5" />, href: "/quotations" },
-    // Sales Orders
-    { id: "s1", title: "SO-2026-042", subtitle: "City Hospital · $12,500", module: "Sales Orders", icon: <ShoppingCart className="w-3.5 h-3.5" />, href: "/sales-orders" },
-    { id: "s2", title: "SO-2026-041", subtitle: "Metro Medical · $8,900", module: "Sales Orders", icon: <ShoppingCart className="w-3.5 h-3.5" />, href: "/sales-orders" },
-    { id: "s3", title: "SO-2026-040", subtitle: "Central Clinic · $15,200", module: "Sales Orders", icon: <ShoppingCart className="w-3.5 h-3.5" />, href: "/sales-orders" },
-    // Job Orders
-    { id: "j1", title: "JO-2026-001", subtitle: "Mayo Scissors · Filing", module: "Production", icon: <Factory className="w-3.5 h-3.5" />, href: "/production" },
-    { id: "j2", title: "JO-2026-002", subtitle: "Adson Forceps · Grinding", module: "Production", icon: <Factory className="w-3.5 h-3.5" />, href: "/production" },
-    { id: "j3", title: "JO-2026-004", subtitle: "Metzenbaum Scissors · QC", module: "Production", icon: <Factory className="w-3.5 h-3.5" />, href: "/production" },
-    // Purchase Orders
-    { id: "po1", title: "PO-2026-028", subtitle: "Premium Steel Corp · Sent", module: "Purchase Orders", icon: <ClipboardList className="w-3.5 h-3.5" />, href: "/purchase-orders" },
-    { id: "po2", title: "PO-2026-027", subtitle: "Global Stainless Ltd · Received", module: "Purchase Orders", icon: <ClipboardList className="w-3.5 h-3.5" />, href: "/purchase-orders" },
-    // Vendors
-    { id: "v1", title: "Ali Steel Works", subtitle: "Die Making · Sialkot", module: "Vendors", icon: <Truck className="w-3.5 h-3.5" />, href: "/vendors" },
-    { id: "v2", title: "Riaz Forging", subtitle: "Forging · Sialkot", module: "Vendors", icon: <Truck className="w-3.5 h-3.5" />, href: "/vendors" },
-    { id: "v3", title: "Precision Grinders", subtitle: "Grinding · Sialkot", module: "Vendors", icon: <Truck className="w-3.5 h-3.5" />, href: "/vendors" },
-    // Invoices
-    { id: "i1", title: "INV-2026-156", subtitle: "City Hospital · $12,500", module: "Invoices", icon: <Receipt className="w-3.5 h-3.5" />, href: "/invoices" },
-    { id: "i2", title: "INV-2026-155", subtitle: "Metro Medical · $8,900", module: "Invoices", icon: <Receipt className="w-3.5 h-3.5" />, href: "/invoices" },
+const searchConfig = [
+    { table: "customers", nameField: "name", subtitle: (r: any) => r.city || r.email || "", module: "Customers", icon: <Users className="w-3.5 h-3.5" />, href: "/customers" },
+    { table: "vendors", nameField: "name", subtitle: (r: any) => r.city || r.contact_name || "", module: "Vendors", icon: <Truck className="w-3.5 h-3.5" />, href: "/vendors" },
+    { table: "products", nameField: "name", subtitle: (r: any) => `${r.sku || ""} · $${r.selling_price || 0}`, module: "Products", icon: <Package className="w-3.5 h-3.5" />, href: "/products" },
+    { table: "sales_orders", nameField: "order_number", subtitle: (r: any) => `${r.customer_name || ""} · $${r.total_amount || 0}`, module: "Sales Orders", icon: <ShoppingCart className="w-3.5 h-3.5" />, href: "/sales-orders" },
+    { table: "quotations", nameField: "quote_number", subtitle: (r: any) => `${r.customer_name || ""} · $${r.total_amount || 0}`, module: "Quotations", icon: <FileText className="w-3.5 h-3.5" />, href: "/quotations" },
+    { table: "invoices", nameField: "invoice_number", subtitle: (r: any) => `${r.customer_name || ""} · $${r.total_amount || 0}`, module: "Invoices", icon: <Receipt className="w-3.5 h-3.5" />, href: "/invoices" },
+    { table: "purchase_orders", nameField: "po_number", subtitle: (r: any) => r.status || "", module: "Purchase Orders", icon: <ClipboardList className="w-3.5 h-3.5" />, href: "/purchase-orders" },
+    { table: "production_orders", nameField: "job_number", subtitle: (r: any) => `${r.product_name || ""} · ${r.status || ""}`, module: "Production", icon: <Factory className="w-3.5 h-3.5" />, href: "/production" },
 ];
 
-// Pages for quick navigation
 const pages = [
     { title: "Dashboard", href: "/" },
     { title: "Reports", href: "/reports" },
@@ -73,10 +50,11 @@ export function CommandSearch() {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState("");
     const [selectedIdx, setSelectedIdx] = useState(0);
+    const [items, setItems] = useState<SearchItem[]>([]);
+    const [loading, setLoading] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
 
-    // Cmd+K listener
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -94,25 +72,57 @@ export function CommandSearch() {
             setTimeout(() => inputRef.current?.focus(), 100);
             setQuery("");
             setSelectedIdx(0);
+            setItems([]);
         }
     }, [open]);
 
-    const results = useMemo(() => {
-        if (!query.trim()) {
-            return { items: [], pages: pages.slice(0, 6) };
-        }
-        const q = query.toLowerCase();
-        const matchedItems = allSearchItems.filter(
-            (item) =>
-                item.title.toLowerCase().includes(q) ||
-                item.subtitle.toLowerCase().includes(q) ||
-                item.module.toLowerCase().includes(q)
-        ).slice(0, 8);
-        const matchedPages = pages.filter(p => p.title.toLowerCase().includes(q)).slice(0, 4);
-        return { items: matchedItems, pages: matchedPages };
-    }, [query]);
+    const doSearch = useCallback(async (q: string) => {
+        if (q.length < 2) { setItems([]); return; }
+        setLoading(true);
+        const allItems: SearchItem[] = [];
 
-    const allResults = [...results.items.map(i => ({ type: "item" as const, ...i })), ...results.pages.map(p => ({ type: "page" as const, id: p.href, title: p.title, href: p.href }))];
+        await Promise.all(
+            searchConfig.map(async (cfg) => {
+                try {
+                    const { data } = await supabase
+                        .from(cfg.table)
+                        .select("*")
+                        .ilike(cfg.nameField, `%${q}%`)
+                        .limit(3);
+                    if (data) {
+                        data.forEach((row: any) => {
+                            allItems.push({
+                                id: row.id,
+                                title: row[cfg.nameField] || "",
+                                subtitle: cfg.subtitle(row),
+                                module: cfg.module,
+                                icon: cfg.icon,
+                                href: cfg.href,
+                            });
+                        });
+                    }
+                } catch { }
+            })
+        );
+
+        setItems(allItems);
+        setSelectedIdx(0);
+        setLoading(false);
+    }, []);
+
+    useEffect(() => {
+        const timer = setTimeout(() => doSearch(query), 250);
+        return () => clearTimeout(timer);
+    }, [query, doSearch]);
+
+    const matchedPages = query.trim()
+        ? pages.filter(p => p.title.toLowerCase().includes(query.toLowerCase())).slice(0, 4)
+        : pages.slice(0, 6);
+
+    const allResults = [
+        ...items.map(i => ({ type: "item" as const, ...i })),
+        ...matchedPages.map(p => ({ type: "page" as const, id: p.href, title: p.title, href: p.href })),
+    ];
 
     const handleSelect = (item: { href: string }) => {
         router.push(item.href);
@@ -133,7 +143,6 @@ export function CommandSearch() {
 
     return (
         <>
-            {/* Trigger button */}
             <button
                 onClick={() => setOpen(true)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs transition-colors hover:bg-[var(--secondary)]"
@@ -146,7 +155,6 @@ export function CommandSearch() {
                 </kbd>
             </button>
 
-            {/* Modal */}
             <AnimatePresence>
                 {open && (
                     <>
@@ -166,7 +174,6 @@ export function CommandSearch() {
                             className="fixed left-1/2 top-[20%] -translate-x-1/2 z-50 w-full max-w-lg rounded-2xl border shadow-2xl overflow-hidden"
                             style={{ background: "var(--card)", borderColor: "var(--border)" }}
                         >
-                            {/* Search input */}
                             <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>
                                 <Search className="w-4 h-4 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />
                                 <input
@@ -186,12 +193,17 @@ export function CommandSearch() {
                                 <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono border" style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}>ESC</kbd>
                             </div>
 
-                            {/* Results */}
                             <div className="max-h-80 overflow-y-auto py-2">
-                                {!query.trim() && (
+                                {loading && (
+                                    <div className="flex items-center justify-center py-6">
+                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500" />
+                                    </div>
+                                )}
+
+                                {!loading && !query.trim() && (
                                     <div className="px-3 pb-1">
                                         <p className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1.5" style={{ color: "var(--muted-foreground)" }}>Quick Navigation</p>
-                                        {results.pages.map((page, idx) => (
+                                        {matchedPages.map((page, idx) => (
                                             <button
                                                 key={page.href}
                                                 onClick={() => handleSelect(page)}
@@ -205,10 +217,10 @@ export function CommandSearch() {
                                     </div>
                                 )}
 
-                                {query.trim() && results.items.length > 0 && (
+                                {!loading && query.trim() && items.length > 0 && (
                                     <div className="px-3">
                                         <p className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1.5" style={{ color: "var(--muted-foreground)" }}>Results</p>
-                                        {results.items.map((item, idx) => (
+                                        {items.map((item, idx) => (
                                             <button
                                                 key={item.id}
                                                 onClick={() => handleSelect(item)}
@@ -229,11 +241,11 @@ export function CommandSearch() {
                                     </div>
                                 )}
 
-                                {query.trim() && results.pages.length > 0 && (
+                                {!loading && query.trim() && matchedPages.length > 0 && (
                                     <div className="px-3 mt-1">
                                         <p className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1.5" style={{ color: "var(--muted-foreground)" }}>Pages</p>
-                                        {results.pages.map((page, idx) => {
-                                            const realIdx = results.items.length + idx;
+                                        {matchedPages.map((page, idx) => {
+                                            const realIdx = items.length + idx;
                                             return (
                                                 <button
                                                     key={page.href}
@@ -249,7 +261,7 @@ export function CommandSearch() {
                                     </div>
                                 )}
 
-                                {query.trim() && allResults.length === 0 && (
+                                {!loading && query.trim() && allResults.length === 0 && (
                                     <div className="py-8 text-center">
                                         <Search className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--muted-foreground)", opacity: 0.3 }} />
                                         <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>No results for &ldquo;{query}&rdquo;</p>
@@ -257,7 +269,6 @@ export function CommandSearch() {
                                 )}
                             </div>
 
-                            {/* Footer */}
                             <div className="px-4 py-2 border-t flex items-center gap-4 text-[10px]" style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}>
                                 <span className="flex items-center gap-1"><kbd className="px-1 py-0.5 rounded border text-[9px]" style={{ borderColor: "var(--border)" }}>↑↓</kbd> Navigate</span>
                                 <span className="flex items-center gap-1"><kbd className="px-1 py-0.5 rounded border text-[9px]" style={{ borderColor: "var(--border)" }}>↵</kbd> Open</span>

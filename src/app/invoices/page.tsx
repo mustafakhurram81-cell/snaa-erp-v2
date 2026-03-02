@@ -9,6 +9,7 @@ import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { InvoiceDetail } from "@/components/details/invoice-detail";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { useSupabaseTable } from "@/lib/supabase-hooks";
 
 // --- Types ---
 interface LineItem {
@@ -22,13 +23,18 @@ interface Invoice {
   id: string;
   invoice_number: string;
   customer: string;
+  customer_name?: string;
   sales_order: string;
   date: string;
+  invoice_date?: string;
   due_date: string;
   total: number;
+  total_amount?: number;
   paid: number;
+  amount_paid?: number;
   status: string;
   line_items?: LineItem[];
+  notes?: string;
 }
 
 // --- Mock Products ---
@@ -40,16 +46,6 @@ const mockProducts = [
   { name: "Army-Navy Retractor Set", price: 52.0 },
   { name: 'Kelly Clamp 5.5" Curved', price: 20.0 },
   { name: 'Mayo-Hegar Needle Holder 7"', price: 30.0 },
-];
-
-const initialInvoices: Invoice[] = [
-  { id: "1", invoice_number: "INV-2026-045", customer: "City Hospital", sales_order: "SO-2026-038", date: "2026-02-24", due_date: "2026-03-24", total: 12500, paid: 12500, status: "paid" },
-  { id: "2", invoice_number: "INV-2026-044", customer: "Metro Medical Center", sales_order: "SO-2026-037", date: "2026-02-22", due_date: "2026-03-22", total: 24000, paid: 10000, status: "pending" },
-  { id: "3", invoice_number: "INV-2026-043", customer: "Gulf Healthcare", sales_order: "SO-2026-035", date: "2026-02-18", due_date: "2026-03-18", total: 42000, paid: 42000, status: "paid" },
-  { id: "4", invoice_number: "INV-2026-042", customer: "Central Clinic", sales_order: "SO-2026-034", date: "2026-02-15", due_date: "2026-03-01", total: 5800, paid: 0, status: "overdue" },
-  { id: "5", invoice_number: "INV-2026-041", customer: "National Hospital", sales_order: "SO-2026-033", date: "2026-02-12", due_date: "2026-03-12", total: 35000, paid: 15000, status: "pending" },
-  { id: "6", invoice_number: "INV-2026-040", customer: "Prime Healthcare", sales_order: "SO-2026-031", date: "2026-02-10", due_date: "2026-02-25", total: 9200, paid: 0, status: "overdue" },
-  { id: "7", invoice_number: "INV-2026-039", customer: "Royal Clinic", sales_order: "SO-2026-028", date: "2026-02-08", due_date: "2026-03-08", total: 7500, paid: 0, status: "draft" },
 ];
 
 let nextINVNumber = 46;
@@ -68,19 +64,14 @@ const columns: ColumnDef<Invoice, unknown>[] = [
     cell: ({ row }) => <span className="font-medium text-sm" style={{ color: "var(--primary)" }}>{row.original.invoice_number}</span>,
   },
   {
-    accessorKey: "customer",
+    accessorKey: "customer_name",
     header: "Customer",
-    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.customer}</span>,
+    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.customer_name || row.original.customer}</span>,
   },
   {
-    accessorKey: "sales_order",
-    header: "Sales Order",
-    cell: ({ row }) => <span className="text-xs font-mono" style={{ color: "var(--muted-foreground)" }}>{row.original.sales_order}</span>,
-  },
-  {
-    accessorKey: "date",
+    accessorKey: "invoice_date",
     header: "Date",
-    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>{formatDate(row.original.date)}</span>,
+    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>{formatDate(row.original.invoice_date || row.original.date)}</span>,
   },
   {
     accessorKey: "due_date",
@@ -88,14 +79,14 @@ const columns: ColumnDef<Invoice, unknown>[] = [
     cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{formatDate(row.original.due_date)}</span>,
   },
   {
-    accessorKey: "total",
+    accessorKey: "total_amount",
     header: "Total",
-    cell: ({ row }) => <span className="font-semibold text-sm" style={{ color: "var(--foreground)" }}>{formatCurrency(row.original.total)}</span>,
+    cell: ({ row }) => <span className="font-semibold text-sm" style={{ color: "var(--foreground)" }}>{formatCurrency(row.original.total_amount || row.original.total || 0)}</span>,
   },
   {
-    accessorKey: "paid",
+    accessorKey: "amount_paid",
     header: "Paid",
-    cell: ({ row }) => <span className="text-sm text-emerald-600 font-medium">{formatCurrency(row.original.paid)}</span>,
+    cell: ({ row }) => <span className="text-sm text-emerald-600 font-medium">{formatCurrency(row.original.amount_paid || row.original.paid || 0)}</span>,
   },
   {
     accessorKey: "status",
@@ -105,12 +96,22 @@ const columns: ColumnDef<Invoice, unknown>[] = [
 ];
 
 function InvoicesContent() {
-  const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
+  const { data: dbInvoices, loading, create, update, remove } = useSupabaseTable<Invoice>("invoices");
   const [activeTab, setActiveTab] = useState("all");
   const [showDialog, setShowDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const { toast } = useToast();
   const searchParams = useSearchParams();
+
+  // Map DB fields
+  const invoices = dbInvoices.map(i => ({
+    ...i,
+    customer: i.customer_name || i.customer || "",
+    date: i.invoice_date || i.date || "",
+    total: i.total_amount || i.total || 0,
+    paid: i.amount_paid || i.paid || 0,
+    sales_order: i.sales_order || "—",
+  }));
 
   useEffect(() => {
     const openId = searchParams.get("open");
@@ -139,27 +140,28 @@ function InvoicesContent() {
 
   const formTotal = formLineItems.reduce((sum, li) => sum + li.qty * li.unit_price, 0);
 
-  const handleCreate = (asDraft: boolean) => {
+  const handleCreate = async (asDraft: boolean) => {
     if (!formCustomer.trim()) { toast("error", "Please enter a customer name"); return; }
     if (formLineItems.some((li) => !li.product.trim())) { toast("error", "Please fill in all line item products"); return; }
 
-    const newInvoice: Invoice = {
-      id: Date.now().toString(),
+    const result = await create({
       invoice_number: getNextINVNumber(),
-      customer: formCustomer,
-      sales_order: formSO || "—",
-      date: new Date().toISOString().split("T")[0],
+      customer_name: formCustomer,
+      invoice_date: new Date().toISOString().split("T")[0],
       due_date: formDueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      total: formTotal,
-      paid: 0,
+      total_amount: formTotal,
+      amount_paid: 0,
       status: asDraft ? "draft" : "pending",
-      line_items: [...formLineItems],
-    };
+      notes: formSO ? `Source SO: ${formSO}` : "",
+    } as Partial<Invoice>);
 
-    setInvoices([newInvoice, ...invoices]);
-    setShowDialog(false);
-    resetForm();
-    toast("success", `Invoice ${newInvoice.invoice_number} created`);
+    if (result) {
+      setShowDialog(false);
+      resetForm();
+      toast("success", `Invoice ${result.invoice_number} created`);
+    } else {
+      toast("error", "Failed to create invoice");
+    }
   };
 
   const totalAmount = invoices.reduce((s, i) => s + i.total, 0);
@@ -200,21 +202,27 @@ function InvoicesContent() {
         <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filtered}
-        emptyMessage="No invoices found"
-        searchPlaceholder="Search invoices..."
-        enableSelection
-        onRowClick={(item) => setSelectedInvoice(item)}
-      />
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={filtered}
+          emptyMessage="No invoices found"
+          searchPlaceholder="Search invoices..."
+          enableSelection
+          onRowClick={(item) => setSelectedInvoice(item)}
+        />
+      )}
 
       <InvoiceDetail
         invoice={selectedInvoice}
         open={!!selectedInvoice}
         onClose={() => setSelectedInvoice(null)}
-        onUpdate={(updated) => { setInvoices(invoices.map((i) => i.id === updated.id ? updated : i)); setSelectedInvoice(updated); }}
-        onDelete={(inv) => { setInvoices(invoices.filter((i) => i.id !== inv.id)); setSelectedInvoice(null); }}
+        onUpdate={async (updated) => { const result = await update(updated.id, updated); if (result) setSelectedInvoice(result); }}
+        onDelete={async (inv) => { await remove(inv.id); setSelectedInvoice(null); }}
       />
 
       <Drawer
@@ -276,9 +284,7 @@ function InvoicesContent() {
                       style={{ background: "var(--background)", borderColor: "var(--border)", color: li.product ? "var(--foreground)" : "var(--muted-foreground)" }}
                     >
                       <option value="">Select product...</option>
-                      {mockProducts.map((p) => (
-                        <option key={p.name} value={p.name}>{p.name}</option>
-                      ))}
+                      {mockProducts.map((p) => (<option key={p.name} value={p.name}>{p.name}</option>))}
                     </select>
                   </div>
                   <div className="col-span-2">

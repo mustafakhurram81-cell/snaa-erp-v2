@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   DollarSign,
@@ -37,8 +37,41 @@ import {
 import { PageHeader, StatCard, StatusBadge, Card, Button } from "@/components/ui/shared";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
-// --- Mock data ---
+// --- Types for live data ---
+interface DashboardStats {
+  totalRevenue: number;
+  openOrders: number;
+  activeProduction: number;
+  pendingInvoices: number;
+  overdueCount: number;
+}
+
+interface RecentOrder {
+  id: string;
+  order_number: string;
+  customer_name: string;
+  total_amount: number;
+  status: string;
+  created_at: string;
+}
+
+interface InvoicePipelineItem {
+  status: string;
+  count: number;
+  amount: number;
+  color: string;
+}
+
+interface LowStockProduct {
+  name: string;
+  sku: string;
+  stock: number;
+  reorder_point: number;
+}
+
+// --- Static data (charts & activity need time-series tables) ---
 const revenueData = [
   { month: "Jul", revenue: 42000, orders: 18 },
   { month: "Aug", revenue: 55000, orders: 23 },
@@ -67,15 +100,7 @@ const productionData = [
   { name: "Sat", planned: 8, completed: 7 },
 ];
 
-const recentOrders = [
-  { id: "SO-2024-089", customer: "Metro General Hospital", amount: 12450, status: "processing", date: "Today, 10:23 AM" },
-  { id: "SO-2024-088", customer: "Apex Surgical Center", amount: 4320, status: "shipped", date: "Yesterday" },
-  { id: "SO-2024-087", customer: "Dr. Sarah Jenkins", amount: 850, status: "delivered", date: "Feb 23, 2024" },
-  { id: "SO-2024-086", customer: "Westside Clinic", amount: 2100, status: "pending", date: "Feb 23, 2024" },
-  { id: "SO-2024-085", customer: "Valley Health", amount: 18500, status: "processing", date: "Feb 22, 2024" },
-];
-
-const activities = [
+const defaultActivities = [
   { action: "New sales order SO-2026-089 created", actor: "Mustafa Khurram", time: "10 min ago", icon: ShoppingCart, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-900/20" },
   { action: "Payment of $12,500 received for INV-2026-156", actor: "System", time: "25 min ago", icon: CreditCard, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
   { action: "Production batch JO-2026-001 moved to QC stage", actor: "Ali Raza", time: "1 hour ago", icon: Factory, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20" },
@@ -84,23 +109,18 @@ const activities = [
   { action: "New customer Metro General Hospital added", actor: "Mustafa Khurram", time: "4 hours ago", icon: Users, color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-900/20" },
   { action: "Low stock alert: Adson Forceps below reorder point", actor: "System", time: "5 hours ago", icon: AlertTriangle, color: "text-red-500", bg: "bg-red-50 dark:bg-red-900/20" },
   { action: "Invoice INV-2026-155 marked as overdue", actor: "System", time: "6 hours ago", icon: Receipt, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-900/20" },
-  { action: "New vendor MediTech Supplies onboarded", actor: "Mustafa Khurram", time: "Yesterday", icon: Truck, color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-900/20" },
-  { action: "Weekly sales report generated", actor: "System", time: "Yesterday", icon: BarChart3, color: "text-sky-500", bg: "bg-sky-50 dark:bg-sky-900/20" },
 ];
 
-const lowStockProducts = [
-  { name: "Mayo Scissors 6.5\"", sku: "SKU-001", stock: 12, reorder: 30 },
-  { name: "Adson Forceps 4.75\"", sku: "SKU-002", stock: 8, reorder: 25 },
-  { name: "Kelly Clamp 5.5\"", sku: "SKU-004", stock: 22, reorder: 30 },
-];
-
-const invoicePipeline = [
-  { status: "Draft", count: 3, amount: 8500, color: "#94a3b8" },
-  { status: "Sent", count: 5, amount: 24500, color: "#3b82f6" },
-  { status: "Partial", count: 2, amount: 18000, color: "#f59e0b" },
-  { status: "Overdue", count: 2, amount: 15300, color: "#ef4444" },
-  { status: "Paid", count: 12, amount: 95000, color: "#10b981" },
-];
+const entityIcons: Record<string, { icon: typeof ShoppingCart; color: string; bg: string }> = {
+  sales_order: { icon: ShoppingCart, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-900/20" },
+  invoice: { icon: Receipt, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
+  quotation: { icon: FileText, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-900/20" },
+  customer: { icon: Users, color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-900/20" },
+  vendor: { icon: Truck, color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-900/20" },
+  product: { icon: Package, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20" },
+  production_order: { icon: Factory, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20" },
+  purchase_order: { icon: ClipboardList, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
+};
 
 const quickActions = [
   { label: "New Quote", icon: FileText, href: "/quotations", color: "from-blue-500 to-blue-600" },
@@ -110,10 +130,158 @@ const quickActions = [
   { label: "Add Customer", icon: Users, href: "/customers", color: "from-rose-500 to-rose-600" },
   { label: "View Reports", icon: BarChart3, href: "/reports", color: "from-indigo-500 to-indigo-600" },
 ];
+
 const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };
 const item = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { type: "tween" as const, duration: 0.3 } } };
 
+const statusColors: Record<string, string> = {
+  Draft: "#94a3b8",
+  draft: "#94a3b8",
+  Sent: "#3b82f6",
+  sent: "#3b82f6",
+  pending: "#3b82f6",
+  Pending: "#3b82f6",
+  partial: "#f59e0b",
+  Partial: "#f59e0b",
+  overdue: "#ef4444",
+  Overdue: "#ef4444",
+  paid: "#10b981",
+  Paid: "#10b981",
+};
+
 export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats>({
+    totalRevenue: 0,
+    openOrders: 0,
+    activeProduction: 0,
+    pendingInvoices: 0,
+    overdueCount: 0,
+  });
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+  const [invoicePipeline, setInvoicePipeline] = useState<InvoicePipelineItem[]>([]);
+  const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>([]);
+  const [activities, setActivities] = useState<typeof defaultActivities>(defaultActivities);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        // Fetch all data in parallel
+        const [
+          invoicesRes,
+          ordersRes,
+          productionRes,
+          recentOrdersRes,
+          lowStockRes,
+        ] = await Promise.all([
+          supabase.from("invoices").select("total_amount, status"),
+          supabase.from("sales_orders").select("id, status"),
+          supabase.from("production_orders").select("id, status"),
+          supabase.from("sales_orders").select("id, order_number, customer_name, total_amount, status, created_at").order("created_at", { ascending: false }).limit(5),
+          supabase.from("products").select("name, sku, stock, reorder_point").filter("stock", "lt", 50).order("stock", { ascending: true }).limit(5),
+        ]);
+
+        // Calculate stats
+        const invoices = invoicesRes.data || [];
+        const totalRevenue = invoices.reduce((sum, inv) => sum + (Number(inv.total_amount) || 0), 0);
+        const pendingInvoices = invoices.filter(i => i.status !== "paid" && i.status !== "Paid").reduce((sum, inv) => sum + (Number(inv.total_amount) || 0), 0);
+        const overdueCount = invoices.filter(i => i.status === "overdue" || i.status === "Overdue").length;
+
+        const orders = ordersRes.data || [];
+        const openOrders = orders.filter(o => o.status !== "completed" && o.status !== "Completed" && o.status !== "cancelled" && o.status !== "Cancelled").length;
+
+        const production = productionRes.data || [];
+        const activeProduction = production.filter(p => p.status === "In Progress" || p.status === "in_progress" || p.status === "Planned").length;
+
+        setStats({ totalRevenue, openOrders, activeProduction, pendingInvoices, overdueCount });
+        setRecentOrders((recentOrdersRes.data || []) as RecentOrder[]);
+
+        // Build invoice pipeline
+        const statusGroups: Record<string, { count: number; amount: number }> = {};
+        invoices.forEach(inv => {
+          const s = inv.status || "draft";
+          if (!statusGroups[s]) statusGroups[s] = { count: 0, amount: 0 };
+          statusGroups[s].count++;
+          statusGroups[s].amount += Number(inv.total_amount) || 0;
+        });
+        const pipeline = Object.entries(statusGroups).map(([status, data]) => ({
+          status: status.charAt(0).toUpperCase() + status.slice(1),
+          count: data.count,
+          amount: data.amount,
+          color: statusColors[status] || "#94a3b8",
+        }));
+        setInvoicePipeline(pipeline.length > 0 ? pipeline : [
+          { status: "No invoices yet", count: 0, amount: 0, color: "#94a3b8" },
+        ]);
+
+        // Low stock
+        const lowStock = (lowStockRes.data || []).filter(p => (p.stock || 0) < (p.reorder_point || 10));
+        setLowStockProducts(lowStock as LowStockProduct[]);
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function fetchActivities() {
+      const { data } = await supabase
+        .from("activity_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (data && data.length > 0) {
+        setActivities(data.map((log: any) => {
+          const ei = entityIcons[log.entity_type] || { icon: Clock, color: "text-gray-500", bg: "bg-gray-50 dark:bg-gray-900/20" };
+          const diffMs = Date.now() - new Date(log.created_at).getTime();
+          const diffMin = Math.floor(diffMs / 60000);
+          const timeStr = diffMin < 1 ? "Just now" : diffMin < 60 ? `${diffMin}m ago` : diffMin < 1440 ? `${Math.floor(diffMin / 60)}h ago` : "Yesterday";
+          return {
+            action: `${log.action} ${log.entity_type?.replace(/_/g, " ")} ${log.entity_id || ""}`.trim(),
+            actor: log.user_email || "System",
+            time: timeStr,
+            icon: ei.icon,
+            color: ei.color,
+            bg: ei.bg,
+          };
+        }));
+      }
+    }
+
+    fetchDashboardData();
+    fetchActivities();
+  }, []);
+
+  // AR/AP from live data
+  const [arTotal, setARTotal] = useState(0);
+  const [apTotal, setAPTotal] = useState(0);
+
+  useEffect(() => {
+    async function fetchARAP() {
+      const [arRes, apRes] = await Promise.all([
+        supabase.from("invoices").select("total_amount, status").neq("status", "paid").neq("status", "Paid"),
+        supabase.from("purchase_orders").select("total_amount, status").neq("status", "closed").neq("status", "Cancelled"),
+      ]);
+      const ar = (arRes.data || []).reduce((s, i) => s + (Number(i.total_amount) || 0), 0);
+      const ap = (apRes.data || []).reduce((s, i) => s + (Number(i.total_amount) || 0), 0);
+      setARTotal(ar);
+      setAPTotal(ap);
+    }
+    fetchARAP();
+  }, []);
+
+  const formatRelativeDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / 3600000);
+    if (diffHours < 1) return "Just now";
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return "Yesterday";
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
   return (
     <motion.div variants={container} initial="hidden" animate="show">
       <PageHeader
@@ -138,12 +306,36 @@ export default function DashboardPage() {
         })}
       </motion.div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards — LIVE */}
       <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Total Revenue" value={formatCurrency(523000)} change="+12.5% vs last month" changeType="positive" icon={<DollarSign className="w-5 h-5 text-blue-500" />} />
-        <StatCard title="Open Orders" value="24" change="3 pending shipment" changeType="neutral" icon={<ShoppingCart className="w-5 h-5 text-violet-500" />} />
-        <StatCard title="Production" value="18" change="5 completing today" changeType="positive" icon={<Factory className="w-5 h-5 text-amber-500" />} />
-        <StatCard title="Pending Invoices" value={formatCurrency(67800)} change="2 overdue" changeType="negative" icon={<Receipt className="w-5 h-5 text-emerald-500" />} />
+        <StatCard
+          title="Total Revenue"
+          value={loading ? "..." : formatCurrency(stats.totalRevenue)}
+          change={stats.totalRevenue > 0 ? "From invoices" : "No invoices yet"}
+          changeType={stats.totalRevenue > 0 ? "positive" : "neutral"}
+          icon={<DollarSign className="w-5 h-5 text-blue-500" />}
+        />
+        <StatCard
+          title="Open Orders"
+          value={loading ? "..." : String(stats.openOrders)}
+          change={`${stats.openOrders} active`}
+          changeType="neutral"
+          icon={<ShoppingCart className="w-5 h-5 text-violet-500" />}
+        />
+        <StatCard
+          title="Production"
+          value={loading ? "..." : String(stats.activeProduction)}
+          change="Active job orders"
+          changeType="positive"
+          icon={<Factory className="w-5 h-5 text-amber-500" />}
+        />
+        <StatCard
+          title="Pending Invoices"
+          value={loading ? "..." : formatCurrency(stats.pendingInvoices)}
+          change={stats.overdueCount > 0 ? `${stats.overdueCount} overdue` : "All current"}
+          changeType={stats.overdueCount > 0 ? "negative" : "positive"}
+          icon={<Receipt className="w-5 h-5 text-emerald-500" />}
+        />
       </motion.div>
 
       {/* Charts Row */}
@@ -222,7 +414,7 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </Card>
 
-        {/* AR/AP Summary */}
+        {/* AR/AP Summary — LIVE */}
         <Card>
           <h3 className="text-sm font-semibold mb-1" style={{ color: "var(--foreground)" }}>AR / AP Summary</h3>
           <p className="text-xs mb-4" style={{ color: "var(--muted-foreground)" }}>Receivables & Payables</p>
@@ -232,10 +424,11 @@ export default function DashboardPage() {
                 <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Accounts Receivable</span>
                 <CreditCard className="w-3.5 h-3.5 text-blue-500" />
               </div>
-              <p className="text-2xl font-bold text-blue-600">{formatCurrency(182500)}</p>
+              <p className="text-2xl font-bold text-blue-600">{formatCurrency(arTotal)}</p>
               <div className="flex items-center gap-3 mt-2">
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 font-semibold">Current: {formatCurrency(125000)}</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 font-semibold">Overdue: {formatCurrency(57500)}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-semibold">
+                  {arTotal > 0 ? "Outstanding" : "All clear"}
+                </span>
               </div>
             </div>
             <div className="rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>
@@ -243,16 +436,17 @@ export default function DashboardPage() {
                 <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Accounts Payable</span>
                 <Truck className="w-3.5 h-3.5 text-violet-500" />
               </div>
-              <p className="text-2xl font-bold text-violet-600">{formatCurrency(170500)}</p>
+              <p className="text-2xl font-bold text-violet-600">{formatCurrency(apTotal)}</p>
               <div className="flex items-center gap-3 mt-2">
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 font-semibold">Current: {formatCurrency(142500)}</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-semibold">Due soon: {formatCurrency(28000)}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 font-semibold">
+                  {apTotal > 0 ? "Outstanding" : "All clear"}
+                </span>
               </div>
             </div>
           </div>
         </Card>
 
-        {/* Inventory Alerts */}
+        {/* Inventory Alerts — LIVE */}
         <Card>
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -264,6 +458,12 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="space-y-3">
+            {lowStockProducts.length === 0 && !loading && (
+              <div className="py-8 text-center">
+                <Package className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--muted-foreground)" }} />
+                <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>All stock levels healthy</p>
+              </div>
+            )}
             {lowStockProducts.map((product) => (
               <div key={product.sku} className="flex items-center gap-3 p-3 rounded-xl border" style={{ borderColor: "var(--border)" }}>
                 <div className={`w-2 h-2 rounded-full flex-shrink-0 ${product.stock < 15 ? "bg-red-500" : "bg-amber-500"}`} />
@@ -273,7 +473,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="text-right">
                   <p className={`text-sm font-bold ${product.stock < 15 ? "text-red-600" : "text-amber-600"}`}>{product.stock}</p>
-                  <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>/ {product.reorder}</p>
+                  <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>/ {product.reorder_point}</p>
                 </div>
               </div>
             ))}
@@ -281,9 +481,9 @@ export default function DashboardPage() {
         </Card>
       </motion.div>
 
-      {/* Third Row: Invoice Pipeline + Recent Orders */}
+      {/* Third Row: Invoice Pipeline + Recent Orders — LIVE */}
       <motion.div variants={item} className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        {/* Invoice Pipeline */}
+        {/* Invoice Pipeline — LIVE */}
         <Card>
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -300,7 +500,7 @@ export default function DashboardPage() {
                 <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: stage.color }} />
                 <span className="text-xs w-14" style={{ color: "var(--muted-foreground)" }}>{stage.status}</span>
                 <div className="flex-1 h-4 rounded-full overflow-hidden" style={{ background: "var(--secondary)" }}>
-                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.max(stage.count * 8, 4)}%`, background: stage.color }} />
+                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.max(stage.count * 8, stage.count ? 8 : 0)}%`, background: stage.color }} />
                 </div>
                 <span className="text-xs font-semibold w-5 text-right" style={{ color: "var(--foreground)" }}>{stage.count}</span>
                 <span className="text-xs font-medium w-16 text-right" style={{ color: "var(--muted-foreground)" }}>{formatCurrency(stage.amount)}</span>
@@ -309,11 +509,13 @@ export default function DashboardPage() {
           </div>
           <div className="border-t mt-4 pt-3 flex justify-between" style={{ borderColor: "var(--border)" }}>
             <span className="text-xs font-semibold" style={{ color: "var(--muted-foreground)" }}>Total Outstanding</span>
-            <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{formatCurrency(invoicePipeline.reduce((s, p) => s + (p.status !== "Paid" ? p.amount : 0), 0))}</span>
+            <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>
+              {formatCurrency(invoicePipeline.reduce((s, p) => s + (p.status !== "Paid" ? p.amount : 0), 0))}
+            </span>
           </div>
         </Card>
 
-        {/* Recent Orders */}
+        {/* Recent Orders — LIVE */}
         <Card className="lg:col-span-2" padding={false}>
           <div className="flex items-center justify-between px-5 pt-5 pb-3">
             <div>
@@ -336,13 +538,20 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
+                {recentOrders.length === 0 && !loading && (
+                  <tr>
+                    <td colSpan={5} className="px-5 py-8 text-center text-sm" style={{ color: "var(--muted-foreground)" }}>
+                      No orders yet. Create your first sales order to see it here.
+                    </td>
+                  </tr>
+                )}
                 {recentOrders.map((order) => (
                   <tr key={order.id} className="border-b last:border-b-0 hover:bg-[var(--secondary)] transition-colors cursor-pointer" style={{ borderColor: "var(--border)" }}>
-                    <td className="px-5 py-3 text-sm font-medium" style={{ color: "var(--primary)" }}>{order.id}</td>
-                    <td className="px-5 py-3 text-sm" style={{ color: "var(--foreground)" }}>{order.customer}</td>
-                    <td className="px-5 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>{formatCurrency(order.amount)}</td>
+                    <td className="px-5 py-3 text-sm font-medium" style={{ color: "var(--primary)" }}>{order.order_number}</td>
+                    <td className="px-5 py-3 text-sm" style={{ color: "var(--foreground)" }}>{order.customer_name}</td>
+                    <td className="px-5 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>{formatCurrency(Number(order.total_amount) || 0)}</td>
                     <td className="px-5 py-3"><StatusBadge status={order.status} /></td>
-                    <td className="px-5 py-3 text-sm" style={{ color: "var(--muted-foreground)" }}>{order.date}</td>
+                    <td className="px-5 py-3 text-sm" style={{ color: "var(--muted-foreground)" }}>{formatRelativeDate(order.created_at)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -416,7 +625,7 @@ export default function DashboardPage() {
         </Card>
       </motion.div>
 
-      {/* Activity Feed - Enhanced */}
+      {/* Activity Feed */}
       <motion.div variants={item}>
         <Card>
           <div className="flex items-center justify-between mb-4">

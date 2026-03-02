@@ -2,12 +2,13 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Mail, Phone, MapPin } from "lucide-react";
+import { Plus, Mail, Phone } from "lucide-react";
 import { PageHeader, Button, Drawer, Input, StatusBadge } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { CustomerDetail } from "@/components/details/customer-detail";
-import { formatCurrency, getInitials } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { useSupabaseTable } from "@/lib/supabase-hooks";
 
 export const CUSTOMER_TYPES = [
     { value: "hospital", label: "Hospital" },
@@ -37,15 +38,6 @@ interface Customer {
     ar_balance: number;
     created_at: string;
 }
-
-const mockCustomers: Customer[] = [
-    { id: "1", name: "Dr. Ahmed Khan", type: "hospital", email: "ahmed@cityhospital.com", phone: "+92-300-1234567", city: "Karachi", country: "Pakistan", status: "active", ar_balance: 12500, created_at: "2025-12-01" },
-    { id: "2", name: "Sarah Williams", type: "distributor", email: "sarah@metromedical.com", phone: "+1-555-0123", city: "New York", country: "USA", status: "active", ar_balance: 8900, created_at: "2025-11-15" },
-    { id: "3", name: "Dr. Fatima Al-Rashid", type: "hospital", email: "fatima@gulfhc.ae", phone: "+971-50-1234567", city: "Dubai", country: "UAE", status: "active", ar_balance: 22000, created_at: "2025-10-20" },
-    { id: "4", name: "James Anderson", type: "clinic", email: "james@centralclinic.co.uk", phone: "+44-20-7123456", city: "London", country: "UK", status: "active", ar_balance: 15200, created_at: "2025-09-10" },
-    { id: "5", name: "Li Wei", type: "government", email: "liwei@nationalhospital.cn", phone: "+86-10-12345678", city: "Beijing", country: "China", status: "inactive", ar_balance: 0, created_at: "2025-08-05" },
-    { id: "6", name: "Dr. Maria Santos", type: "private_practitioner", email: "maria@primehc.br", phone: "+55-11-912345678", city: "São Paulo", country: "Brazil", status: "active", ar_balance: 6300, created_at: "2026-01-05" },
-];
 
 function getTypeLabel(type: string) {
     return CUSTOMER_TYPES.find(t => t.value === type)?.label || type;
@@ -105,13 +97,13 @@ const columns: ColumnDef<Customer, unknown>[] = [
 ];
 
 export default function CustomersPage() {
-    const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+    const { data: customers, loading, create, update, remove } = useSupabaseTable<Customer>("customers");
     const [showDialog, setShowDialog] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [formData, setFormData] = useState({ name: "", type: "", email: "", phone: "", city: "", country: "" });
     const { toast } = useToast();
 
-    const handleCreate = () => {
+    const handleCreate = async () => {
         if (!formData.name.trim()) { toast("error", "Name is required"); return; }
         if (!formData.type) { toast("error", "Customer type is required"); return; }
         if (!formData.email.trim()) { toast("error", "Email is required"); return; }
@@ -119,27 +111,33 @@ export default function CustomersPage() {
         if (!formData.city.trim()) { toast("error", "City is required"); return; }
         if (!formData.country.trim()) { toast("error", "Country is required"); return; }
 
-        const newCustomer: Customer = {
-            id: Date.now().toString(),
+        const result = await create({
             ...formData,
             status: "active",
             ar_balance: 0,
-            created_at: new Date().toISOString(),
-        };
-        setCustomers([newCustomer, ...customers]);
-        setShowDialog(false);
-        setFormData({ name: "", type: "", email: "", phone: "", city: "", country: "" });
-        toast("success", "Customer created", `${formData.name} added successfully`);
+        } as Partial<Customer>);
+
+        if (result) {
+            setShowDialog(false);
+            setFormData({ name: "", type: "", email: "", phone: "", city: "", country: "" });
+            toast("success", "Customer created", `${formData.name} added successfully`);
+        } else {
+            toast("error", "Failed to create customer");
+        }
     };
 
-    const handleUpdateCustomer = (updated: typeof customers[0]) => {
-        setCustomers(customers.map((c) => c.id === updated.id ? updated : c));
-        setSelectedCustomer(updated);
+    const handleUpdateCustomer = async (updated: Customer) => {
+        const result = await update(updated.id, updated);
+        if (result) {
+            setSelectedCustomer(result);
+        }
     };
 
-    const handleDeleteCustomer = (customer: typeof customers[0]) => {
-        setCustomers(customers.filter((c) => c.id !== customer.id));
-        setSelectedCustomer(null);
+    const handleDeleteCustomer = async (customer: Customer) => {
+        const success = await remove(customer.id);
+        if (success) {
+            setSelectedCustomer(null);
+        }
     };
 
     return (
@@ -155,15 +153,21 @@ export default function CustomersPage() {
                 }
             />
 
-            <DataTable
-                columns={columns}
-                data={customers}
-                enableSelection
-                enableColumnVisibility
-                searchPlaceholder="Search customers..."
-                emptyMessage="No customers found"
-                onRowClick={(item) => setSelectedCustomer(item)}
-            />
+            {loading ? (
+                <div className="flex items-center justify-center py-20">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+                </div>
+            ) : (
+                <DataTable
+                    columns={columns}
+                    data={customers}
+                    enableSelection
+                    enableColumnVisibility
+                    searchPlaceholder="Search customers..."
+                    emptyMessage="No customers found"
+                    onRowClick={(item) => setSelectedCustomer(item)}
+                />
+            )}
 
             <CustomerDetail
                 customer={selectedCustomer}

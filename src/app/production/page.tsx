@@ -1,93 +1,92 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Plus, LayoutGrid, List, Filter, Search, ClipboardList } from "lucide-react";
-import { PageHeader, Button, Card, StatusBadge, SearchInput } from "@/components/ui/shared";
+import { PageHeader, Button, Card, StatusBadge, SearchInput, Drawer, Input } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { formatDate } from "@/lib/utils";
 import { MANUFACTURING_STAGES, type JobStage, type StageStatus, getProgress, getCurrentStage } from "@/lib/stages";
 import { JobOrderDetail, type JobOrder } from "@/components/details/job-order-detail";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/toast";
 
-// --- Mock Data ---
-const mockJobOrders: JobOrder[] = [
-  {
-    id: "1", jo_number: "JO-2026-001", so_number: "SO-2026-042", customer: "Metro General Hospital",
-    product: "Mayo Scissors 6.5\" Straight", quantity: 200, start_date: "2026-02-10", due_date: "2026-03-15", status: "in_progress",
-    stages: [
-      { stageId: 1, status: "completed", type: "vendor", vendor: "Ali Steel Works", startDate: "2026-02-10", endDate: "2026-02-13" },
-      { stageId: 2, status: "completed", type: "vendor", vendor: "Riaz Forging", startDate: "2026-02-13", endDate: "2026-02-16" },
-      { stageId: 3, status: "completed", type: "vendor", vendor: "Precision Grinders", startDate: "2026-02-16", endDate: "2026-02-19" },
-      { stageId: 4, status: "in_progress", type: "vendor", vendor: "Master Filing Works", startDate: "2026-02-19" },
-      { stageId: 5, status: "not_started", type: "vendor" },
-      { stageId: 6, status: "not_started", type: "vendor" },
-      { stageId: 7, status: "not_started", type: "in-house" },
-      { stageId: 8, status: "not_started", type: "in-house" },
-      { stageId: 9, status: "not_started", type: "in-house" },
-      { stageId: 10, status: "not_started", type: "in-house" },
-    ],
-  },
-  {
-    id: "2", jo_number: "JO-2026-002", so_number: "SO-2026-042", customer: "Metro General Hospital",
-    product: "Adson Forceps 4.75\"", quantity: 500, start_date: "2026-02-12", due_date: "2026-03-20", status: "in_progress",
-    stages: [
-      { stageId: 1, status: "completed", type: "vendor", vendor: "Ali Steel Works", startDate: "2026-02-12", endDate: "2026-02-14" },
-      { stageId: 2, status: "completed", type: "vendor", vendor: "Khalid Forging", startDate: "2026-02-14", endDate: "2026-02-18" },
-      { stageId: 3, status: "in_progress", type: "vendor", vendor: "Precision Grinders", startDate: "2026-02-18", poNumber: "PO-2026-031" },
-      { stageId: 4, status: "not_started", type: "vendor" },
-      { stageId: 5, status: "not_started", type: "vendor" },
-      { stageId: 6, status: "not_started", type: "vendor" },
-      { stageId: 7, status: "not_started", type: "in-house" },
-      { stageId: 8, status: "not_started", type: "in-house" },
-      { stageId: 9, status: "not_started", type: "in-house" },
-      { stageId: 10, status: "not_started", type: "in-house" },
-    ],
-  },
-  {
-    id: "3", jo_number: "JO-2026-003", so_number: "SO-2026-043", customer: "Gulf Healthcare Solutions",
-    product: "Kelly Clamp 5.5\" Curved", quantity: 150, start_date: "2026-02-18", due_date: "2026-03-25", status: "in_progress",
-    stages: [
-      { stageId: 1, status: "completed", type: "vendor", vendor: "Riaz Die Works", startDate: "2026-02-18", endDate: "2026-02-20" },
-      { stageId: 2, status: "in_progress", type: "vendor", vendor: "Riaz Forging", startDate: "2026-02-20", poNumber: "PO-2026-033" },
-      { stageId: 3, status: "not_started", type: "vendor" },
-      { stageId: 4, status: "not_started", type: "vendor" },
-      { stageId: 5, status: "not_started", type: "vendor" },
-      { stageId: 6, status: "not_started", type: "vendor" },
-      { stageId: 7, status: "not_started", type: "in-house" },
-      { stageId: 8, status: "not_started", type: "in-house" },
-      { stageId: 9, status: "not_started", type: "in-house" },
-      { stageId: 10, status: "not_started", type: "in-house" },
-    ],
-  },
-  {
-    id: "4", jo_number: "JO-2026-004", so_number: "SO-2026-040", customer: "City Hospital",
-    product: "Metzenbaum Scissors 7\" Curved", quantity: 100, start_date: "2026-02-05", due_date: "2026-03-01", status: "in_progress",
-    stages: [
-      { stageId: 1, status: "completed", type: "vendor", vendor: "Ali Steel Works", startDate: "2026-02-05", endDate: "2026-02-07" },
-      { stageId: 2, status: "completed", type: "vendor", vendor: "Riaz Forging", startDate: "2026-02-07", endDate: "2026-02-10" },
-      { stageId: 3, status: "completed", type: "vendor", vendor: "Precision Grinders", startDate: "2026-02-10", endDate: "2026-02-13" },
-      { stageId: 4, status: "completed", type: "vendor", vendor: "Master Filing Works", startDate: "2026-02-13", endDate: "2026-02-16" },
-      { stageId: 5, status: "completed", type: "vendor", vendor: "Heat Treat Sialkot", startDate: "2026-02-16", endDate: "2026-02-18" },
-      { stageId: 6, status: "completed", type: "vendor", vendor: "Chrome Plating Works", startDate: "2026-02-18", endDate: "2026-02-21" },
-      { stageId: 7, status: "completed", type: "in-house", startDate: "2026-02-21", endDate: "2026-02-22" },
-      { stageId: 8, status: "in_progress", type: "in-house", startDate: "2026-02-22" },
-      { stageId: 9, status: "not_started", type: "in-house" },
-      { stageId: 10, status: "not_started", type: "in-house" },
-    ],
-  },
-  {
-    id: "5", jo_number: "JO-2026-005", so_number: "SO-2026-039", customer: "Apex Surgical Center",
-    product: "Mayo-Hegar Needle Holder 7\"", quantity: 80, start_date: "2026-02-01", due_date: "2026-02-25", status: "completed",
-    stages: Array.from({ length: 10 }, (_, i) => ({
-      stageId: i + 1,
-      status: "completed" as StageStatus,
-      type: (i < 6 ? "vendor" : "in-house") as "vendor" | "in-house",
-      vendor: i < 6 ? ["Ali Steel", "Riaz Forging", "Precision Grinders", "Filing Works", "Heat Treat", "Chrome Plating"][i] : undefined,
-      startDate: `2026-02-0${i + 1}`,
-      endDate: `2026-02-0${i + 3}`,
-    })),
-  },
-];
+// DB types
+interface DBProductionOrder {
+  id: string;
+  job_number: string;
+  product_name: string;
+  quantity: number;
+  start_date: string;
+  end_date: string | null;
+  status: string;
+  priority: string;
+  assigned_to: string | null;
+  notes: string | null;
+  sales_order_id: string | null;
+  production_stages: DBProductionStage[];
+}
+
+interface DBProductionStage {
+  id: string;
+  production_order_id: string;
+  stage_number: number;
+  stage_name: string;
+  status: string;
+  execution_type: string;
+  vendor_id: string | null;
+}
+
+// Map DB status to frontend status
+function mapStageStatus(dbStatus: string): StageStatus {
+  switch (dbStatus) {
+    case "Completed": return "completed";
+    case "In Progress": return "in_progress";
+    case "Pending":
+    default: return "not_started";
+  }
+}
+
+function mapOrderStatus(dbStatus: string): string {
+  switch (dbStatus) {
+    case "In Progress": return "in_progress";
+    case "Completed": return "completed";
+    case "Planned": return "in_progress";
+    default: return dbStatus.toLowerCase().replace(" ", "_");
+  }
+}
+
+// Convert DB record to frontend JobOrder
+function toJobOrder(db: DBProductionOrder): JobOrder {
+  const stages: JobStage[] = MANUFACTURING_STAGES.map((ms) => {
+    const dbStage = db.production_stages?.find((s) => s.stage_number === ms.id);
+    if (dbStage) {
+      return {
+        stageId: ms.id,
+        status: mapStageStatus(dbStage.status),
+        type: (dbStage.execution_type === "Vendor" ? "vendor" : "in-house") as "vendor" | "in-house",
+      };
+    }
+    return {
+      stageId: ms.id,
+      status: "not_started" as StageStatus,
+      type: ms.defaultType as "vendor" | "in-house",
+    };
+  });
+
+  return {
+    id: db.id,
+    jo_number: db.job_number,
+    so_number: db.sales_order_id || "—",
+    customer: "",
+    product: db.product_name,
+    quantity: db.quantity || 0,
+    start_date: db.start_date,
+    due_date: db.end_date || "",
+    status: mapOrderStatus(db.status || "Planned"),
+    stages,
+  };
+}
 
 const container = {
   hidden: { opacity: 0 },
@@ -98,22 +97,107 @@ const item = {
   show: { opacity: 1, y: 0, transition: { type: "tween" as const, duration: 0.3 } },
 };
 
+let nextJONumber = 6;
+function getNextJONumber() {
+  return `JO-2026-${String(nextJONumber++).padStart(3, "0")}`;
+}
+
 export default function ProductionPage() {
+  const [jobOrders, setJobOrders] = useState<JobOrder[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"kanban" | "list">("list");
   const [selectedJO, setSelectedJO] = useState<JobOrder | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const { toast } = useToast();
+
+  // Form state
+  const [formProduct, setFormProduct] = useState("");
+  const [formQuantity, setFormQuantity] = useState("");
+  const [formDueDate, setFormDueDate] = useState("");
+
+  const fetchJobOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("production_orders")
+        .select("*, production_stages(*)")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      const mapped = (data || []).map((d) => toJobOrder(d as unknown as DBProductionOrder));
+      setJobOrders(mapped);
+    } catch (err) {
+      console.error("Failed to fetch production orders:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchJobOrders();
+  }, [fetchJobOrders]);
+
+  const handleCreate = async () => {
+    if (!formProduct.trim()) { toast("error", "Product name is required"); return; }
+
+    const joNumber = getNextJONumber();
+
+    // Insert production order
+    const { data: order, error: orderError } = await supabase
+      .from("production_orders")
+      .insert({
+        job_number: joNumber,
+        product_name: formProduct,
+        quantity: parseInt(formQuantity) || 1,
+        start_date: new Date().toISOString().split("T")[0],
+        end_date: formDueDate || null,
+        status: "Planned",
+        priority: "Medium",
+      })
+      .select()
+      .single();
+
+    if (orderError || !order) {
+      toast("error", "Failed to create job order");
+      return;
+    }
+
+    // Insert 10 default stages
+    const stages = MANUFACTURING_STAGES.map((ms) => ({
+      production_order_id: order.id,
+      stage_number: ms.id,
+      stage_name: ms.name,
+      status: "Pending",
+      execution_type: ms.defaultType === "vendor" ? "Vendor" : "In-House",
+    }));
+
+    const { error: stagesError } = await supabase
+      .from("production_stages")
+      .insert(stages);
+
+    if (stagesError) {
+      toast("error", "Job order created but failed to create stages");
+    } else {
+      toast("success", `Job Order ${joNumber} created with 10 stages`);
+    }
+
+    setShowCreateDialog(false);
+    setFormProduct("");
+    setFormQuantity("");
+    setFormDueDate("");
+    fetchJobOrders();
+  };
 
   const filtered = useMemo(() => {
-    return mockJobOrders.filter((jo) => {
+    return jobOrders.filter((jo) => {
       const matchSearch = jo.jo_number.toLowerCase().includes(search.toLowerCase()) ||
-        jo.product.toLowerCase().includes(search.toLowerCase()) ||
-        jo.customer.toLowerCase().includes(search.toLowerCase()) ||
-        jo.so_number.toLowerCase().includes(search.toLowerCase());
+        jo.product.toLowerCase().includes(search.toLowerCase());
       const matchStatus = statusFilter === "all" || jo.status === statusFilter;
       return matchSearch && matchStatus;
     });
-  }, [search, statusFilter]);
+  }, [search, statusFilter, jobOrders]);
 
   // Group JOs by current stage for Kanban
   const kanbanData = useMemo(() => {
@@ -136,8 +220,6 @@ export default function ProductionPage() {
   const listColumns: ColumnDef<JobOrder, unknown>[] = [
     { accessorKey: "jo_number", header: "JO #", cell: ({ row }) => <span className="font-mono font-semibold" style={{ color: "var(--primary)" }}>{row.original.jo_number}</span> },
     { accessorKey: "product", header: "Product" },
-    { accessorKey: "so_number", header: "Sales Order", cell: ({ row }) => <span className="font-mono text-xs" style={{ color: "var(--muted-foreground)" }}>{row.original.so_number}</span> },
-    { accessorKey: "customer", header: "Customer" },
     { accessorKey: "quantity", header: "Qty", cell: ({ row }) => <span>{row.original.quantity} pcs</span> },
     {
       id: "progress", header: "Progress", enableSorting: false, cell: ({ row }) => {
@@ -160,7 +242,7 @@ export default function ProductionPage() {
         return <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>{stage?.name || "—"}</span>;
       }
     },
-    { accessorKey: "due_date", header: "Due Date", cell: ({ row }) => <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{formatDate(row.original.due_date)}</span> },
+    { accessorKey: "due_date", header: "Due Date", cell: ({ row }) => <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{row.original.due_date ? formatDate(row.original.due_date) : "—"}</span> },
     { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusBadge status={row.original.status} /> },
   ];
 
@@ -168,7 +250,7 @@ export default function ProductionPage() {
     <motion.div variants={container} initial="hidden" animate="show">
       <PageHeader
         title="Production"
-        description={`${mockJobOrders.length} job orders · ${mockJobOrders.filter(j => j.status === "in_progress").length} in progress`}
+        description={`${jobOrders.length} job orders · ${jobOrders.filter(j => j.status === "in_progress").length} in progress`}
         actions={
           <div className="flex items-center gap-2">
             <div className="flex rounded-lg border overflow-hidden" style={{ borderColor: "var(--border)" }}>
@@ -187,7 +269,7 @@ export default function ProductionPage() {
                 <List className="w-3.5 h-3.5" />
               </button>
             </div>
-            <Button>
+            <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="w-3.5 h-3.5" />
               New Job Order
             </Button>
@@ -212,86 +294,117 @@ export default function ProductionPage() {
         </div>
       </motion.div>
 
-      {/* Kanban View */}
-      {view === "kanban" && (
-        <motion.div variants={item} className="overflow-x-auto pb-4">
-          <div className="flex gap-3 min-w-max">
-            {MANUFACTURING_STAGES.map((stage) => {
-              const jobs = kanbanData[stage.key] || [];
-              return (
-                <div key={stage.key} className="w-56 flex-shrink-0">
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+        </div>
+      ) : (
+        <>
+          {/* Kanban View */}
+          {view === "kanban" && (
+            <motion.div variants={item} className="overflow-x-auto pb-4">
+              <div className="flex gap-3 min-w-max">
+                {MANUFACTURING_STAGES.map((stage) => {
+                  const jobs = kanbanData[stage.key] || [];
+                  return (
+                    <div key={stage.key} className="w-56 flex-shrink-0">
+                      <div className="flex items-center gap-2 mb-3 px-1">
+                        <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{stage.name}</span>
+                        {jobs.length > 0 && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">{jobs.length}</span>
+                        )}
+                      </div>
+                      <div className="space-y-2 min-h-[100px]">
+                        {jobs.map((jo) => (
+                          <Card key={jo.id} className="cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 !p-3" onClick={() => setSelectedJO(jo)}>
+                            <p className="text-xs font-mono font-semibold" style={{ color: "var(--primary)" }}>{jo.jo_number}</p>
+                            <p className="text-sm font-medium mt-1 line-clamp-1" style={{ color: "var(--foreground)" }}>{jo.product}</p>
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-[10px] font-medium" style={{ color: "var(--muted-foreground)" }}>{jo.quantity} pcs</span>
+                              <div className="flex items-center gap-1">
+                                <div className="w-10 h-1 rounded-full overflow-hidden" style={{ background: "var(--secondary)" }}>
+                                  <div className="h-full rounded-full" style={{ width: `${getProgress(jo.stages)}%`, background: "var(--primary)" }} />
+                                </div>
+                                <span className="text-[9px] font-bold" style={{ color: "var(--muted-foreground)" }}>{getProgress(jo.stages)}%</span>
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                        {jobs.length === 0 && (
+                          <div className="py-6 text-center">
+                            <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>No items</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Completed column */}
+                <div className="w-56 flex-shrink-0">
                   <div className="flex items-center gap-2 mb-3 px-1">
-                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{stage.name}</span>
-                    {jobs.length > 0 && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">{jobs.length}</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">Done</span>
+                    {(kanbanData["completed"]?.length || 0) > 0 && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                        {kanbanData["completed"]?.length}
+                      </span>
                     )}
                   </div>
                   <div className="space-y-2 min-h-[100px]">
-                    {jobs.map((jo) => (
-                      <Card key={jo.id} className="cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 !p-3" onClick={() => setSelectedJO(jo)}>
-                        <p className="text-xs font-mono font-semibold" style={{ color: "var(--primary)" }}>{jo.jo_number}</p>
+                    {(kanbanData["completed"] || []).map((jo) => (
+                      <Card key={jo.id} className="cursor-pointer hover:shadow-md transition-all duration-200 !p-3 opacity-70" onClick={() => setSelectedJO(jo)}>
+                        <p className="text-xs font-mono font-semibold text-emerald-600">{jo.jo_number}</p>
                         <p className="text-sm font-medium mt-1 line-clamp-1" style={{ color: "var(--foreground)" }}>{jo.product}</p>
-                        <p className="text-[10px] mt-1" style={{ color: "var(--muted-foreground)" }}>{jo.customer}</p>
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-[10px] font-medium" style={{ color: "var(--muted-foreground)" }}>{jo.quantity} pcs</span>
-                          <div className="flex items-center gap-1">
-                            <div className="w-10 h-1 rounded-full overflow-hidden" style={{ background: "var(--secondary)" }}>
-                              <div className="h-full rounded-full" style={{ width: `${getProgress(jo.stages)}%`, background: "var(--primary)" }} />
-                            </div>
-                            <span className="text-[9px] font-bold" style={{ color: "var(--muted-foreground)" }}>{getProgress(jo.stages)}%</span>
-                          </div>
-                        </div>
                       </Card>
                     ))}
-                    {jobs.length === 0 && (
-                      <div className="py-6 text-center">
-                        <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>No items</p>
-                      </div>
-                    )}
                   </div>
                 </div>
-              );
-            })}
-
-            {/* Completed column */}
-            <div className="w-56 flex-shrink-0">
-              <div className="flex items-center gap-2 mb-3 px-1">
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">Done</span>
-                {(kanbanData["completed"]?.length || 0) > 0 && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                    {kanbanData["completed"]?.length}
-                  </span>
-                )}
               </div>
-              <div className="space-y-2 min-h-[100px]">
-                {(kanbanData["completed"] || []).map((jo) => (
-                  <Card key={jo.id} className="cursor-pointer hover:shadow-md transition-all duration-200 !p-3 opacity-70" onClick={() => setSelectedJO(jo)}>
-                    <p className="text-xs font-mono font-semibold text-emerald-600">{jo.jo_number}</p>
-                    <p className="text-sm font-medium mt-1 line-clamp-1" style={{ color: "var(--foreground)" }}>{jo.product}</p>
-                    <p className="text-[10px] mt-1" style={{ color: "var(--muted-foreground)" }}>{jo.customer}</p>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
+            </motion.div>
+          )}
 
-      {/* List View */}
-      {view === "list" && (
-        <motion.div variants={item}>
-          <DataTable
-            columns={listColumns}
-            data={filtered}
-            emptyMessage="No job orders found"
-            searchPlaceholder="Search job orders..."
-            onRowClick={(item) => setSelectedJO(item)}
-            enableSelection
-          />
-        </motion.div>
+          {/* List View */}
+          {view === "list" && (
+            <motion.div variants={item}>
+              <DataTable
+                columns={listColumns}
+                data={filtered}
+                emptyMessage="No job orders found"
+                searchPlaceholder="Search job orders..."
+                onRowClick={(item) => setSelectedJO(item)}
+                enableSelection
+              />
+            </motion.div>
+          )}
+        </>
       )}
 
       <JobOrderDetail jobOrder={selectedJO} open={!!selectedJO} onClose={() => setSelectedJO(null)} />
+
+      {/* Create Dialog */}
+      <Drawer
+        open={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
+        title="New Job Order"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
+            <Button onClick={handleCreate}>Create Job Order</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <Input label="Product Name *" placeholder="e.g. Mayo Scissors 6.5&quot; Straight" value={formProduct} onChange={(e) => setFormProduct(e.target.value)} />
+          <Input label="Quantity" type="number" placeholder="100" value={formQuantity} onChange={(e) => setFormQuantity(e.target.value)} />
+          <Input label="Due Date" type="date" value={formDueDate} onChange={(e) => setFormDueDate(e.target.value)} />
+          <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)", background: "var(--secondary)" }}>
+            <p className="text-xs font-semibold mb-1" style={{ color: "var(--foreground)" }}>Default Stages</p>
+            <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+              10 manufacturing stages will be automatically created: Die Making → Forging → Grinding → Filing → Heat Treatment → Electroplating → Assembly → QC → Finishing → Packaging
+            </p>
+          </div>
+        </div>
+      </Drawer>
     </motion.div>
   );
 }

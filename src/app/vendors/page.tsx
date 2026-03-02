@@ -7,6 +7,7 @@ import { PageHeader, Button, Drawer, Input, StatusBadge } from "@/components/ui/
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { VendorDetail } from "@/components/details/vendor-detail";
 import { useToast } from "@/components/ui/toast";
+import { useSupabaseTable } from "@/lib/supabase-hooks";
 
 interface Vendor {
     id: string;
@@ -19,14 +20,6 @@ interface Vendor {
     status: string;
     ap_balance: number;
 }
-
-const mockVendors: Vendor[] = [
-    { id: "1", vendor_code: "V-001", name: "Premium Steel Corp", contact_name: "Ali Hassan", email: "ali@premiumsteel.pk", phone: "+92-42-123-4567", city: "Sialkot", status: "active", ap_balance: 45000 },
-    { id: "2", vendor_code: "V-002", name: "Global Stainless Ltd", contact_name: "John Smith", email: "john@globalsteel.com", phone: "+86-21-12345678", city: "Shanghai", status: "active", ap_balance: 82000 },
-    { id: "3", vendor_code: "V-003", name: "Euro Metals GMBH", contact_name: "Hans Mueller", email: "hans@eurometals.de", phone: "+49-30-12345", city: "Berlin", status: "active", ap_balance: 15500 },
-    { id: "4", vendor_code: "V-004", name: "Precision Parts Ltd", contact_name: "Bilal Ahmed", email: "bilal@precisionparts.pk", phone: "+92-52-345-6789", city: "Sialkot", status: "active", ap_balance: 28000 },
-    { id: "5", vendor_code: "V-005", name: "Packaging World", contact_name: "Nadia Khan", email: "nadia@packworld.pk", phone: "+92-42-987-6543", city: "Lahore", status: "inactive", ap_balance: 0 },
-];
 
 const columns: ColumnDef<Vendor, unknown>[] = [
     {
@@ -53,18 +46,17 @@ const columns: ColumnDef<Vendor, unknown>[] = [
 ];
 
 export default function VendorsPage() {
-    const [vendors, setVendors] = useState<Vendor[]>(mockVendors);
+    const { data: vendors, loading, create, update, remove } = useSupabaseTable<Vendor>("vendors");
     const [showDialog, setShowDialog] = useState(false);
     const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
     const [formData, setFormData] = useState({ vendor_code: "", name: "" });
     const { toast } = useToast();
 
-    const handleCreate = () => {
+    const handleCreate = async () => {
         if (!formData.name.trim()) { toast("error", "Vendor name is required"); return; }
         if (!formData.vendor_code.trim()) { toast("error", "Vendor code is required"); return; }
 
-        const newVendor: Vendor = {
-            id: Date.now().toString(),
+        const result = await create({
             vendor_code: formData.vendor_code,
             name: formData.name,
             contact_name: "",
@@ -73,21 +65,29 @@ export default function VendorsPage() {
             city: "",
             status: "active",
             ap_balance: 0,
-        };
-        setVendors([newVendor, ...vendors]);
-        setShowDialog(false);
-        setFormData({ vendor_code: "", name: "" });
-        toast("success", "Vendor created", `${formData.name} added successfully`);
+        } as Partial<Vendor>);
+
+        if (result) {
+            setShowDialog(false);
+            setFormData({ vendor_code: "", name: "" });
+            toast("success", "Vendor created", `${formData.name} added successfully`);
+        } else {
+            toast("error", "Failed to create vendor");
+        }
     };
 
-    const handleUpdateVendor = (updated: typeof vendors[0]) => {
-        setVendors(vendors.map((v) => v.id === updated.id ? updated : v));
-        setSelectedVendor(updated);
+    const handleUpdateVendor = async (updated: Vendor) => {
+        const result = await update(updated.id, updated);
+        if (result) {
+            setSelectedVendor(result);
+        }
     };
 
-    const handleDeleteVendor = (vendor: typeof vendors[0]) => {
-        setVendors(vendors.filter((v) => v.id !== vendor.id));
-        setSelectedVendor(null);
+    const handleDeleteVendor = async (vendor: Vendor) => {
+        const success = await remove(vendor.id);
+        if (success) {
+            setSelectedVendor(null);
+        }
     };
 
     return (
@@ -103,13 +103,19 @@ export default function VendorsPage() {
                 }
             />
 
-            <DataTable
-                columns={columns}
-                data={vendors}
-                searchPlaceholder="Search vendors..."
-                emptyMessage="No vendors found"
-                onRowClick={(item) => setSelectedVendor(item)}
-            />
+            {loading ? (
+                <div className="flex items-center justify-center py-20">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+                </div>
+            ) : (
+                <DataTable
+                    columns={columns}
+                    data={vendors}
+                    searchPlaceholder="Search vendors..."
+                    emptyMessage="No vendors found"
+                    onRowClick={(item) => setSelectedVendor(item)}
+                />
+            )}
 
             <VendorDetail
                 vendor={selectedVendor}

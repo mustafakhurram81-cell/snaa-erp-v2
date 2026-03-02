@@ -1,11 +1,24 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Warehouse, AlertTriangle, ArrowDownUp, Plus, Package, TrendingDown, TrendingUp } from "lucide-react";
 import { PageHeader, Button, Card, StatCard, StatusBadge, Tabs, Drawer, Input } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { formatNumber, formatCurrency } from "@/lib/utils";
+import { useSupabaseTable } from "@/lib/supabase-hooks";
+
+interface Product {
+  id: string;
+  sku: string;
+  name: string;
+  category: string;
+  stock: number;
+  reorder_point: number;
+  selling_price: number;
+  unit_cost: number;
+  status: string;
+}
 
 interface InventoryItem {
   id: string;
@@ -17,25 +30,16 @@ interface InventoryItem {
   available: number;
   reorder_point: number;
   status: string;
+  selling_price: number;
+  unit_cost: number;
 }
 
-const mockInventory: InventoryItem[] = [
-  { id: "1", sku: "SI-SC-001", product: "Mayo Scissors 6.5\" Straight", category: "Scissors", on_hand: 150, reserved: 20, available: 130, reorder_point: 50, status: "active" },
-  { id: "2", sku: "SI-SC-002", product: "Metzenbaum Scissors 7\" Curved", category: "Scissors", on_hand: 120, reserved: 45, available: 75, reorder_point: 40, status: "active" },
-  { id: "3", sku: "SI-FP-001", product: "Adson Forceps 4.75\"", category: "Forceps", on_hand: 200, reserved: 60, available: 140, reorder_point: 80, status: "active" },
-  { id: "4", sku: "SI-FP-002", product: "Debakey Forceps 8\"", category: "Forceps", on_hand: 85, reserved: 30, available: 55, reorder_point: 30, status: "active" },
-  { id: "5", sku: "SI-RT-001", product: "Army-Navy Retractor Set", category: "Retractors", on_hand: 60, reserved: 15, available: 45, reorder_point: 20, status: "active" },
-  { id: "6", sku: "SI-CL-001", product: "Kelly Clamp 5.5\" Curved", category: "Clamps", on_hand: 175, reserved: 50, available: 125, reorder_point: 60, status: "active" },
-  { id: "7", sku: "SI-NH-001", product: "Mayo-Hegar Needle Holder 7\"", category: "Needle Holders", on_hand: 95, reserved: 25, available: 70, reorder_point: 35, status: "active" },
-  { id: "8", sku: "SI-SC-003", product: "Iris Scissors 4.5\" Straight", category: "Scissors", on_hand: 8, reserved: 5, available: 3, reorder_point: 30, status: "active" },
-];
-
 const movements = [
-  { type: "in", product: "Mayo Scissors 6.5\"", qty: 200, reference: "PO-2026-027", date: "Feb 24, 2026" },
-  { type: "out", product: "Adson Forceps 4.75\"", qty: 50, reference: "SO-2026-042", date: "Feb 24, 2026" },
-  { type: "in", product: "Kelly Clamp 5.5\"", qty: 100, reference: "PO-2026-026", date: "Feb 23, 2026" },
-  { type: "out", product: "Debakey Forceps 8\"", qty: 30, reference: "SO-2026-041", date: "Feb 22, 2026" },
-  { type: "adjustment", product: "Iris Scissors 4.5\"", qty: -2, reference: "Manual adjustment", date: "Feb 21, 2026" },
+  { type: "in", product: 'Mayo Scissors 6.5"', qty: 200, reference: "PO-2026-027", date: "Feb 24, 2026" },
+  { type: "out", product: 'Adson Forceps 4.75"', qty: 50, reference: "SO-2026-042", date: "Feb 24, 2026" },
+  { type: "in", product: 'Kelly Clamp 5.5"', qty: 100, reference: "PO-2026-026", date: "Feb 23, 2026" },
+  { type: "out", product: 'Debakey Forceps 8"', qty: 30, reference: "SO-2026-041", date: "Feb 22, 2026" },
+  { type: "adjustment", product: 'Iris Scissors 4.5"', qty: -2, reference: "Manual adjustment", date: "Feb 21, 2026" },
 ];
 
 const columns: ColumnDef<InventoryItem, unknown>[] = [
@@ -60,15 +64,6 @@ const columns: ColumnDef<InventoryItem, unknown>[] = [
     ),
   },
   {
-    accessorKey: "reserved",
-    header: "Reserved",
-    cell: ({ row }) => (
-      <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-        {formatNumber(row.original.reserved)}
-      </span>
-    ),
-  },
-  {
     accessorKey: "available",
     header: "Available",
     cell: ({ row }) => {
@@ -83,10 +78,19 @@ const columns: ColumnDef<InventoryItem, unknown>[] = [
   },
   {
     accessorKey: "reorder_point",
-    header: "Reorder",
+    header: "Reorder Pt",
     cell: ({ row }) => (
       <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
         {formatNumber(row.original.reorder_point)}
+      </span>
+    ),
+  },
+  {
+    accessorKey: "unit_cost",
+    header: "Unit Cost",
+    cell: ({ row }) => (
+      <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+        {formatCurrency(row.original.unit_cost)}
       </span>
     ),
   },
@@ -99,16 +103,31 @@ const columns: ColumnDef<InventoryItem, unknown>[] = [
 ];
 
 export default function InventoryPage() {
-  const [inventory] = useState<InventoryItem[]>(mockInventory);
+  const { data: products, loading } = useSupabaseTable<Product>("products", { orderBy: "name", ascending: true });
   const [activeTab, setActiveTab] = useState("overview");
   const [showAdjust, setShowAdjust] = useState(false);
 
+  // Map products to inventory items
+  const inventory: InventoryItem[] = useMemo(() => products.map(p => ({
+    id: p.id,
+    sku: p.sku || "",
+    product: p.name,
+    category: p.category || "Uncategorized",
+    on_hand: p.stock || 0,
+    reserved: 0,
+    available: p.stock || 0,
+    reorder_point: p.reorder_point || 10,
+    status: p.status || "active",
+    selling_price: Number(p.selling_price) || 0,
+    unit_cost: Number(p.unit_cost) || 0,
+  })), [products]);
+
   const totalOnHand = inventory.reduce((s, i) => s + i.on_hand, 0);
-  const totalReserved = inventory.reduce((s, i) => s + i.reserved, 0);
+  const totalValue = inventory.reduce((s, i) => s + i.on_hand * i.unit_cost, 0);
   const lowStockCount = inventory.filter((i) => i.available <= i.reorder_point).length;
 
   const tabs = [
-    { key: "overview", label: "Inventory" },
+    { key: "overview", label: "Inventory", count: inventory.length },
     { key: "movements", label: "Movements", count: movements.length },
   ];
 
@@ -116,7 +135,7 @@ export default function InventoryPage() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <PageHeader
         title="Inventory"
-        description="Real-time stock levels and movements"
+        description={`${inventory.length} products · Real-time stock levels`}
         actions={
           <Button onClick={() => setShowAdjust(true)}>
             <ArrowDownUp className="w-3.5 h-3.5" />
@@ -126,9 +145,9 @@ export default function InventoryPage() {
       />
 
       <div className="grid grid-cols-4 gap-4 mb-5">
-        <StatCard title="Total Products" value={inventory.length} icon={<Package className="w-5 h-5" style={{ color: "var(--muted-foreground)" }} />} />
-        <StatCard title="Total On Hand" value={formatNumber(totalOnHand)} icon={<Warehouse className="w-5 h-5" style={{ color: "var(--muted-foreground)" }} />} />
-        <StatCard title="Reserved" value={formatNumber(totalReserved)} icon={<TrendingDown className="w-5 h-5" style={{ color: "var(--muted-foreground)" }} />} />
+        <StatCard title="Total Products" value={loading ? "..." : inventory.length} icon={<Package className="w-5 h-5" style={{ color: "var(--muted-foreground)" }} />} />
+        <StatCard title="Total On Hand" value={loading ? "..." : formatNumber(totalOnHand)} icon={<Warehouse className="w-5 h-5" style={{ color: "var(--muted-foreground)" }} />} />
+        <StatCard title="Inventory Value" value={loading ? "..." : formatCurrency(totalValue)} icon={<TrendingUp className="w-5 h-5" style={{ color: "var(--muted-foreground)" }} />} />
         <StatCard title="Low Stock Items" value={lowStockCount} changeType={lowStockCount > 0 ? "negative" : "neutral"} change={lowStockCount > 0 ? "Needs attention" : "All good"} icon={<AlertTriangle className="w-5 h-5" style={{ color: "var(--muted-foreground)" }} />} />
       </div>
 
@@ -140,7 +159,7 @@ export default function InventoryPage() {
         <DataTable
           columns={columns}
           data={inventory}
-          emptyMessage="No inventory items"
+          emptyMessage={loading ? "Loading inventory..." : "No inventory items"}
           searchPlaceholder="Search products..."
           enableColumnVisibility
         />

@@ -2,11 +2,13 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { UserCog, Plus, Users, DollarSign, Calendar, Briefcase, Mail, Phone } from "lucide-react";
+import { Plus, Users, DollarSign, Calendar, Briefcase, Mail, Phone } from "lucide-react";
 import { PageHeader, Button, Card, StatusBadge, Drawer, Input, Tabs, StatCard } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { EmployeeDetail } from "@/components/details/employee-detail";
 import { formatCurrency, getInitials } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
+import { useSupabaseTable } from "@/lib/supabase-hooks";
 
 interface Employee {
   id: string;
@@ -30,17 +32,7 @@ interface PayrollRun {
   status: string;
 }
 
-const mockEmployees: Employee[] = [
-  { id: "1", name: "Mustafa Khurram", email: "mustafa@smithinst.com", phone: "+92-300-1111111", department: "Management", position: "CEO", hire_date: "2020-01-01", salary: 120000, status: "active" },
-  { id: "2", name: "Ali Hassan", email: "ali@smithinst.com", phone: "+92-300-2222222", department: "Production", position: "Production Manager", hire_date: "2021-03-15", salary: 55000, status: "active" },
-  { id: "3", name: "Fatima Shah", email: "fatima@smithinst.com", phone: "+92-300-3333333", department: "Finance", position: "Accountant", hire_date: "2022-06-01", salary: 45000, status: "active" },
-  { id: "4", name: "Ahmed Raza", email: "ahmed@smithinst.com", phone: "+92-300-4444444", department: "Sales", position: "Sales Executive", hire_date: "2022-09-10", salary: 40000, status: "active" },
-  { id: "5", name: "Sana Malik", email: "sana@smithinst.com", phone: "+92-300-5555555", department: "HR", position: "HR Manager", hire_date: "2021-01-20", salary: 55000, status: "active" },
-  { id: "6", name: "Bilal Khan", email: "bilal@smithinst.com", phone: "+92-300-6666666", department: "Production", position: "Quality Inspector", hire_date: "2023-02-01", salary: 35000, status: "active" },
-  { id: "7", name: "Nadia Aslam", email: "nadia@smithinst.com", phone: "+92-300-7777777", department: "Sales", position: "Customer Support", hire_date: "2023-08-15", salary: 30000, status: "active" },
-  { id: "8", name: "Usman Tariq", email: "usman@smithinst.com", phone: "+92-300-8888888", department: "Production", position: "Machine Operator", hire_date: "2024-01-10", salary: 25000, status: "inactive" },
-];
-
+// Payroll and attendance remain mock since no DB tables exist for them
 const mockPayrollRuns: PayrollRun[] = [
   { id: "1", month: "February 2026", employees: 7, gross_total: 380000, deductions: 38000, net_total: 342000, status: "pending" },
   { id: "2", month: "January 2026", employees: 8, gross_total: 405000, deductions: 40500, net_total: 364500, status: "completed" },
@@ -149,19 +141,44 @@ const payrollColumns: ColumnDef<PayrollRun, unknown>[] = [
 ];
 
 export default function HRPage() {
-  const [employees, setEmployees] = useState<Employee[]>(mockEmployees);
+  const { data: employees, loading, create, update } = useSupabaseTable<Employee>("employees");
   const [activeDept, setActiveDept] = useState("All");
   const [activeTab, setActiveTab] = useState("employees");
   const [showDialog, setShowDialog] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const { toast } = useToast();
+
+  // Form state
+  const [formData, setFormData] = useState({ name: "", email: "", phone: "", department: "", position: "", salary: "", hire_date: "" });
+  const resetForm = () => setFormData({ name: "", email: "", phone: "", department: "", position: "", salary: "", hire_date: "" });
 
   const activeEmployees = employees.filter((e) => e.status === "active");
-  const totalPayroll = activeEmployees.reduce((sum, e) => sum + e.salary, 0);
+  const totalPayroll = activeEmployees.reduce((sum, e) => sum + (e.salary || 0), 0);
 
-  const filtered = employees.filter((e) => {
-    const matchesDept = activeDept === "All" || e.department === activeDept;
-    return matchesDept;
-  });
+  const filtered = employees.filter((e) => activeDept === "All" || e.department === activeDept);
+
+  const handleCreate = async () => {
+    if (!formData.name.trim()) { toast("error", "Name is required"); return; }
+
+    const result = await create({
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      department: formData.department || "General",
+      position: formData.position || "Employee",
+      salary: parseFloat(formData.salary) || 0,
+      hire_date: formData.hire_date || new Date().toISOString().split("T")[0],
+      status: "active",
+    } as Partial<Employee>);
+
+    if (result) {
+      setShowDialog(false);
+      resetForm();
+      toast("success", `${formData.name} added successfully`);
+    } else {
+      toast("error", "Failed to add employee");
+    }
+  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -169,7 +186,7 @@ export default function HRPage() {
         title="HR & Payroll"
         description="Employee management and payroll processing"
         actions={
-          <Button onClick={() => setShowDialog(true)}>
+          <Button onClick={() => { resetForm(); setShowDialog(true); }}>
             <Plus className="w-3.5 h-3.5" />
             Add Employee
           </Button>
@@ -211,13 +228,19 @@ export default function HRPage() {
       </div>
 
       {activeTab === "employees" && (
-        <DataTable
-          columns={employeeColumns}
-          data={filtered}
-          emptyMessage="No employees found"
-          searchPlaceholder="Search employees..."
-          onRowClick={(item) => setSelectedEmployee(item)}
-        />
+        loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+          </div>
+        ) : (
+          <DataTable
+            columns={employeeColumns}
+            data={filtered}
+            emptyMessage="No employees found"
+            searchPlaceholder="Search employees..."
+            onRowClick={(item) => setSelectedEmployee(item)}
+          />
+        )
       )}
 
       {activeTab === "payroll" && (
@@ -244,9 +267,10 @@ export default function HRPage() {
                 </tr>
               </thead>
               <tbody>
-                {mockEmployees.map((emp) => {
+                {employees.slice(0, 8).map((emp, idx) => {
+                  const empId = String(idx + 1);
                   const days = Object.values(attendanceData);
-                  const presentCount = days.filter((d) => d[emp.id] === "present").length;
+                  const presentCount = days.filter((d) => d[empId] === "present").length;
                   return (
                     <tr key={emp.id} className="border-b last:border-b-0 hover:bg-[var(--secondary)] transition-colors" style={{ borderColor: "var(--border)" }}>
                       <td className="px-4 py-3 sticky left-0" style={{ background: "var(--card)" }}>
@@ -258,7 +282,7 @@ export default function HRPage() {
                         </div>
                       </td>
                       {Object.keys(attendanceData).map((day) => {
-                        const status = attendanceData[day][emp.id] || "absent";
+                        const status = attendanceData[day][empId] || "absent";
                         return (
                           <td key={day} className="px-4 py-3 text-center">
                             <div className="flex items-center justify-center">
@@ -292,7 +316,7 @@ export default function HRPage() {
         employee={selectedEmployee}
         open={!!selectedEmployee}
         onClose={() => setSelectedEmployee(null)}
-        onUpdate={(updated) => { setEmployees(employees.map((e) => e.id === updated.id ? updated : e)); setSelectedEmployee(updated); }}
+        onUpdate={async (updated) => { const result = await update(updated.id, updated); if (result) setSelectedEmployee(result); }}
       />
 
       <Drawer
@@ -302,24 +326,24 @@ export default function HRPage() {
         footer={
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setShowDialog(false)}>Cancel</Button>
-            <Button onClick={() => setShowDialog(false)}>Add Employee</Button>
+            <Button onClick={handleCreate}>Add Employee</Button>
           </div>
         }
       >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Full Name" placeholder="John Doe" />
-            <Input label="Email" type="email" placeholder="email@smithinst.com" />
+            <Input label="Full Name *" placeholder="John Doe" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+            <Input label="Email" type="email" placeholder="email@smithinst.com" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Phone" placeholder="+92-300-0000000" />
-            <Input label="Department" placeholder="Production" />
+            <Input label="Phone" placeholder="+92-300-0000000" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+            <Input label="Department" placeholder="Production" value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })} />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Position" placeholder="Machine Operator" />
-            <Input label="Salary" type="number" placeholder="0" />
+            <Input label="Position" placeholder="Machine Operator" value={formData.position} onChange={(e) => setFormData({ ...formData, position: e.target.value })} />
+            <Input label="Salary" type="number" placeholder="0" value={formData.salary} onChange={(e) => setFormData({ ...formData, salary: e.target.value })} />
           </div>
-          <Input label="Hire Date" type="date" />
+          <Input label="Hire Date" type="date" value={formData.hire_date} onChange={(e) => setFormData({ ...formData, hire_date: e.target.value })} />
         </div>
       </Drawer>
     </motion.div>

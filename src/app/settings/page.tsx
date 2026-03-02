@@ -1,11 +1,26 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Save, Building2, Globe, Receipt, Palette, Hash, Bell, User, Lock, Eye, EyeOff, Mail } from "lucide-react";
+import { Save, Building2, Globe, Receipt, Palette, Hash, Bell, User, Lock, Eye, EyeOff, Mail, Users, Trash2, UserPlus } from "lucide-react";
 import { PageHeader, Button, Card, Input } from "@/components/ui/shared";
 import { useToast } from "@/components/ui/toast";
 import { useCurrency, currencies } from "@/lib/currency";
+import { useSupabaseSingleton } from "@/lib/supabase-hooks";
+
+interface SystemSettings {
+    id: string;
+    company_name: string;
+    company_address: string;
+    company_phone: string;
+    company_email: string;
+    company_website: string;
+    tax_id: string;
+    gst_rate: number;
+    withholding_tax_rate: number;
+    default_currency: string;
+    [key: string]: unknown;
+}
 
 const container = {
     hidden: { opacity: 0 },
@@ -19,6 +34,7 @@ const item = {
 export default function SettingsPage() {
     const { toast } = useToast();
     const { currency, setCurrency } = useCurrency();
+    const { data: settings, loading, update: updateSettings } = useSupabaseSingleton<SystemSettings>("system_settings");
 
     const [company, setCompany] = useState({
         name: "Smith Instruments",
@@ -33,6 +49,28 @@ export default function SettingsPage() {
         gst: "18",
         withholding: "4.5",
     });
+
+    // Sync settings from DB when loaded
+    useEffect(() => {
+        if (settings) {
+            setCompany({
+                name: (settings.company_name as string) || company.name,
+                address: (settings.company_address as string) || company.address,
+                phone: (settings.company_phone as string) || company.phone,
+                email: (settings.company_email as string) || company.email,
+                website: (settings.company_website as string) || company.website,
+                taxId: (settings.tax_id as string) || company.taxId,
+            });
+            setTax({
+                gst: settings.gst_rate != null ? String(settings.gst_rate) : tax.gst,
+                withholding: settings.withholding_tax_rate != null ? String(settings.withholding_tax_rate) : tax.withholding,
+            });
+            if (settings.default_currency) {
+                setCurrency(settings.default_currency as string);
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [settings]);
 
     const [docNumbers, setDocNumbers] = useState({
         qt: { prefix: "QT", next: "2026-012" },
@@ -62,9 +100,36 @@ export default function SettingsPage() {
     const [newEmail, setNewEmail] = useState("");
     const [emailConfirmPassword, setEmailConfirmPassword] = useState("");
 
-    const handleSave = () => {
-        toast("success", "Settings saved", "All settings have been updated");
+    const handleSave = async () => {
+        const result = await updateSettings({
+            company_name: company.name,
+            company_address: company.address,
+            company_phone: company.phone,
+            company_email: company.email,
+            company_website: company.website,
+            tax_id: company.taxId,
+            gst_rate: parseFloat(tax.gst) || 0,
+            withholding_tax_rate: parseFloat(tax.withholding) || 0,
+            default_currency: currency.code,
+        } as Partial<SystemSettings>);
+
+        if (result) {
+            toast("success", "Settings saved", "All settings have been updated");
+        } else {
+            toast("error", "Failed to save settings");
+        }
     };
+
+    if (loading) {
+        return (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <PageHeader title="Settings" description="Loading..." />
+                <div className="flex items-center justify-center py-20">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+                </div>
+            </motion.div>
+        );
+    }
 
     return (
         <motion.div variants={container} initial="hidden" animate="show">
@@ -258,8 +323,6 @@ export default function SettingsPage() {
                                 <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>Full Name</label>
                                 <Input value={profile.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProfile({ ...profile, name: e.target.value })} />
                             </div>
-
-                            {/* Change Email Section */}
                             <div className="pt-3 border-t" style={{ borderColor: "var(--border)" }}>
                                 <div className="flex items-center gap-2 mb-3">
                                     <Mail className="w-3.5 h-3.5" style={{ color: "var(--primary)" }} />
@@ -274,21 +337,11 @@ export default function SettingsPage() {
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>New Email Address</label>
-                                        <Input
-                                            type="email"
-                                            placeholder="new-email@example.com"
-                                            value={newEmail}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewEmail(e.target.value)}
-                                        />
+                                        <Input type="email" placeholder="new-email@example.com" value={newEmail} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewEmail(e.target.value)} />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>Confirm Password (to change email)</label>
-                                        <Input
-                                            type="password"
-                                            placeholder="Enter your current password"
-                                            value={emailConfirmPassword}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmailConfirmPassword(e.target.value)}
-                                        />
+                                        <Input type="password" placeholder="Enter your current password" value={emailConfirmPassword} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmailConfirmPassword(e.target.value)} />
                                     </div>
                                     <Button variant="secondary" onClick={() => {
                                         if (!newEmail.trim()) { toast("error", "Please enter a new email address"); return; }
@@ -327,7 +380,6 @@ export default function SettingsPage() {
                             <div>
                                 <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>New Password</label>
                                 <Input type={showPassword ? "text" : "password"} value={passwords.new} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswords({ ...passwords, new: e.target.value })} placeholder="Enter new password" />
-                                {/* Password Strength */}
                                 {passwords.new && (() => {
                                     const len = passwords.new.length;
                                     const hasUpper = /[A-Z]/.test(passwords.new);
@@ -396,6 +448,188 @@ export default function SettingsPage() {
                     </div>
                 </Card>
             </motion.div>
+
+            {/* User Management */}
+            <motion.div variants={item} className="mt-5">
+                <UserManagement />
+            </motion.div>
         </motion.div>
+    );
+}
+
+// --- User Management Component ---
+function UserManagement() {
+    const { toast } = useToast();
+    const [users, setUsers] = useState<{ id: string; email: string; created_at: string; last_sign_in_at: string | null }[]>([]);
+    const [loadingUsers, setLoadingUsers] = useState(true);
+    const [newEmail, setNewUserEmail] = useState("");
+    const [newPassword, setNewUserPassword] = useState("");
+    const [creating, setCreating] = useState(false);
+
+    const fetchUsers = async () => {
+        try {
+            setLoadingUsers(true);
+            const { supabase } = await import("@/lib/supabase");
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const res = await fetch(
+                `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/admin-create-user`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${session.access_token}`,
+                    },
+                    body: JSON.stringify({ action: "list" }),
+                }
+            );
+            const data = await res.json();
+            if (data.users) setUsers(data.users);
+        } catch (err) {
+            console.error("Failed to fetch users:", err);
+        } finally {
+            setLoadingUsers(false);
+        }
+    };
+
+    useEffect(() => { fetchUsers(); }, []);
+
+    const handleCreateUser = async () => {
+        if (!newEmail.trim() || !newPassword.trim()) {
+            toast("error", "Email and password are required");
+            return;
+        }
+        if (newPassword.length < 6) {
+            toast("error", "Password must be at least 6 characters");
+            return;
+        }
+        setCreating(true);
+        try {
+            const { supabase } = await import("@/lib/supabase");
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const res = await fetch(
+                `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/admin-create-user`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${session.access_token}`,
+                    },
+                    body: JSON.stringify({ action: "create", email: newEmail, password: newPassword }),
+                }
+            );
+            const data = await res.json();
+            if (data.error) {
+                toast("error", data.error);
+            } else {
+                toast("success", `User ${newEmail} created`);
+                setNewUserEmail("");
+                setNewUserPassword("");
+                fetchUsers();
+            }
+        } catch (err) {
+            toast("error", "Failed to create user");
+        } finally {
+            setCreating(false);
+        }
+    };
+
+    const handleDeleteUser = async (userId: string, email: string) => {
+        if (!confirm(`Delete user ${email}? This cannot be undone.`)) return;
+        try {
+            const { supabase } = await import("@/lib/supabase");
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const res = await fetch(
+                `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/admin-create-user`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${session.access_token}`,
+                    },
+                    body: JSON.stringify({ action: "delete", user_id: userId }),
+                }
+            );
+            const data = await res.json();
+            if (data.error) {
+                toast("error", data.error);
+            } else {
+                toast("success", `User ${email} deleted`);
+                fetchUsers();
+            }
+        } catch (err) {
+            toast("error", "Failed to delete user");
+        }
+    };
+
+    return (
+        <Card>
+            <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4" style={{ color: "var(--primary)" }} />
+                    <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>User Management</h3>
+                </div>
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
+                    {users.length} users
+                </span>
+            </div>
+
+            {/* Create User Form */}
+            <div className="flex items-end gap-3 mb-5 pb-5 border-b" style={{ borderColor: "var(--border)" }}>
+                <div className="flex-1">
+                    <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>Email</label>
+                    <Input value={newEmail} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewUserEmail(e.target.value)} placeholder="user@company.com" />
+                </div>
+                <div className="flex-1">
+                    <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>Password</label>
+                    <Input type="password" value={newPassword} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewUserPassword(e.target.value)} placeholder="Min 6 chars" />
+                </div>
+                <Button onClick={handleCreateUser} disabled={creating}>
+                    <UserPlus className="w-3.5 h-3.5" />
+                    {creating ? "Creating..." : "Add User"}
+                </Button>
+            </div>
+
+            {/* User List */}
+            {loadingUsers ? (
+                <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
+                </div>
+            ) : (
+                <div className="space-y-2">
+                    {users.map((u) => (
+                        <div key={u.id} className="flex items-center justify-between p-3 rounded-xl border" style={{ borderColor: "var(--border)" }}>
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center flex-shrink-0">
+                                    <span className="text-xs font-bold text-white">{u.email?.charAt(0).toUpperCase()}</span>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>{u.email}</p>
+                                    <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                                        Created: {new Date(u.created_at).toLocaleDateString()}
+                                        {u.last_sign_in_at && ` · Last login: ${new Date(u.last_sign_in_at).toLocaleDateString()}`}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => handleDeleteUser(u.id, u.email)}
+                                className="p-1.5 rounded-lg transition-colors hover:bg-red-500/10"
+                                title="Delete user"
+                            >
+                                <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                            </button>
+                        </div>
+                    ))}
+                    {users.length === 0 && (
+                        <p className="text-center text-xs py-6" style={{ color: "var(--muted-foreground)" }}>No users found</p>
+                    )}
+                </div>
+            )}
+        </Card>
     );
 }

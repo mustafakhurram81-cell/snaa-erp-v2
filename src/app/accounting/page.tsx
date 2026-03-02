@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Calculator, ChevronRight, ChevronDown, Plus, BookOpen, DollarSign, TrendingUp, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { PageHeader, Button, Card, Tabs, StatCard } from "@/components/ui/shared";
 import { formatCurrency } from "@/lib/utils";
+import { useSupabaseTable } from "@/lib/supabase-hooks";
 
 interface Account {
   id: string;
@@ -13,6 +14,16 @@ interface Account {
   type: string;
   balance: number;
   children?: Account[];
+}
+
+interface DBAccount {
+  id: string;
+  code: string;
+  name: string;
+  category: string;
+  subcategory: string;
+  balance: number;
+  is_active: boolean;
 }
 
 interface JournalEntry {
@@ -25,49 +36,48 @@ interface JournalEntry {
   status: string;
 }
 
-const chartOfAccounts: Account[] = [
-  {
-    id: "1", code: "1000", name: "Assets", type: "asset", balance: 892000,
-    children: [
-      { id: "1a", code: "1100", name: "Cash & Bank", type: "asset", balance: 245000 },
-      { id: "1b", code: "1200", name: "Accounts Receivable", type: "asset", balance: 127000 },
-      { id: "1c", code: "1300", name: "Inventory", type: "asset", balance: 380000 },
-      { id: "1d", code: "1400", name: "Fixed Assets", type: "asset", balance: 140000 },
-    ],
-  },
-  {
-    id: "2", code: "2000", name: "Liabilities", type: "liability", balance: 215000,
-    children: [
-      { id: "2a", code: "2100", name: "Accounts Payable", type: "liability", balance: 170500 },
-      { id: "2b", code: "2200", name: "Accrued Expenses", type: "liability", balance: 25000 },
-      { id: "2c", code: "2300", name: "Tax Payable", type: "liability", balance: 19500 },
-    ],
-  },
-  {
-    id: "3", code: "3000", name: "Equity", type: "equity", balance: 677000,
-    children: [
-      { id: "3a", code: "3100", name: "Owner's Capital", type: "equity", balance: 500000 },
-      { id: "3b", code: "3200", name: "Retained Earnings", type: "equity", balance: 177000 },
-    ],
-  },
-  {
-    id: "4", code: "4000", name: "Revenue", type: "revenue", balance: 523000,
-    children: [
-      { id: "4a", code: "4100", name: "Product Sales", type: "revenue", balance: 495000 },
-      { id: "4b", code: "4200", name: "Service Income", type: "revenue", balance: 28000 },
-    ],
-  },
-  {
-    id: "5", code: "5000", name: "Expenses", type: "expense", balance: 346000,
-    children: [
-      { id: "5a", code: "5100", name: "Cost of Goods Sold", type: "expense", balance: 198000 },
-      { id: "5b", code: "5200", name: "Salaries & Wages", type: "expense", balance: 85000 },
-      { id: "5c", code: "5300", name: "Rent & Utilities", type: "expense", balance: 35000 },
-      { id: "5d", code: "5400", name: "Marketing & Sales", type: "expense", balance: 18000 },
-      { id: "5e", code: "5500", name: "General & Admin", type: "expense", balance: 10000 },
-    ],
-  },
-];
+// Category to type mapping
+function categoryToType(cat: string): string {
+  switch (cat) {
+    case "Assets": return "asset";
+    case "Liabilities": return "liability";
+    case "Equity": return "equity";
+    case "Revenue": return "revenue";
+    case "Expenses": return "expense";
+    default: return "asset";
+  }
+}
+
+function groupAccounts(dbAccounts: DBAccount[]): Account[] {
+  const groups: Record<string, { accounts: DBAccount[]; totalBalance: number }> = {};
+
+  const categoryOrder = ["Assets", "Liabilities", "Equity", "Revenue", "Expenses"];
+  categoryOrder.forEach(c => { groups[c] = { accounts: [], totalBalance: 0 }; });
+
+  dbAccounts.forEach(acc => {
+    const cat = acc.category || "Assets";
+    if (!groups[cat]) groups[cat] = { accounts: [], totalBalance: 0 };
+    groups[cat].accounts.push(acc);
+    groups[cat].totalBalance += acc.balance || 0;
+  });
+
+  return categoryOrder
+    .filter(cat => groups[cat] && groups[cat].accounts.length > 0)
+    .map(cat => ({
+      id: cat,
+      code: `${groups[cat].accounts[0]?.code?.substring(0, 1)}000`,
+      name: cat,
+      type: categoryToType(cat),
+      balance: groups[cat].totalBalance,
+      children: groups[cat].accounts.map(a => ({
+        id: a.id,
+        code: a.code,
+        name: a.name,
+        type: categoryToType(cat),
+        balance: a.balance || 0,
+      })),
+    }));
+}
 
 const mockJournals: JournalEntry[] = [
   { id: "1", entry_number: "JE-2026-089", date: "2026-02-25", description: "Invoice INV-2026-045 payment received", lines: [{ account: "Cash & Bank", debit: 12500, credit: 0 }, { account: "Accounts Receivable", debit: 0, credit: 12500 }], total: 12500, status: "posted" },
@@ -214,12 +224,23 @@ function AgingTable({ data, entityKey }: { data: { [key: string]: string | numbe
 
 export default function AccountingPage() {
   const [activeTab, setActiveTab] = useState("coa");
+  const { data: dbAccounts, loading } = useSupabaseTable<DBAccount>("accounting_accounts", { orderBy: "code", ascending: true });
+
+  const chartOfAccounts = useMemo(() => groupAccounts(dbAccounts as any[]), [dbAccounts]);
+
+  // Compute stats from live data
+  const totalAssets = chartOfAccounts.find(a => a.name === "Assets")?.balance || 0;
+  const totalAR = dbAccounts.find((a: any) => a.code === "1010")?.balance || 0;
+  const totalAP = dbAccounts.find((a: any) => a.code === "2000")?.balance || 0;
+  const totalRevenue = chartOfAccounts.find(a => a.name === "Revenue")?.balance || 0;
+  const totalExpenses = chartOfAccounts.find(a => a.name === "Expenses")?.balance || 0;
+  const netProfit = totalRevenue - totalExpenses;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <PageHeader
         title="Accounting"
-        description="Chart of Accounts, Journal Entries & Aging Reports"
+        description={`Chart of Accounts · ${dbAccounts.length} accounts`}
         actions={
           <Button>
             <Plus className="w-3.5 h-3.5" />
@@ -230,16 +251,16 @@ export default function AccountingPage() {
 
       {/* Financial Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Total Assets" value={formatCurrency(892000)} changeType="positive" change="+5.2% vs last month" icon={<DollarSign className="w-5 h-5 text-blue-500" />} />
-        <StatCard title="Accounts Receivable" value={formatCurrency(127000)} changeType="neutral" change="6 customers" icon={<ArrowUpRight className="w-5 h-5 text-emerald-500" />} />
-        <StatCard title="Accounts Payable" value={formatCurrency(170500)} changeType="neutral" change="5 vendors" icon={<ArrowDownRight className="w-5 h-5 text-red-500" />} />
-        <StatCard title="Net Profit" value={formatCurrency(177000)} changeType="positive" change="33.8% margin" icon={<TrendingUp className="w-5 h-5 text-violet-500" />} />
+        <StatCard title="Total Assets" value={formatCurrency(totalAssets)} changeType="positive" change={`${chartOfAccounts.find(a => a.name === "Assets")?.children?.length || 0} accounts`} icon={<DollarSign className="w-5 h-5 text-blue-500" />} />
+        <StatCard title="Accounts Receivable" value={formatCurrency(totalAR)} changeType="neutral" change="Receivables" icon={<ArrowUpRight className="w-5 h-5 text-emerald-500" />} />
+        <StatCard title="Accounts Payable" value={formatCurrency(totalAP)} changeType="neutral" change="Payables" icon={<ArrowDownRight className="w-5 h-5 text-red-500" />} />
+        <StatCard title="Net Profit" value={formatCurrency(netProfit)} changeType={netProfit >= 0 ? "positive" : "negative"} change={totalRevenue > 0 ? `${((netProfit / totalRevenue) * 100).toFixed(1)}% margin` : "—"} icon={<TrendingUp className="w-5 h-5 text-violet-500" />} />
       </div>
 
       <div className="mb-5">
         <Tabs
           tabs={[
-            { key: "coa", label: "Chart of Accounts" },
+            { key: "coa", label: "Chart of Accounts", count: dbAccounts.length },
             { key: "journal", label: "Journal Entries", count: mockJournals.length },
             { key: "ar", label: "AR Aging" },
             { key: "ap", label: "AP Aging" },
@@ -256,9 +277,15 @@ export default function AccountingPage() {
             <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Account</span>
             <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Balance</span>
           </div>
-          {chartOfAccounts.map((account) => (
-            <AccountRow key={account.id} account={account} />
-          ))}
+          {loading ? (
+            <div className="flex items-center justify-center py-10">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
+            </div>
+          ) : (
+            chartOfAccounts.map((account) => (
+              <AccountRow key={account.id} account={account} />
+            ))
+          )}
         </Card>
       )}
 
@@ -288,8 +315,8 @@ export default function AccountingPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${entry.status === "posted"
-                            ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400"
-                            : "text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400"
+                          ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400"
+                          : "text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400"
                           }`}>{entry.status}</span>
                       </td>
                     </tr>

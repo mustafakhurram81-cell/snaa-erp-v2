@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Plus, ArrowRight, Copy, Send, Trash2, X, ImageIcon } from "lucide-react";
+import { Plus, ArrowRight, Copy, Send, Trash2, ImageIcon } from "lucide-react";
 import { PageHeader, Button, Drawer, Input, Card, StatusBadge, Tabs } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { QuotationDetail } from "@/components/details/quotation-detail";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { useSupabaseTable } from "@/lib/supabase-hooks";
 
 // --- Types ---
 interface LineItem {
@@ -22,13 +23,16 @@ interface Quotation {
   id: string;
   quote_number: string;
   customer: string;
+  customer_name?: string;
   date: string;
   valid_until: string;
   items_count: number;
   total: number;
+  total_amount?: number;
   status: string;
   line_items?: LineItem[];
   so_number?: string;
+  notes?: string;
 }
 
 // --- Mock Products for selection ---
@@ -42,26 +46,6 @@ const mockProducts = [
   { name: 'Mayo-Hegar Needle Holder 7"', price: 30.0 },
 ];
 
-// --- Initial Mock Data ---
-const initialQuotations: Quotation[] = [
-  { id: "1", quote_number: "QT-2026-089", customer: "City Hospital", date: "2026-02-25", valid_until: "2026-03-25", items_count: 8, total: 18500, status: "sent" },
-  {
-    id: "2", quote_number: "QT-2026-088", customer: "Metro Medical Center", date: "2026-02-22", valid_until: "2026-03-22", items_count: 5, total: 12000, status: "accepted", line_items: [
-      { id: "li1", product: 'Mayo Scissors 6.5" Straight', qty: 200, unit_price: 24.0 },
-      { id: "li2", product: 'Adson Forceps 4.75"', qty: 100, unit_price: 15.0 },
-      { id: "li3", product: 'Kelly Clamp 5.5" Curved', qty: 150, unit_price: 20.0 },
-      { id: "li4", product: 'Mayo-Hegar Needle Holder 7"', qty: 80, unit_price: 30.0 },
-      { id: "li5", product: 'Debakey Forceps 8"', qty: 50, unit_price: 35.0 },
-    ]
-  },
-  { id: "3", quote_number: "QT-2026-087", customer: "Gulf Healthcare", date: "2026-02-20", valid_until: "2026-03-20", items_count: 15, total: 42000, status: "draft" },
-  { id: "4", quote_number: "QT-2026-086", customer: "Central Clinic", date: "2026-02-18", valid_until: "2026-03-18", items_count: 3, total: 5800, status: "accepted" },
-  { id: "5", quote_number: "QT-2026-085", customer: "National Hospital", date: "2026-02-15", valid_until: "2026-03-15", items_count: 12, total: 35000, status: "rejected" },
-  { id: "6", quote_number: "QT-2026-084", customer: "Prime Healthcare", date: "2026-02-12", valid_until: "2026-03-12", items_count: 6, total: 9200, status: "sent" },
-  { id: "7", quote_number: "QT-2026-083", customer: "Royal Clinic", date: "2026-02-10", valid_until: "2026-03-10", items_count: 4, total: 7500, status: "draft" },
-];
-
-// Next number tracker
 let nextQTNumber = 90;
 function getNextQTNumber() {
   return `QT-2026-${String(nextQTNumber++).padStart(3, "0")}`;
@@ -84,10 +68,10 @@ const columns: ColumnDef<Quotation, unknown>[] = [
     ),
   },
   {
-    accessorKey: "customer",
+    accessorKey: "customer_name",
     header: "Customer",
     cell: ({ row }) => (
-      <span className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.customer}</span>
+      <span className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.customer_name || row.original.customer}</span>
     ),
   },
   {
@@ -98,18 +82,11 @@ const columns: ColumnDef<Quotation, unknown>[] = [
     ),
   },
   {
-    accessorKey: "items_count",
-    header: "Items",
-    cell: ({ row }) => (
-      <span className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.items_count}</span>
-    ),
-  },
-  {
-    accessorKey: "total",
+    accessorKey: "total_amount",
     header: "Total",
     cell: ({ row }) => (
       <span className="font-semibold text-sm" style={{ color: "var(--foreground)" }}>
-        {formatCurrency(row.original.total)}
+        {formatCurrency(row.original.total_amount || row.original.total || 0)}
       </span>
     ),
   },
@@ -150,12 +127,20 @@ function emptyLineItem(): LineItem {
 
 // --- Page ---
 function QuotationsContent() {
-  const [quotations, setQuotations] = useState<Quotation[]>(initialQuotations);
+  const { data: dbQuotations, loading, create, update, remove } = useSupabaseTable<Quotation>("quotations");
   const [activeTab, setActiveTab] = useState("all");
   const [showDialog, setShowDialog] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
   const { toast } = useToast();
   const searchParams = useSearchParams();
+
+  // Map DB fields
+  const quotations = dbQuotations.map(q => ({
+    ...q,
+    customer: q.customer_name || q.customer || "",
+    total: q.total_amount || q.total || 0,
+    items_count: q.items_count || 0,
+  }));
 
   // Auto-open from ?open= param
   useEffect(() => {
@@ -170,90 +155,111 @@ function QuotationsContent() {
   const [formCustomer, setFormCustomer] = useState("");
   const [formValidUntil, setFormValidUntil] = useState("");
   const [formLineItems, setFormLineItems] = useState<LineItem[]>([emptyLineItem()]);
-  const [formStatus, setFormStatus] = useState<"draft" | "sent">("draft");
 
   const resetForm = () => {
     setFormCustomer("");
     setFormValidUntil("");
     setFormLineItems([emptyLineItem()]);
-    setFormStatus("draft");
   };
 
-  const addLineItem = () => {
-    setFormLineItems([...formLineItems, emptyLineItem()]);
-  };
-
+  const addLineItem = () => setFormLineItems([...formLineItems, emptyLineItem()]);
   const removeLineItem = (id: string) => {
     if (formLineItems.length <= 1) return;
     setFormLineItems(formLineItems.filter((li) => li.id !== id));
   };
-
   const updateLineItem = (id: string, field: keyof LineItem, value: string | number) => {
-    setFormLineItems(
-      formLineItems.map((li) => (li.id === id ? { ...li, [field]: value } : li))
-    );
+    setFormLineItems(formLineItems.map((li) => (li.id === id ? { ...li, [field]: value } : li)));
   };
-
   const handleProductSelect = (id: string, productName: string) => {
     const product = mockProducts.find((p) => p.name === productName);
-    setFormLineItems(
-      formLineItems.map((li) =>
-        li.id === id ? { ...li, product: productName, unit_price: product?.price || li.unit_price } : li
-      )
-    );
+    setFormLineItems(formLineItems.map((li) => li.id === id ? { ...li, product: productName, unit_price: product?.price || li.unit_price } : li));
   };
 
   const formTotal = formLineItems.reduce((sum, li) => sum + li.qty * li.unit_price, 0);
 
-  const handleCreate = (asDraft: boolean) => {
-    if (!formCustomer.trim()) {
-      toast("error", "Please enter a customer name");
-      return;
-    }
-    if (formLineItems.some((li) => !li.product.trim())) {
-      toast("error", "Please fill in all line item products");
-      return;
-    }
+  const handleCreate = async (asDraft: boolean) => {
+    if (!formCustomer.trim()) { toast("error", "Please enter a customer name"); return; }
+    if (formLineItems.some((li) => !li.product.trim())) { toast("error", "Please fill in all line item products"); return; }
 
-    const newQuotation: Quotation = {
-      id: Date.now().toString(),
+    const result = await create({
       quote_number: getNextQTNumber(),
-      customer: formCustomer,
+      customer_name: formCustomer,
       date: new Date().toISOString().split("T")[0],
       valid_until: formValidUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      items_count: formLineItems.length,
-      total: formTotal,
+      total_amount: formTotal,
       status: asDraft ? "draft" : "sent",
-      line_items: [...formLineItems],
-    };
+      notes: "",
+    } as Partial<Quotation>);
 
-    setQuotations([newQuotation, ...quotations]);
-    setShowDialog(false);
-    resetForm();
-    toast("success", `Quotation ${newQuotation.quote_number} created`);
+    if (result) {
+      // Persist line items to quotation_items table
+      const { supabase } = await import("@/lib/supabase");
+      const items = formLineItems.map(li => ({
+        quotation_id: result.id,
+        product_name: li.product,
+        quantity: li.qty,
+        unit_price: li.unit_price,
+      }));
+      await supabase.from("quotation_items").insert(items);
+
+      setShowDialog(false);
+      resetForm();
+      toast("success", `Quotation ${result.quote_number} created with ${items.length} item(s)`);
+    } else {
+      toast("error", "Failed to create quotation");
+    }
   };
 
-  // --- Convert Quotation to Sales Order ---
-  const handleConvertToSO = (quotation: Quotation) => {
-    const soNumber = getNextQTNumber().replace("QT", "SO"); // generate SO number
-    // Update the quotation to mark it as converted with linked SO
-    setQuotations(
-      quotations.map((q) =>
-        q.id === quotation.id ? { ...q, status: "converted", so_number: soNumber } : q
-      )
-    );
-    toast("success", `Sales Order ${soNumber} created from ${quotation.quote_number}`);
+  const handleConvertToSO = async (quotation: Quotation) => {
+    const soNumber = `SO-2026-${String(nextQTNumber++).padStart(3, "0")}`;
+
+    // 1. Create the sales order
+    const { supabase } = await import("@/lib/supabase");
+    const { data: so, error: soErr } = await supabase.from("sales_orders").insert({
+      order_number: soNumber,
+      customer_name: quotation.customer_name || quotation.customer,
+      order_date: new Date().toISOString().split("T")[0],
+      expected_delivery_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      total_amount: quotation.total_amount || quotation.total,
+      status: "confirmed",
+      notes: `Converted from ${quotation.quote_number}`,
+    }).select().single();
+
+    if (soErr || !so) {
+      toast("error", "Failed to create sales order");
+      return;
+    }
+
+    // 2. Copy line items from quotation_items to sales_order_items
+    const { data: qtItems } = await supabase
+      .from("quotation_items")
+      .select("*")
+      .eq("quotation_id", quotation.id);
+
+    if (qtItems && qtItems.length > 0) {
+      const soItems = qtItems.map((item: any) => ({
+        sales_order_id: so.id,
+        product_name: item.product_name,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+      }));
+      await supabase.from("sales_order_items").insert(soItems);
+    }
+
+    // 3. Update quotation status
+    await update(quotation.id, { status: "converted", so_number: soNumber } as Partial<Quotation>);
+    toast("success", `Sales Order ${soNumber} created from ${quotation.quote_number} with ${qtItems?.length || 0} item(s)`);
   };
 
-  // --- Delete Quotation ---
-  const handleDeleteQuotation = (quotation: Quotation) => {
-    setQuotations(quotations.filter((q) => q.id !== quotation.id));
+  const handleDeleteQuotation = async (quotation: Quotation) => {
+    await remove(quotation.id);
+    setSelectedQuotation(null);
   };
 
-  // --- Update Quotation ---
-  const handleUpdateQuotation = (updated: Quotation) => {
-    setQuotations(quotations.map((q) => q.id === updated.id ? updated : q));
-    setSelectedQuotation(updated);
+  const handleUpdateQuotation = async (updated: Quotation) => {
+    const result = await update(updated.id, updated);
+    if (result) setSelectedQuotation(result);
   };
 
   const tabs = [
@@ -283,13 +289,19 @@ function QuotationsContent() {
         <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filtered}
-        emptyMessage="No quotations found"
-        searchPlaceholder="Search quotations..."
-        onRowClick={(item) => setSelectedQuotation(item)}
-      />
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={filtered}
+          emptyMessage="No quotations found"
+          searchPlaceholder="Search quotations..."
+          onRowClick={(item) => setSelectedQuotation(item)}
+        />
+      )}
 
       <QuotationDetail
         quotation={selectedQuotation}
@@ -315,23 +327,11 @@ function QuotationsContent() {
         }
       >
         <div className="space-y-4">
-          {/* Header Fields */}
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Customer"
-              placeholder="e.g. City Hospital"
-              value={formCustomer}
-              onChange={(e) => setFormCustomer(e.target.value)}
-            />
-            <Input
-              label="Valid Until"
-              type="date"
-              value={formValidUntil}
-              onChange={(e) => setFormValidUntil(e.target.value)}
-            />
+            <Input label="Customer" placeholder="e.g. City Hospital" value={formCustomer} onChange={(e) => setFormCustomer(e.target.value)} />
+            <Input label="Valid Until" type="date" value={formValidUntil} onChange={(e) => setFormValidUntil(e.target.value)} />
           </div>
 
-          {/* Line Items */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Line Items</h4>
@@ -339,7 +339,6 @@ function QuotationsContent() {
                 {formLineItems.length} item{formLineItems.length !== 1 ? "s" : ""}
               </span>
             </div>
-
             <Card className="!p-3 space-y-2">
               <div className="grid grid-cols-12 gap-2 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
                 <span className="col-span-1"></span>
@@ -349,7 +348,6 @@ function QuotationsContent() {
                 <span className="col-span-2">Total</span>
                 <span className="col-span-1"></span>
               </div>
-
               {formLineItems.map((li) => (
                 <div key={li.id} className="grid grid-cols-12 gap-2 items-center">
                   <div className="col-span-1">
@@ -373,52 +371,32 @@ function QuotationsContent() {
                       style={{ background: "var(--background)", borderColor: "var(--border)", color: li.product ? "var(--foreground)" : "var(--muted-foreground)" }}
                     >
                       <option value="">Select product...</option>
-                      {mockProducts.map((p) => (
-                        <option key={p.name} value={p.name}>{p.name}</option>
-                      ))}
+                      {mockProducts.map((p) => (<option key={p.name} value={p.name}>{p.name}</option>))}
                     </select>
                   </div>
                   <div className="col-span-2">
-                    <Input
-                      type="number"
-                      placeholder="1"
-                      value={String(li.qty)}
-                      onChange={(e) => updateLineItem(li.id, "qty", Math.max(1, parseInt(e.target.value) || 1))}
-                    />
+                    <Input type="number" placeholder="1" value={String(li.qty)} onChange={(e) => updateLineItem(li.id, "qty", Math.max(1, parseInt(e.target.value) || 1))} />
                   </div>
                   <div className="col-span-2">
-                    <Input
-                      type="number"
-                      placeholder="0.00"
-                      value={String(li.unit_price)}
-                      onChange={(e) => updateLineItem(li.id, "unit_price", parseFloat(e.target.value) || 0)}
-                    />
+                    <Input type="number" placeholder="0.00" value={String(li.unit_price)} onChange={(e) => updateLineItem(li.id, "unit_price", parseFloat(e.target.value) || 0)} />
                   </div>
                   <div className="col-span-2">
-                    <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
-                      {formatCurrency(li.qty * li.unit_price)}
-                    </span>
+                    <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{formatCurrency(li.qty * li.unit_price)}</span>
                   </div>
                   <div className="col-span-1">
-                    <button
-                      onClick={() => removeLineItem(li.id)}
-                      disabled={formLineItems.length <= 1}
-                      className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-30 transition-colors"
-                    >
+                    <button onClick={() => removeLineItem(li.id)} disabled={formLineItems.length <= 1} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-30 transition-colors">
                       <Trash2 className="w-3.5 h-3.5 text-red-500" />
                     </button>
                   </div>
                 </div>
               ))}
             </Card>
-
             <Button variant="ghost" size="sm" className="mt-2" onClick={addLineItem}>
               <Plus className="w-3.5 h-3.5" />
               Add Item
             </Button>
           </div>
 
-          {/* Total */}
           <div className="flex justify-end pt-3 border-t" style={{ borderColor: "var(--border)" }}>
             <div className="text-right">
               <p className="text-xs uppercase tracking-wider font-medium" style={{ color: "var(--muted-foreground)" }}>Total</p>

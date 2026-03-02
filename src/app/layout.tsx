@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { CurrencyProvider } from "@/lib/currency";
 import { ToastProvider } from "@/components/ui/toast";
 import { AppShell } from "@/components/layout/app-shell";
+import { AuthProvider } from "@/lib/auth-context";
 
 export const metadata: Metadata = {
   title: "Smith Instruments ERP",
@@ -27,13 +28,16 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <ThemeProvider>
-          <CurrencyProvider>
-            <ToastProvider>
-              <AppShell>{children}</AppShell>
-            </ToastProvider>
-          </CurrencyProvider>
+          <AuthProvider>
+            <CurrencyProvider>
+              <ToastProvider>
+                <AppShell>{children}</AppShell>
+              </ToastProvider>
+            </CurrencyProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
   );
 }
+
