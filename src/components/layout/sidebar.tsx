@@ -22,13 +22,9 @@ import {
     Settings,
     PanelLeftClose,
     PanelLeft,
-    LogOut,
-    Sun,
-    Moon,
+    ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/lib/auth-context";
-import { useTheme } from "@/components/theme-provider";
 
 interface SidebarContextType {
     collapsed: boolean;
@@ -57,6 +53,7 @@ const navGroups = [
         items: [
             { label: "Dashboard", href: "/", icon: LayoutDashboard },
             { label: "Reports", href: "/reports", icon: BarChart3 },
+            { label: "Audit Log", href: "/audit-log", icon: ScrollText },
         ],
     },
     {
@@ -135,15 +132,14 @@ export function Sidebar() {
         >
             {/* Header: Logo + Toggle */}
             <motion.div
-                className="flex border-b flex-shrink-0"
+                className="flex border-b flex-shrink-0 h-14"
                 style={{ borderColor: "var(--sidebar-border)" }}
                 animate={{
                     flexDirection: collapsed ? "column" : "row",
                     alignItems: "center",
                     justifyContent: collapsed ? "center" : "space-between",
-                    padding: collapsed ? "12px 8px" : "0 16px",
-                    gap: collapsed ? "8px" : "0",
-                    height: collapsed ? "auto" : "64px",
+                    padding: collapsed ? "0 8px" : "0 16px",
+                    gap: collapsed ? "2px" : "0",
                 }}
                 transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
             >
@@ -261,7 +257,7 @@ export function Sidebar() {
                                                 <Link
                                                     href={item.href}
                                                     className={cn(
-                                                        "flex items-center rounded-lg text-[13px] font-semibold transition-all duration-150 group relative my-0.5",
+                                                        "flex items-center rounded-lg text-[13px] font-medium transition-all duration-150 group relative my-0.5",
                                                         collapsed
                                                             ? "justify-center w-10 h-10 p-0"
                                                             : "gap-3 px-3 py-2",
@@ -309,15 +305,15 @@ export function Sidebar() {
                 ))}
             </nav>
 
-            {/* Pinned Settings + User */}
+            {/* Pinned Settings at bottom */}
             <div className={cn(
                 "border-t flex-shrink-0",
-                collapsed ? "px-1.5 py-3" : "p-3"
+                collapsed ? "px-1.5 py-2" : "p-3"
             )} style={{ borderColor: "var(--sidebar-border)" }}>
                 <Link
                     href="/settings"
                     className={cn(
-                        "flex items-center rounded-lg text-[13px] font-semibold transition-all duration-150 group relative",
+                        "flex items-center rounded-lg text-[13px] font-medium transition-all duration-150 group relative",
                         collapsed
                             ? "justify-center w-10 h-10 p-0 mx-auto"
                             : "gap-3 px-3 py-2",
@@ -355,78 +351,7 @@ export function Sidebar() {
                         )}
                     </AnimatePresence>
                 </Link>
-
-                {/* User info + Sign out */}
-                <UserFooter collapsed={collapsed} labelVariants={labelVariants} />
             </div>
         </motion.aside>
-    );
-}
-
-// Separate component to avoid hook rules issue
-function UserFooter({ collapsed, labelVariants }: { collapsed: boolean; labelVariants: Record<string, unknown> }) {
-    const { user, signOut } = useAuth();
-    if (!user) return null;
-
-    const email = user.email || "User";
-    const initial = email.charAt(0).toUpperCase();
-
-    return (
-        <div className={cn(
-            "mt-2 pt-2 border-t flex items-center",
-            collapsed ? "justify-center flex-col gap-2" : "gap-3 px-3 py-2"
-        )} style={{ borderColor: "var(--sidebar-border)" }}>
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center flex-shrink-0">
-                <span className="text-xs font-bold text-white">{initial}</span>
-            </div>
-            <AnimatePresence mode="wait">
-                {!collapsed && (
-                    <motion.div
-                        key="user-info"
-                        className="flex-1 min-w-0"
-                        variants={labelVariants as any}
-                        initial="collapsed"
-                        animate="expanded"
-                        exit="collapsed"
-                    >
-                        <p className="text-[11px] font-medium truncate" style={{ color: "var(--foreground)" }}>{email}</p>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-            <motion.button
-                onClick={signOut}
-                className={cn(
-                    "rounded-lg transition-colors hover:bg-red-500/10 flex items-center justify-center flex-shrink-0",
-                    collapsed ? "p-2" : "p-1.5"
-                )}
-                style={{ color: "var(--muted-foreground)" }}
-                title="Sign out"
-                whileHover={{ scale: 1.1, color: "#ef4444" }}
-                whileTap={{ scale: 0.9 }}
-            >
-                <LogOut className="w-4 h-4" />
-            </motion.button>
-            <ThemeToggle collapsed={collapsed} />
-        </div>
-    );
-}
-
-function ThemeToggle({ collapsed }: { collapsed: boolean }) {
-    const { theme, toggleTheme } = useTheme();
-    return (
-        <motion.button
-            onClick={toggleTheme}
-            className={cn(
-                "rounded-lg transition-colors flex items-center justify-center flex-shrink-0",
-                collapsed ? "p-2" : "p-1.5",
-                theme === "dark" ? "hover:bg-amber-500/10" : "hover:bg-blue-500/10"
-            )}
-            style={{ color: "var(--muted-foreground)" }}
-            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            whileHover={{ scale: 1.1, color: theme === "dark" ? "#f59e0b" : "#3b82f6" }}
-            whileTap={{ scale: 0.9 }}
-        >
-            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </motion.button>
     );
 }

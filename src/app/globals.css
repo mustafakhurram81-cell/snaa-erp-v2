@@ -285,6 +285,63 @@ body {
   .sm\:grid-cols-4 {
     grid-template-columns: repeat(2, 1fr) !important;
   }
+
+  /* Stack form grids on mobile */
+  .grid-cols-2,
+  .grid-cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Responsive page header — stack on mobile */
+  [class*="flex"][class*="items-center"][class*="justify-between"] {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  /* Tabs scroll horizontally */
+  [role="tablist"],
+  .flex.items-center.gap-1 {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  [role="tablist"]::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Smaller text on mobile */
+  h1, h2 {
+    font-size: 1.125rem !important;
+  }
+
+  /* Chart containers — slightly shorter on mobile */
+  .recharts-wrapper {
+    max-height: 220px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  main>div {
+    padding: 0.75rem;
+  }
+
+  /* Single column stat cards on very small screens */
+  .grid-cols-4,
+  .sm\:grid-cols-4 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sm\:grid-cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Compact card padding */
+  [class*="px-5"] {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
 }
 
 /* Mobile sidebar overlay backdrop */

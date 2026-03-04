@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Warehouse, AlertTriangle, ArrowDownUp, Plus, Package, TrendingDown, TrendingUp } from "lucide-react";
 import { PageHeader, Button, Card, StatCard, StatusBadge, Tabs, Drawer, Input } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { formatNumber, formatCurrency } from "@/lib/utils";
 import { useSupabaseTable } from "@/lib/supabase-hooks";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/toast";
 
 interface Product {
   id: string;
@@ -34,13 +36,15 @@ interface InventoryItem {
   unit_cost: number;
 }
 
-const movements = [
-  { type: "in", product: 'Mayo Scissors 6.5"', qty: 200, reference: "PO-2026-027", date: "Feb 24, 2026" },
-  { type: "out", product: 'Adson Forceps 4.75"', qty: 50, reference: "SO-2026-042", date: "Feb 24, 2026" },
-  { type: "in", product: 'Kelly Clamp 5.5"', qty: 100, reference: "PO-2026-026", date: "Feb 23, 2026" },
-  { type: "out", product: 'Debakey Forceps 8"', qty: 30, reference: "SO-2026-041", date: "Feb 22, 2026" },
-  { type: "adjustment", product: 'Iris Scissors 4.5"', qty: -2, reference: "Manual adjustment", date: "Feb 21, 2026" },
-];
+interface Movement {
+  type: "in" | "out" | "adjustment";
+  product: string;
+  qty: number;
+  reference: string;
+  date: string;
+}
+
+const fallbackMovements: Movement[] = [];
 
 const columns: ColumnDef<InventoryItem, unknown>[] = [
   {
@@ -103,9 +107,68 @@ const columns: ColumnDef<InventoryItem, unknown>[] = [
 ];
 
 export default function InventoryPage() {
-  const { data: products, loading } = useSupabaseTable<Product>("products", { orderBy: "name", ascending: true });
+  const { data: products, loading, fetchAll } = useSupabaseTable<Product>("products", { orderBy: "name", ascending: true });
   const [activeTab, setActiveTab] = useState("overview");
   const [showAdjust, setShowAdjust] = useState(false);
+  const [adjProduct, setAdjProduct] = useState("");
+  const [adjType, setAdjType] = useState<"add" | "remove">("add");
+  const [adjQty, setAdjQty] = useState("");
+  const [adjReason, setAdjReason] = useState("");
+  const { toast } = useToast();
+
+  const resetAdjForm = () => { setAdjProduct(""); setAdjType("add"); setAdjQty(""); setAdjReason(""); };
+
+  // Live movements from POs (in) and SOs (out)
+  const [movements, setMovements] = useState<Movement[]>(fallbackMovements);
+  useEffect(() => {
+    async function fetchMovements() {
+      const [poRes, soRes] = await Promise.all([
+        supabase.from("purchase_orders").select("po_number, vendor_name, total_amount, status, created_at").order("created_at", { ascending: false }).limit(25),
+        supabase.from("sales_orders").select("order_number, customer_name, total_amount, status, created_at").order("created_at", { ascending: false }).limit(25),
+      ]);
+      const live: Movement[] = [];
+      (poRes.data || []).forEach((po: any) => {
+        live.push({
+          type: "in",
+          product: po.vendor_name || "Purchase",
+          qty: Math.round((po.total_amount || 0) / 100), // estimate units from value
+          reference: po.po_number || "PO",
+          date: new Date(po.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        });
+      });
+      (soRes.data || []).forEach((so: any) => {
+        live.push({
+          type: "out",
+          product: so.customer_name || "Sale",
+          qty: Math.round((so.total_amount || 0) / 100),
+          reference: so.order_number || "SO",
+          date: new Date(so.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        });
+      });
+      if (live.length > 0) {
+        live.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setMovements(live.slice(0, 50));
+      }
+    }
+    fetchMovements();
+  }, []);
+
+  const handleStockAdjust = async () => {
+    if (!adjProduct) { toast("error", "Please select a product"); return; }
+    const qty = parseInt(adjQty);
+    if (!qty || qty <= 0) { toast("error", "Enter a valid quantity"); return; }
+    const product = products.find(p => p.id === adjProduct);
+    if (!product) return;
+    const newStock = adjType === "add" ? (product.stock || 0) + qty : Math.max(0, (product.stock || 0) - qty);
+    const { error } = await supabase.from("products").update({ stock: newStock }).eq("id", adjProduct);
+    if (error) { toast("error", "Failed to adjust stock"); return; }
+    toast("success", "Stock adjusted", `${product.name}: ${adjType === "add" ? "+" : "-"}${qty} → ${newStock} units`);
+    const { logActivity } = await import("@/lib/activity-logger");
+    logActivity({ entityType: "product", entityId: product.id, action: "Stock adjusted", details: `${product.name}: ${adjType === "add" ? "+" : "-"}${qty} → ${newStock}` });
+    setShowAdjust(false);
+    resetAdjForm();
+    fetchAll();
+  };
 
   // Map products to inventory items
   const inventory: InventoryItem[] = useMemo(() => products.map(p => ({
@@ -137,7 +200,7 @@ export default function InventoryPage() {
         title="Inventory"
         description={`${inventory.length} products · Real-time stock levels`}
         actions={
-          <Button onClick={() => setShowAdjust(true)}>
+          <Button onClick={() => { resetAdjForm(); setShowAdjust(true); }}>
             <ArrowDownUp className="w-3.5 h-3.5" />
             Adjust Stock
           </Button>
@@ -193,19 +256,42 @@ export default function InventoryPage() {
         footer={
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setShowAdjust(false)}>Cancel</Button>
-            <Button onClick={() => setShowAdjust(false)}>Submit Adjustment</Button>
+            <Button onClick={handleStockAdjust}>Submit Adjustment</Button>
           </div>
         }
       >
         <div className="space-y-4">
-          <Input label="Product" placeholder="Select product..." />
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Adjustment Type" placeholder="Add / Remove" />
-            <Input label="Quantity" type="number" placeholder="0" />
+          <div>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--foreground)" }}>Product *</label>
+            <select
+              value={adjProduct}
+              onChange={(e) => setAdjProduct(e.target.value)}
+              className="w-full h-9 px-3 rounded-lg border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+              style={{ background: "var(--background)", borderColor: "var(--border)", color: adjProduct ? "var(--foreground)" : "var(--muted-foreground)" }}
+            >
+              <option value="">Select product...</option>
+              {products.map(p => <option key={p.id} value={p.id}>{p.name} (Stock: {p.stock || 0})</option>)}
+            </select>
           </div>
-          <Input label="Reason" placeholder="Reason for adjustment..." />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--foreground)" }}>Type *</label>
+              <select
+                value={adjType}
+                onChange={(e) => setAdjType(e.target.value as "add" | "remove")}
+                className="w-full h-9 px-3 rounded-lg border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+              >
+                <option value="add">Add Stock</option>
+                <option value="remove">Remove Stock</option>
+              </select>
+            </div>
+            <Input label="Quantity *" type="number" placeholder="0" value={adjQty} onChange={(e) => setAdjQty(e.target.value)} />
+          </div>
+          <Input label="Reason" placeholder="Reason for adjustment..." value={adjReason} onChange={(e) => setAdjReason(e.target.value)} />
         </div>
       </Drawer>
     </motion.div>
   );
 }
+

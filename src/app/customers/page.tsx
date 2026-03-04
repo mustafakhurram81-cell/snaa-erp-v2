@@ -1,14 +1,20 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, Mail, Phone } from "lucide-react";
+import { Plus, Mail, Phone, Download, Upload } from "lucide-react";
 import { PageHeader, Button, Drawer, Input, StatusBadge } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { CustomerDetail } from "@/components/details/customer-detail";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { useSupabaseTable } from "@/lib/supabase-hooks";
+import { exportToCSV } from "@/lib/csv-export";
+import { CSVImportDialog } from "@/components/shared/csv-import";
+import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
+import { logActivity } from "@/lib/activity-logger";
+import { validateEmail, validatePhone } from "@/lib/form-validation";
+import { TableSkeleton } from "@/components/ui/skeleton";
 
 export const CUSTOMER_TYPES = [
     { value: "hospital", label: "Hospital" },
@@ -97,17 +103,31 @@ const columns: ColumnDef<Customer, unknown>[] = [
 ];
 
 export default function CustomersPage() {
-    const { data: customers, loading, create, update, remove } = useSupabaseTable<Customer>("customers");
+    const { data: customers, loading, create, update, remove, fetchAll } = useSupabaseTable<Customer>("customers");
     const [showDialog, setShowDialog] = useState(false);
+    const [showImport, setShowImport] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [formData, setFormData] = useState({ name: "", type: "", email: "", phone: "", city: "", country: "" });
     const { toast } = useToast();
+    // Keyboard shortcut: N to create new
+    useEffect(() => {
+        const handleNew = () => { setShowDialog(true); };
+        const handleEsc = () => { setShowDialog(false); };
+        window.addEventListener("keyboard-new", handleNew);
+        window.addEventListener("keyboard-escape", handleEsc);
+        return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
+    }, []);
+
 
     const handleCreate = async () => {
         if (!formData.name.trim()) { toast("error", "Name is required"); return; }
         if (!formData.type) { toast("error", "Customer type is required"); return; }
         if (!formData.email.trim()) { toast("error", "Email is required"); return; }
+        const emailErr = validateEmail(formData.email);
+        if (emailErr) { toast("error", emailErr); return; }
         if (!formData.phone.trim()) { toast("error", "Phone is required"); return; }
+        const phoneErr = validatePhone(formData.phone);
+        if (phoneErr) { toast("error", phoneErr); return; }
         if (!formData.city.trim()) { toast("error", "City is required"); return; }
         if (!formData.country.trim()) { toast("error", "Country is required"); return; }
 
@@ -121,6 +141,7 @@ export default function CustomersPage() {
             setShowDialog(false);
             setFormData({ name: "", type: "", email: "", phone: "", city: "", country: "" });
             toast("success", "Customer created", `${formData.name} added successfully`);
+            logActivity({ entityType: "customer", entityId: result.id, action: "Customer created", details: formData.name });
         } else {
             toast("error", "Failed to create customer");
         }
@@ -133,11 +154,15 @@ export default function CustomersPage() {
         }
     };
 
+    const [pendingDelete, setPendingDelete] = useState<Customer | null>(null);
     const handleDeleteCustomer = async (customer: Customer) => {
-        const success = await remove(customer.id);
-        if (success) {
-            setSelectedCustomer(null);
-        }
+        setPendingDelete(customer);
+    };
+    const confirmDelete = async () => {
+        if (!pendingDelete) return;
+        const success = await remove(pendingDelete.id);
+        if (success) setSelectedCustomer(null);
+        setPendingDelete(null);
     };
 
     return (
@@ -146,22 +171,32 @@ export default function CustomersPage() {
                 title="Customers"
                 description={`${customers.length} total customers`}
                 actions={
-                    <Button onClick={() => setShowDialog(true)}>
-                        <Plus className="w-3.5 h-3.5" />
-                        Add Customer
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button variant="secondary" onClick={() => setShowImport(true)}>
+                            <Upload className="w-3.5 h-3.5" />
+                            Import
+                        </Button>
+                        <Button variant="secondary" onClick={() => exportToCSV(customers, 'customers')}>
+                            <Download className="w-3.5 h-3.5" />
+                            Export
+                        </Button>
+                        <Button onClick={() => setShowDialog(true)}>
+                            <Plus className="w-3.5 h-3.5" />
+                            Add Customer
+                        </Button>
+                    </div>
                 }
             />
 
             {loading ? (
-                <div className="flex items-center justify-center py-20">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-                </div>
+                <TableSkeleton rows={5} columns={5} />
             ) : (
                 <DataTable
                     columns={columns}
                     data={customers}
                     enableSelection
+                    enableColumnFilters
+                    filterableColumns={["type"]}
                     enableColumnVisibility
                     searchPlaceholder="Search customers..."
                     emptyMessage="No customers found"
@@ -214,6 +249,24 @@ export default function CustomersPage() {
                     </div>
                 </div>
             </Drawer>
+
+            <CSVImportDialog
+                open={showImport}
+                onClose={() => setShowImport(false)}
+                tableName="customers"
+                displayName="Customers"
+                requiredFields={["name"]}
+                optionalFields={["type", "email", "phone", "city", "country", "notes"]}
+                onImportComplete={() => fetchAll()}
+            />
+
+            <DeleteConfirmation
+                open={!!pendingDelete}
+                onClose={() => setPendingDelete(null)}
+                onConfirm={confirmDelete}
+                title={`Delete ${pendingDelete?.name}?`}
+                description="This customer record will be permanently deleted. This action cannot be undone."
+            />
         </motion.div>
     );
 }

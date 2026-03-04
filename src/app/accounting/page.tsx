@@ -2,10 +2,13 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Calculator, ChevronRight, ChevronDown, Plus, BookOpen, DollarSign, TrendingUp, ArrowDownRight, ArrowUpRight } from "lucide-react";
-import { PageHeader, Button, Card, Tabs, StatCard } from "@/components/ui/shared";
+import { Calculator, ChevronRight, ChevronDown, Plus, BookOpen, DollarSign, TrendingUp, ArrowDownRight, ArrowUpRight, Pencil, Trash2 } from "lucide-react";
+import { PageHeader, Button, Card, Tabs, StatCard, Drawer, Input } from "@/components/ui/shared";
 import { formatCurrency } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
 import { useSupabaseTable } from "@/lib/supabase-hooks";
+import { supabase } from "@/lib/supabase";
+import { TableSkeleton } from "@/components/ui/skeleton";
 
 interface Account {
   id: string;
@@ -31,9 +34,15 @@ interface JournalEntry {
   entry_number: string;
   date: string;
   description: string;
-  lines: { account: string; debit: number; credit: number }[];
-  total: number;
   status: string;
+}
+
+interface DBJournalLine {
+  id: string;
+  journal_entry_id: string;
+  account_name: string;
+  debit: number;
+  credit: number;
 }
 
 // Category to type mapping
@@ -79,52 +88,20 @@ function groupAccounts(dbAccounts: DBAccount[]): Account[] {
     }));
 }
 
-const mockJournals: JournalEntry[] = [
-  { id: "1", entry_number: "JE-2026-089", date: "2026-02-25", description: "Invoice INV-2026-045 payment received", lines: [{ account: "Cash & Bank", debit: 12500, credit: 0 }, { account: "Accounts Receivable", debit: 0, credit: 12500 }], total: 12500, status: "posted" },
-  { id: "2", entry_number: "JE-2026-088", date: "2026-02-24", description: "Purchase from Premium Steel Corp", lines: [{ account: "Inventory", debit: 28000, credit: 0 }, { account: "Accounts Payable", debit: 0, credit: 28000 }], total: 28000, status: "posted" },
-  { id: "3", entry_number: "JE-2026-087", date: "2026-02-23", description: "Monthly salaries", lines: [{ account: "Salaries & Wages", debit: 42500, credit: 0 }, { account: "Cash & Bank", debit: 0, credit: 42500 }], total: 42500, status: "posted" },
-  { id: "4", entry_number: "JE-2026-086", date: "2026-02-22", description: "Utility bills payment", lines: [{ account: "Rent & Utilities", debit: 8500, credit: 0 }, { account: "Cash & Bank", debit: 0, credit: 8500 }], total: 8500, status: "posted" },
-  { id: "5", entry_number: "JE-2026-085", date: "2026-02-20", description: "Sales revenue from Gulf HC", lines: [{ account: "Accounts Receivable", debit: 42000, credit: 0 }, { account: "Product Sales", debit: 0, credit: 42000 }], total: 42000, status: "posted" },
-  { id: "6", entry_number: "JE-2026-084", date: "2026-02-18", description: "Vendor payment to Ali Steel Works", lines: [{ account: "Accounts Payable", debit: 15000, credit: 0 }, { account: "Cash & Bank", debit: 0, credit: 15000 }], total: 15000, status: "draft" },
-];
+const fallbackJournals: JournalEntry[] = [];
 
-const arAging = [
-  { customer: "Gulf Healthcare", current: 15000, thirtyDays: 12000, sixtyDays: 8000, ninetyDays: 0, total: 35000 },
-  { customer: "City Hospital", current: 8500, thirtyDays: 4000, sixtyDays: 0, ninetyDays: 0, total: 12500 },
-  { customer: "Metro Medical", current: 6200, thirtyDays: 2700, sixtyDays: 0, ninetyDays: 0, total: 8900 },
-  { customer: "Central Clinic", current: 0, thirtyDays: 15200, sixtyDays: 0, ninetyDays: 0, total: 15200 },
-  { customer: "National Hospital", current: 22000, thirtyDays: 0, sixtyDays: 0, ninetyDays: 0, total: 22000 },
-  { customer: "Prime Healthcare", current: 3100, thirtyDays: 0, sixtyDays: 3200, ninetyDays: 0, total: 6300 },
-];
+/** Compute aging buckets for an invoice/PO based on due_date */
+function getAgingBucket(dueDate: string): "current" | "thirtyDays" | "sixtyDays" | "ninetyDays" {
+  const now = new Date();
+  const due = new Date(dueDate);
+  const diffDays = Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays <= 0) return "current";
+  if (diffDays <= 30) return "thirtyDays";
+  if (diffDays <= 60) return "sixtyDays";
+  return "ninetyDays";
+}
 
-const apAging = [
-  { vendor: "Premium Steel Corp", current: 28000, thirtyDays: 12000, sixtyDays: 0, ninetyDays: 0, total: 40000 },
-  { vendor: "Global Stainless Ltd", current: 0, thirtyDays: 18500, sixtyDays: 0, ninetyDays: 0, total: 18500 },
-  { vendor: "Ali Steel Works", current: 15000, thirtyDays: 0, sixtyDays: 0, ninetyDays: 0, total: 15000 },
-  { vendor: "Riaz Forging", current: 12000, thirtyDays: 5000, sixtyDays: 0, ninetyDays: 0, total: 17000 },
-  { vendor: "Precision Grinders", current: 8000, thirtyDays: 0, sixtyDays: 0, ninetyDays: 0, total: 8000 },
-];
-
-const trialBalance = [
-  { account: "1100 – Cash & Bank", debit: 245000, credit: 0 },
-  { account: "1200 – Accounts Receivable", debit: 127000, credit: 0 },
-  { account: "1300 – Inventory", debit: 380000, credit: 0 },
-  { account: "1400 – Fixed Assets", debit: 140000, credit: 0 },
-  { account: "2100 – Accounts Payable", debit: 0, credit: 170500 },
-  { account: "2200 – Accrued Expenses", debit: 0, credit: 25000 },
-  { account: "2300 – Tax Payable", debit: 0, credit: 19500 },
-  { account: "3100 – Owner's Capital", debit: 0, credit: 500000 },
-  { account: "3200 – Retained Earnings", debit: 0, credit: 177000 },
-  { account: "4100 – Product Sales", debit: 0, credit: 495000 },
-  { account: "4200 – Service Income", debit: 0, credit: 28000 },
-  { account: "5100 – Cost of Goods Sold", debit: 198000, credit: 0 },
-  { account: "5200 – Salaries & Wages", debit: 85000, credit: 0 },
-  { account: "5300 – Rent & Utilities", debit: 35000, credit: 0 },
-  { account: "5400 – Marketing & Sales", debit: 18000, credit: 0 },
-  { account: "5500 – General & Admin", debit: 10000, credit: 0 },
-];
-
-function AccountRow({ account, level = 0 }: { account: Account; level?: number }) {
+function AccountRow({ account, level = 0, onEdit, onDelete }: { account: Account; level?: number; onEdit?: (id: string) => void; onDelete?: (id: string) => void }) {
   const [expanded, setExpanded] = useState(level === 0);
   const hasChildren = account.children && account.children.length > 0;
   const typeColors: Record<string, string> = {
@@ -138,7 +115,7 @@ function AccountRow({ account, level = 0 }: { account: Account; level?: number }
   return (
     <>
       <div
-        className="flex items-center py-2.5 px-4 hover:bg-[var(--secondary)] transition-colors cursor-pointer border-b"
+        className="group flex items-center py-2.5 px-4 hover:bg-[var(--secondary)] transition-colors cursor-pointer border-b"
         style={{ paddingLeft: `${level * 24 + 16}px`, borderColor: "var(--border)" }}
         onClick={() => hasChildren && setExpanded(!expanded)}
       >
@@ -153,12 +130,22 @@ function AccountRow({ account, level = 0 }: { account: Account; level?: number }
             {account.name}
           </span>
         </div>
+        {level > 0 && onEdit && onDelete && (
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity mr-3">
+            <button onClick={(e) => { e.stopPropagation(); onEdit(account.id); }} className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+              <Pencil className="w-3 h-3 text-blue-500" />
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); onDelete(account.id); }} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+              <Trash2 className="w-3 h-3 text-red-500" />
+            </button>
+          </div>
+        )}
         <span className={`text-sm font-semibold ${typeColors[account.type] || ""}`}>
           {formatCurrency(account.balance)}
         </span>
       </div>
       {expanded && account.children?.map((child) => (
-        <AccountRow key={child.id} account={child} level={level + 1} />
+        <AccountRow key={child.id} account={child} level={level + 1} onEdit={onEdit} onDelete={onDelete} />
       ))}
     </>
   );
@@ -224,9 +211,170 @@ function AgingTable({ data, entityKey }: { data: { [key: string]: string | numbe
 
 export default function AccountingPage() {
   const [activeTab, setActiveTab] = useState("coa");
-  const { data: dbAccounts, loading } = useSupabaseTable<DBAccount>("accounting_accounts", { orderBy: "code", ascending: true });
+  const { data: dbAccounts, loading, fetchAll } = useSupabaseTable<DBAccount>("accounting_accounts", { orderBy: "code", ascending: true });
+  const { data: journalEntries } = useSupabaseTable<JournalEntry>("journal_entries", { orderBy: "date", ascending: false });
+  const { data: journalLines } = useSupabaseTable<DBJournalLine>("journal_entry_lines");
+  const displayJournals = journalEntries.length > 0 ? journalEntries : fallbackJournals;
+  const { toast } = useToast();
+
+  // --- Journal Entry Creation ---
+  const [showJournalDialog, setShowJournalDialog] = useState(false);
+  interface JELine { id: string; account: string; debit: string; credit: string; }
+  const emptyLine = (): JELine => ({ id: Date.now().toString() + Math.random(), account: "", debit: "", credit: "" });
+  const [jeDate, setJeDate] = useState("");
+  const [jeDesc, setJeDesc] = useState("");
+  const [jeLines, setJeLines] = useState<JELine[]>([emptyLine(), emptyLine()]);
+
+  const resetJEForm = () => {
+    setJeDate("");
+    setJeDesc("");
+    setJeLines([emptyLine(), emptyLine()]);
+  };
+
+  const handleCreateJE = async () => {
+    if (!jeDesc.trim()) { toast("error", "Description is required"); return; }
+    const totalDebit = jeLines.reduce((s, l) => s + (parseFloat(l.debit) || 0), 0);
+    const totalCredit = jeLines.reduce((s, l) => s + (parseFloat(l.credit) || 0), 0);
+    if (totalDebit === 0) { toast("error", "At least one debit amount is required"); return; }
+    if (Math.abs(totalDebit - totalCredit) > 0.01) { toast("error", `Debits (${totalDebit}) must equal Credits (${totalCredit})`); return; }
+
+    // Generate next JE number
+    const { data: lastJE } = await supabase.from("journal_entries").select("entry_number").order("created_at", { ascending: false }).limit(1);
+    let jeNum = 1;
+    if (lastJE && lastJE.length > 0) { const m = lastJE[0].entry_number.match(/(\d+)$/); if (m) jeNum = parseInt(m[1]) + 1; }
+    const entryNumber = `JE-2026-${String(jeNum).padStart(3, "0")}`;
+
+    const { data: entry, error: jeErr } = await supabase.from("journal_entries").insert({
+      entry_number: entryNumber,
+      date: jeDate || new Date().toISOString().split("T")[0],
+      description: jeDesc,
+      status: "Draft",
+    }).select().single();
+
+    if (jeErr || !entry) { toast("error", "Failed to create journal entry"); return; }
+
+    const lines = jeLines
+      .filter(l => (parseFloat(l.debit) || 0) > 0 || (parseFloat(l.credit) || 0) > 0)
+      .map(l => ({
+        journal_entry_id: entry.id,
+        account_name: l.account || "Unspecified",
+        debit: parseFloat(l.debit) || 0,
+        credit: parseFloat(l.credit) || 0,
+      }));
+    await supabase.from("journal_entry_lines").insert(lines);
+
+    setShowJournalDialog(false);
+    resetJEForm();
+    toast("success", `Journal Entry ${entryNumber} created`);
+    fetchAll();
+  };
+
+  // --- Chart of Accounts CRUD ---
+  const [showAccountDialog, setShowAccountDialog] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<DBAccount | null>(null);
+  const [acctCode, setAcctCode] = useState("");
+  const [acctName, setAcctName] = useState("");
+  const [acctCategory, setAcctCategory] = useState("Assets");
+  const [acctBalance, setAcctBalance] = useState("");
+
+  const resetAcctForm = () => { setAcctCode(""); setAcctName(""); setAcctCategory("Assets"); setAcctBalance(""); setEditingAccount(null); };
+
+  const openEditAccount = (acc: DBAccount) => {
+    setEditingAccount(acc);
+    setAcctCode(acc.code);
+    setAcctName(acc.name);
+    setAcctCategory(acc.category);
+    setAcctBalance(String(acc.balance || 0));
+    setShowAccountDialog(true);
+  };
+
+  const handleSaveAccount = async () => {
+    if (!acctCode.trim()) { toast("error", "Account code is required"); return; }
+    if (!acctName.trim()) { toast("error", "Account name is required"); return; }
+    const payload = {
+      code: acctCode,
+      name: acctName,
+      category: acctCategory,
+      subcategory: acctCategory,
+      balance: parseFloat(acctBalance) || 0,
+      is_active: true,
+    };
+    if (editingAccount) {
+      const { error } = await supabase.from("accounting_accounts").update(payload).eq("id", editingAccount.id);
+      if (error) { toast("error", "Failed to update account"); return; }
+      toast("success", `Account ${acctCode} updated`);
+    } else {
+      const { error } = await supabase.from("accounting_accounts").insert(payload);
+      if (error) { toast("error", "Failed to create account"); return; }
+      toast("success", `Account ${acctCode} – ${acctName} created`);
+    }
+    setShowAccountDialog(false);
+    resetAcctForm();
+    fetchAll();
+  };
+
+  const handleDeleteAccount = async (acc: DBAccount) => {
+    if (!confirm(`Delete account ${acc.code} – ${acc.name}?`)) return;
+    await supabase.from("accounting_accounts").delete().eq("id", acc.id);
+    toast("success", `Account ${acc.code} deleted`);
+    fetchAll();
+  };
 
   const chartOfAccounts = useMemo(() => groupAccounts(dbAccounts as any[]), [dbAccounts]);
+
+  // Live AR Aging from invoices
+  const [arAging, setArAging] = useState<any[]>([]);
+  const [apAging, setApAging] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Fetch unpaid invoices for AR
+    supabase.from("invoices").select("customer_name, total_amount, amount_paid, due_date, status")
+      .or("status.eq.pending,status.eq.overdue")
+      .then(({ data }) => {
+        if (!data || data.length === 0) return;
+        const grouped: Record<string, { current: number; thirtyDays: number; sixtyDays: number; ninetyDays: number; total: number }> = {};
+        data.forEach((inv: any) => {
+          const cust = inv.customer_name || "Unknown";
+          if (!grouped[cust]) grouped[cust] = { current: 0, thirtyDays: 0, sixtyDays: 0, ninetyDays: 0, total: 0 };
+          const outstanding = (inv.total_amount || 0) - (inv.amount_paid || 0);
+          if (outstanding <= 0) return;
+          const bucket = getAgingBucket(inv.due_date || new Date().toISOString());
+          grouped[cust][bucket] += outstanding;
+          grouped[cust].total += outstanding;
+        });
+        setArAging(Object.entries(grouped).map(([customer, data]) => ({ customer, ...data })).sort((a, b) => b.total - a.total));
+      });
+
+    // Fetch unpaid POs for AP
+    supabase.from("purchase_orders").select("vendor_name, total_amount, status, expected_date")
+      .or("status.eq.sent,status.eq.received")
+      .then(({ data }) => {
+        if (!data || data.length === 0) return;
+        const grouped: Record<string, { current: number; thirtyDays: number; sixtyDays: number; ninetyDays: number; total: number }> = {};
+        data.forEach((po: any) => {
+          const vend = po.vendor_name || "Unknown";
+          if (!grouped[vend]) grouped[vend] = { current: 0, thirtyDays: 0, sixtyDays: 0, ninetyDays: 0, total: 0 };
+          const bucket = getAgingBucket(po.expected_date || new Date().toISOString());
+          grouped[vend][bucket] += po.total_amount || 0;
+          grouped[vend].total += po.total_amount || 0;
+        });
+        setApAging(Object.entries(grouped).map(([vendor, data]) => ({ vendor, ...data })).sort((a, b) => b.total - a.total));
+      });
+  }, []);
+
+  // Live trial balance from chart of accounts
+  const trialBalance = useMemo(() => {
+    if (dbAccounts.length === 0) return [];
+    return (dbAccounts as any[]).filter(a => (a.balance || 0) !== 0).map(a => {
+      const bal = a.balance || 0;
+      const isDebit = ["Assets", "Expenses"].includes(a.category);
+      return {
+        account: `${a.code} – ${a.name}`,
+        debit: isDebit ? Math.abs(bal) : 0,
+        credit: !isDebit ? Math.abs(bal) : 0,
+      };
+    });
+  }, [dbAccounts]);
 
   // Compute stats from live data
   const totalAssets = chartOfAccounts.find(a => a.name === "Assets")?.balance || 0;
@@ -242,7 +390,7 @@ export default function AccountingPage() {
         title="Accounting"
         description={`Chart of Accounts · ${dbAccounts.length} accounts`}
         actions={
-          <Button>
+          <Button onClick={() => { resetJEForm(); setShowJournalDialog(true); }}>
             <Plus className="w-3.5 h-3.5" />
             New Journal Entry
           </Button>
@@ -261,7 +409,7 @@ export default function AccountingPage() {
         <Tabs
           tabs={[
             { key: "coa", label: "Chart of Accounts", count: dbAccounts.length },
-            { key: "journal", label: "Journal Entries", count: mockJournals.length },
+            { key: "journal", label: "Journal Entries", count: displayJournals.length },
             { key: "ar", label: "AR Aging" },
             { key: "ap", label: "AP Aging" },
             { key: "trial", label: "Trial Balance" },
@@ -275,7 +423,12 @@ export default function AccountingPage() {
         <Card padding={false}>
           <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "var(--border)", background: "var(--secondary)" }}>
             <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Account</span>
-            <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Balance</span>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Balance</span>
+              <Button size="sm" variant="ghost" onClick={() => { resetAcctForm(); setShowAccountDialog(true); }}>
+                <Plus className="w-3 h-3" /> Add Account
+              </Button>
+            </div>
           </div>
           {loading ? (
             <div className="flex items-center justify-center py-10">
@@ -283,7 +436,18 @@ export default function AccountingPage() {
             </div>
           ) : (
             chartOfAccounts.map((account) => (
-              <AccountRow key={account.id} account={account} />
+              <AccountRow
+                key={account.id}
+                account={account}
+                onEdit={(id) => {
+                  const acc = (dbAccounts as DBAccount[]).find(a => a.id === id);
+                  if (acc) openEditAccount(acc);
+                }}
+                onDelete={(id) => {
+                  const acc = (dbAccounts as DBAccount[]).find(a => a.id === id);
+                  if (acc) handleDeleteAccount(acc);
+                }}
+              />
             ))
           )}
         </Card>
@@ -301,27 +465,32 @@ export default function AccountingPage() {
                 </tr>
               </thead>
               <tbody>
-                {mockJournals.map((entry) => (
-                  <React.Fragment key={entry.id}>
-                    <tr className="border-b hover:bg-[var(--secondary)] transition-colors cursor-pointer" style={{ borderColor: "var(--border)" }}>
-                      <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--primary)" }}>{entry.entry_number}</td>
-                      <td className="px-4 py-3 text-sm" style={{ color: "var(--muted-foreground)" }}>{entry.date}</td>
-                      <td className="px-4 py-3 text-sm" style={{ color: "var(--foreground)" }}>{entry.description}</td>
-                      <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>
-                        {formatCurrency(entry.lines.reduce((s, l) => s + l.debit, 0))}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>
-                        {formatCurrency(entry.lines.reduce((s, l) => s + l.credit, 0))}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${entry.status === "posted"
-                          ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400"
-                          : "text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400"
-                          }`}>{entry.status}</span>
-                      </td>
-                    </tr>
-                  </React.Fragment>
-                ))}
+                {displayJournals.map((entry) => {
+                  const entryLines = journalLines.filter((l) => l.journal_entry_id === entry.id);
+                  const totalDebit = entryLines.length > 0 ? entryLines.reduce((s, l) => s + (l.debit || 0), 0) : (entry as any).debit || 0;
+                  const totalCredit = entryLines.length > 0 ? entryLines.reduce((s, l) => s + (l.credit || 0), 0) : (entry as any).credit || 0;
+                  return (
+                    <React.Fragment key={entry.id}>
+                      <tr className="border-b hover:bg-[var(--secondary)] transition-colors cursor-pointer" style={{ borderColor: "var(--border)" }}>
+                        <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--primary)" }}>{entry.entry_number}</td>
+                        <td className="px-4 py-3 text-sm" style={{ color: "var(--muted-foreground)" }}>{entry.date}</td>
+                        <td className="px-4 py-3 text-sm" style={{ color: "var(--foreground)" }}>{entry.description}</td>
+                        <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                          {formatCurrency(totalDebit)}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                          {formatCurrency(totalCredit)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${entry.status === "Posted"
+                            ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400"
+                            : "text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400"
+                            }`}>{entry.status}</span>
+                        </td>
+                      </tr>
+                    </React.Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -392,6 +561,101 @@ export default function AccountingPage() {
           </Card>
         </>
       )}
+
+      {/* Journal Entry Create Drawer */}
+      <Drawer
+        open={showJournalDialog}
+        onClose={() => setShowJournalDialog(false)}
+        title="New Journal Entry"
+        width="max-w-2xl"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setShowJournalDialog(false)}>Cancel</Button>
+            <Button onClick={handleCreateJE}>Create Entry</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Date" type="date" value={jeDate} onChange={(e) => setJeDate(e.target.value)} />
+            <Input label="Description *" placeholder="Monthly salaries" value={jeDesc} onChange={(e) => setJeDesc(e.target.value)} />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Line Items</h4>
+              <Button variant="ghost" size="sm" onClick={() => setJeLines([...jeLines, emptyLine()])}>
+                <Plus className="w-3.5 h-3.5" /> Add Line
+              </Button>
+            </div>
+            <div className="rounded-lg border overflow-hidden" style={{ borderColor: "var(--border)" }}>
+              <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)", background: "var(--secondary)" }}>
+                <span className="col-span-5">Account</span>
+                <span className="col-span-3">Debit</span>
+                <span className="col-span-3">Credit</span>
+                <span className="col-span-1"></span>
+              </div>
+              {jeLines.map((line) => (
+                <div key={line.id} className="grid grid-cols-12 gap-2 px-3 py-1.5 items-center border-t" style={{ borderColor: "var(--border)" }}>
+                  <div className="col-span-5">
+                    <select
+                      value={line.account}
+                      onChange={(e) => setJeLines(jeLines.map(l => l.id === line.id ? { ...l, account: e.target.value } : l))}
+                      className="w-full h-8 px-2 rounded border text-xs" style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+                    >
+                      <option value="">Select account...</option>
+                      {(dbAccounts as DBAccount[]).map(a => <option key={a.id} value={`${a.code} – ${a.name}`}>{a.code} – {a.name}</option>)}
+                    </select>
+                  </div>
+                  <input className="col-span-3 h-8 px-2 rounded border text-xs text-right" style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }} type="number" placeholder="0" value={line.debit} onChange={(e) => setJeLines(jeLines.map(l => l.id === line.id ? { ...l, debit: e.target.value, credit: e.target.value ? "" : l.credit } : l))} />
+                  <input className="col-span-3 h-8 px-2 rounded border text-xs text-right" style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }} type="number" placeholder="0" value={line.credit} onChange={(e) => setJeLines(jeLines.map(l => l.id === line.id ? { ...l, credit: e.target.value, debit: e.target.value ? "" : l.debit } : l))} />
+                  <button className="col-span-1 text-red-500 hover:text-red-600 text-xs" onClick={() => jeLines.length > 2 && setJeLines(jeLines.filter(l => l.id !== line.id))}>×</button>
+                </div>
+              ))}
+              <div className="grid grid-cols-12 gap-2 px-3 py-2 font-semibold text-xs" style={{ background: "var(--secondary)", color: "var(--foreground)" }}>
+                <span className="col-span-5">Total</span>
+                <span className="col-span-3 text-right">{formatCurrency(jeLines.reduce((s, l) => s + (parseFloat(l.debit) || 0), 0))}</span>
+                <span className="col-span-3 text-right">{formatCurrency(jeLines.reduce((s, l) => s + (parseFloat(l.credit) || 0), 0))}</span>
+                <span className="col-span-1"></span>
+              </div>
+            </div>
+            {Math.abs(jeLines.reduce((s, l) => s + (parseFloat(l.debit) || 0), 0) - jeLines.reduce((s, l) => s + (parseFloat(l.credit) || 0), 0)) > 0.01 && jeLines.some(l => l.debit || l.credit) && (
+              <p className="text-xs text-red-500 mt-1">⚠ Debits and Credits must balance</p>
+            )}
+          </div>
+        </div>
+      </Drawer>
+
+      {/* Account Create/Edit Drawer */}
+      <Drawer
+        open={showAccountDialog}
+        onClose={() => { setShowAccountDialog(false); resetAcctForm(); }}
+        title={editingAccount ? "Edit Account" : "New Account"}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => { setShowAccountDialog(false); resetAcctForm(); }}>Cancel</Button>
+            <Button onClick={handleSaveAccount}>{editingAccount ? "Update Account" : "Create Account"}</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Account Code *" placeholder="e.g. 1020" value={acctCode} onChange={(e) => setAcctCode(e.target.value)} />
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--foreground)" }}>Category *</label>
+              <select value={acctCategory} onChange={(e) => setAcctCategory(e.target.value)} className="w-full h-9 px-3 rounded-lg border text-sm" style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}>
+                <option value="Assets">Assets</option>
+                <option value="Liabilities">Liabilities</option>
+                <option value="Equity">Equity</option>
+                <option value="Revenue">Revenue</option>
+                <option value="Expenses">Expenses</option>
+              </select>
+            </div>
+          </div>
+          <Input label="Account Name *" placeholder="e.g. Petty Cash" value={acctName} onChange={(e) => setAcctName(e.target.value)} />
+          <Input label="Opening Balance" type="number" placeholder="0.00" value={acctBalance} onChange={(e) => setAcctBalance(e.target.value)} />
+        </div>
+      </Drawer>
     </motion.div>
   );
 }

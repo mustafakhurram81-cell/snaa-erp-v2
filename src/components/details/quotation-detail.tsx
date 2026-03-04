@@ -4,10 +4,11 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 import { ArrowRight, Download, Copy, Send, Edit3, Trash2, Save, X } from "lucide-react";
 import { generatePDF } from "@/lib/pdf";
 import { useToast } from "@/components/ui/toast";
-import { ActivityLog, getMockActivities } from "@/components/shared/activity-log";
+import { LiveActivityLog } from "@/components/shared/activity-log";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 import { EmailSend } from "@/components/shared/email-send";
 
@@ -24,13 +25,7 @@ interface Quotation {
     so_number?: string;
 }
 
-// Mock line items (used as fallback when quotation has no line_items)
-const mockLineItems = [
-    { description: "Mayo Scissors 6.5\" Straight", qty: 50, unitPrice: 24.0, total: 1200 },
-    { description: "Adson Forceps 4.75\"", qty: 100, unitPrice: 15.0, total: 1500 },
-    { description: "Kelly Clamp 5.5\" Curved", qty: 30, unitPrice: 20.0, total: 600 },
-    { description: "Mayo-Hegar Needle Holder 7\"", qty: 25, unitPrice: 30.0, total: 750 },
-];
+
 
 interface QuotationDetailProps {
     quotation: Quotation | null;
@@ -50,6 +45,7 @@ export function QuotationDetail({ quotation, open, onClose, onConvertToSO, onDel
     const [activeTab, setActiveTab] = useState("items");
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({ customer: quotation.customer, date: quotation.date, valid_until: quotation.valid_until, status: quotation.status });
+    const [dbLineItems, setDbLineItems] = useState<{ description: string; qty: number; unitPrice: number; total: number }[]>([]);
 
     useEffect(() => {
         if (quotation) {
@@ -58,12 +54,22 @@ export function QuotationDetail({ quotation, open, onClose, onConvertToSO, onDel
         }
     }, [quotation]);
 
-    const handleSave = () => {
-        if (onUpdate) {
-            onUpdate({ ...quotation, ...editData });
+    useEffect(() => {
+        if (!quotation?.line_items && quotation?.id) {
+            supabase.from("quotation_items").select("*").eq("quotation_id", quotation.id).then(({ data }) => {
+                if (data && data.length > 0) {
+                    setDbLineItems(data.map((li: any) => ({ description: li.product_name || li.description || "Item", qty: li.quantity, unitPrice: li.unit_price, total: li.quantity * li.unit_price })));
+                }
+            });
         }
+    }, [quotation?.id, quotation?.line_items]);
+
+    const handleSave = async () => {
+        if (onUpdate) onUpdate({ ...quotation, ...editData });
         setIsEditing(false);
         toast("success", "Quotation updated", `${quotation.quote_number} saved`);
+        const { logActivity } = await import("@/lib/activity-logger");
+        logActivity({ entityType: "quotation", entityId: quotation.id, action: "Quotation updated", details: quotation.quote_number });
     };
 
     const handleCancel = () => {
@@ -73,7 +79,7 @@ export function QuotationDetail({ quotation, open, onClose, onConvertToSO, onDel
 
     const lineItems = quotation.line_items
         ? quotation.line_items.map(li => ({ description: li.product, qty: li.qty, unitPrice: li.unit_price, total: li.qty * li.unit_price }))
-        : mockLineItems.slice(0, quotation.items_count > 4 ? 4 : quotation.items_count);
+        : dbLineItems;
     const subtotal = quotation.total;
 
     const handleDownloadPDF = () => {
@@ -241,7 +247,7 @@ export function QuotationDetail({ quotation, open, onClose, onConvertToSO, onDel
                     )}
 
                     {activeTab === "activity" && (
-                        <ActivityLog entries={getMockActivities("Quotation", quotation.id)} />
+                        <LiveActivityLog entityType="quotation" entityId={quotation.id} />
                     )}
                 </>
             )}
@@ -249,7 +255,7 @@ export function QuotationDetail({ quotation, open, onClose, onConvertToSO, onDel
             <DeleteConfirmation
                 open={showDelete}
                 onClose={() => setShowDelete(false)}
-                onConfirm={() => { setShowDelete(false); if (onDelete) { onDelete(quotation); } toast("success", "Quotation deleted", `${quotation.quote_number} deleted`); onClose(); }}
+                onConfirm={async () => { setShowDelete(false); if (onDelete) { onDelete(quotation); } const { logActivity } = await import("@/lib/activity-logger"); logActivity({ entityType: "quotation", entityId: quotation.id, action: "Quotation deleted", details: quotation.quote_number }); toast("success", "Quotation deleted", `${quotation.quote_number} deleted`); onClose(); }}
                 title={`Delete ${quotation.quote_number}?`}
                 description="This action cannot be undone. The quotation and all associated data will be permanently removed."
             />

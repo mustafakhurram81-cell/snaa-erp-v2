@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { Edit3, Package, TrendingUp, Save, X, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
+import { LiveActivityLog } from "@/components/shared/activity-log";
+import { supabase } from "@/lib/supabase";
 
 interface Product {
     id: string;
@@ -27,11 +29,13 @@ interface ProductDetailProps {
     onDelete?: (product: Product) => void;
 }
 
-const recentOrders = [
-    { id: "SO-2026-042", customer: "Royal Hospital", qty: 50, date: "Feb 25, 2026" },
-    { id: "SO-2026-038", customer: "City Medical", qty: 30, date: "Feb 21, 2026" },
-    { id: "SO-2026-030", customer: "Global Health", qty: 100, date: "Feb 10, 2026" },
-];
+interface RecentOrder {
+    id: string;
+    order_number: string;
+    customer_name: string;
+    quantity: number;
+    created_at: string;
+}
 
 export function ProductDetail({ product, open, onClose, onUpdate, onDelete }: ProductDetailProps) {
     if (!product) return null;
@@ -40,15 +44,60 @@ export function ProductDetail({ product, open, onClose, onUpdate, onDelete }: Pr
     const [activeTab, setActiveTab] = useState("orders");
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({ ...product });
+    const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+    const [loadingOrders, setLoadingOrders] = useState(false);
 
     useEffect(() => {
         if (product) { setEditData({ ...product }); setIsEditing(false); }
     }, [product]);
 
-    const handleSave = () => {
+    // Fetch real sales order items containing this product
+    useEffect(() => {
+        if (!product?.id || !open) return;
+        setLoadingOrders(true);
+        supabase
+            .from("sales_order_items")
+            .select("id, quantity, sales_order_id, sales_orders!inner(order_number, customer_name, created_at)")
+            .eq("product_id", product.id)
+            .order("created_at", { ascending: false })
+            .limit(10)
+            .then(({ data, error }) => {
+                if (data && !error) {
+                    setRecentOrders(data.map((item: any) => ({
+                        id: item.id,
+                        order_number: item.sales_orders?.order_number || "—",
+                        customer_name: item.sales_orders?.customer_name || "—",
+                        quantity: item.quantity || 0,
+                        created_at: item.sales_orders?.created_at || "",
+                    })));
+                } else {
+                    // Fallback: search by product name in sales_order_items
+                    supabase
+                        .from("sales_order_items")
+                        .select("id, quantity, product_name, created_at")
+                        .ilike("product_name", product.name)
+                        .order("created_at", { ascending: false })
+                        .limit(10)
+                        .then(({ data: fallbackData }) => {
+                            setRecentOrders((fallbackData || []).map((item: any) => ({
+                                id: item.id,
+                                order_number: "—",
+                                customer_name: item.product_name || "—",
+                                quantity: item.quantity || 0,
+                                created_at: item.created_at || "",
+                            })));
+                        });
+                }
+                setLoadingOrders(false);
+            });
+    }, [product?.id, product?.name, open]);
+
+    const handleSave = async () => {
         if (onUpdate) onUpdate(editData);
         setIsEditing(false);
         toast("success", "Product updated", `${editData.name} saved successfully`);
+        const { logActivity } = await import("@/lib/activity-logger");
+        logActivity({ entityType: "product", entityId: product.id, action: "Product updated", details: `${product.sku} — ${product.name}` });
     };
 
     const handleCancel = () => { setEditData({ ...product }); setIsEditing(false); };
@@ -60,6 +109,7 @@ export function ProductDetail({ product, open, onClose, onUpdate, onDelete }: Pr
 
     const tabs = [
         { key: "orders", label: "Recent Orders", count: recentOrders.length },
+        { key: "activity", label: "Activity" },
     ];
 
     return (
@@ -196,16 +246,25 @@ export function ProductDetail({ product, open, onClose, onUpdate, onDelete }: Pr
                     <DrawerTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
                     {activeTab === "orders" && (
                         <div className="space-y-2">
-                            {recentOrders.map((order) => (
-                                <div key={order.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: "var(--border)" }}>
-                                    <div>
-                                        <p className="text-sm font-medium" style={{ color: "var(--primary)" }}>{order.id}</p>
-                                        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{order.customer} · {order.date}</p>
+                            {loadingOrders ? (
+                                <div className="py-8 text-center text-sm" style={{ color: "var(--muted-foreground)" }}>Loading orders...</div>
+                            ) : recentOrders.length === 0 ? (
+                                <div className="py-8 text-center text-sm" style={{ color: "var(--muted-foreground)" }}>No orders found for this product</div>
+                            ) : (
+                                recentOrders.map((order) => (
+                                    <div key={order.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: "var(--border)" }}>
+                                        <div>
+                                            <p className="text-sm font-medium" style={{ color: "var(--primary)" }}>{order.order_number}</p>
+                                            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{order.customer_name} · {formatDate(order.created_at)}</p>
+                                        </div>
+                                        <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{order.quantity} units</span>
                                     </div>
-                                    <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{order.qty} units</span>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
+                    )}
+                    {activeTab === "activity" && (
+                        <LiveActivityLog entityType="product" entityId={product.id} />
                     )}
                 </>
             )}
@@ -213,7 +272,7 @@ export function ProductDetail({ product, open, onClose, onUpdate, onDelete }: Pr
             <DeleteConfirmation
                 open={showDelete}
                 onClose={() => setShowDelete(false)}
-                onConfirm={() => { setShowDelete(false); if (onDelete) { onDelete(product); } toast("success", "Product deleted", `${product.name} deleted`); onClose(); }}
+                onConfirm={async () => { setShowDelete(false); if (onDelete) { onDelete(product); } const { logActivity } = await import("@/lib/activity-logger"); logActivity({ entityType: "product", entityId: product.id, action: "Product deleted", details: `${product.sku} — ${product.name}` }); toast("success", "Product deleted", `${product.name} deleted`); onClose(); }}
                 title={`Delete ${product.name}?`}
                 description="This action cannot be undone. The product will be permanently removed from your catalog."
             />

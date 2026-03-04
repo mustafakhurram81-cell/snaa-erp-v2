@@ -4,12 +4,14 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 import { Download, Receipt, Truck, ClipboardList, Edit3, Trash2, Save, X, Send } from "lucide-react";
 import { generatePDF } from "@/lib/pdf";
 import { useToast } from "@/components/ui/toast";
-import { ActivityLog, getMockActivities } from "@/components/shared/activity-log";
+import { LiveActivityLog } from "@/components/shared/activity-log";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 import { EmailSend } from "@/components/shared/email-send";
+import { adjustStockForSO } from "@/lib/inventory-adjustment";
 
 interface SalesOrder {
     id: string;
@@ -25,11 +27,7 @@ interface SalesOrder {
     invoice_number?: string;
 }
 
-const mockLineItems = [
-    { description: "Mayo Scissors 6.5\" Straight", qty: 50, unitPrice: 24.0, total: 1200 },
-    { description: "Adson Forceps 4.75\"", qty: 100, unitPrice: 15.0, total: 1500 },
-    { description: "Kelly Clamp 5.5\" Curved", qty: 30, unitPrice: 20.0, total: 600 },
-];
+
 
 interface SalesOrderDetailProps {
     order: SalesOrder | null;
@@ -50,21 +48,34 @@ export function SalesOrderDetail({ order, open, onClose, onCreateInvoice, onCrea
     const [activeTab, setActiveTab] = useState("details");
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({ customer: order.customer, delivery_date: order.delivery_date, status: order.status });
+    const [dbLineItems, setDbLineItems] = useState<{ description: string; qty: number; unitPrice: number; total: number }[]>([]);
 
     useEffect(() => {
         if (order) { setEditData({ customer: order.customer, delivery_date: order.delivery_date, status: order.status }); setIsEditing(false); }
     }, [order]);
 
-    const handleSave = () => {
+    useEffect(() => {
+        if (!order?.line_items && order?.id) {
+            supabase.from("sales_order_items").select("*").eq("sales_order_id", order.id).then(({ data }) => {
+                if (data && data.length > 0) {
+                    setDbLineItems(data.map((li: any) => ({ description: li.product_name || li.description || "Item", qty: li.quantity, unitPrice: li.unit_price, total: li.quantity * li.unit_price })));
+                }
+            });
+        }
+    }, [order?.id, order?.line_items]);
+
+    const handleSave = async () => {
         if (onUpdate) onUpdate({ ...order, ...editData });
         setIsEditing(false);
         toast("success", "Sales Order updated", `${order.order_number} saved`);
+        const { logActivity } = await import("@/lib/activity-logger");
+        logActivity({ entityType: "sales_order", entityId: order.id, action: "Sales Order updated", details: order.order_number });
     };
     const handleCancel = () => { setEditData({ customer: order.customer, delivery_date: order.delivery_date, status: order.status }); setIsEditing(false); };
 
     const lineItems = order.line_items
         ? order.line_items.map(li => ({ description: li.product, qty: li.qty, unitPrice: li.unit_price, total: li.qty * li.unit_price }))
-        : mockLineItems.slice(0, Math.min(order.items_count, 3));
+        : dbLineItems;
 
     const handleDownloadPDF = () => {
         generatePDF({ documentType: "Sales Order", documentNumber: order.order_number, date: formatDate(order.date), dueDate: formatDate(order.delivery_date), recipientName: order.customer, lineItems, subtotal: order.total, total: order.total, status: order.status });
@@ -117,7 +128,14 @@ export function SalesOrderDetail({ order, open, onClose, onCreateInvoice, onCrea
                                 <Button onClick={() => { onCreateJobOrders(order); onClose(); }}><ClipboardList className="w-3.5 h-3.5" /> Create Job Orders</Button>
                             )}
                             {order.status === "in_progress" && (
-                                <Button onClick={() => { toast("success", "Order shipped", `${order.order_number} marked as shipped`); onClose(); }}><Truck className="w-3.5 h-3.5" /> Mark Shipped</Button>
+                                <Button onClick={async () => {
+                                    const result = await adjustStockForSO(order.id, "deduct");
+                                    if (result.adjustments.length > 0) {
+                                        toast("success", "Stock updated", `Deducted: ${result.adjustments.map(a => `${a.product} (${a.qty})`).join(", ")}`);
+                                    }
+                                    toast("success", "Order shipped", `${order.order_number} marked as shipped`);
+                                    onClose();
+                                }}><Truck className="w-3.5 h-3.5" /> Mark Shipped</Button>
                             )}
                         </div>
                     )}
@@ -236,12 +254,12 @@ export function SalesOrderDetail({ order, open, onClose, onCreateInvoice, onCrea
                         </div>
                     )}
 
-                    {activeTab === "activity" && (<ActivityLog entries={getMockActivities("Sales Order", order.id)} />)}
+                    {activeTab === "activity" && (<LiveActivityLog entityType="sales_order" entityId={order.id} />)}
                 </>
             )}
 
             <DeleteConfirmation open={showDelete} onClose={() => setShowDelete(false)}
-                onConfirm={() => { setShowDelete(false); if (onDelete) { onDelete(order); } toast("success", "Order deleted", `${order.order_number} deleted`); onClose(); }}
+                onConfirm={async () => { setShowDelete(false); if (onDelete) { onDelete(order); } const { logActivity } = await import("@/lib/activity-logger"); logActivity({ entityType: "sales_order", entityId: order.id, action: "Sales Order deleted", details: order.order_number }); toast("success", "Order deleted", `${order.order_number} deleted`); onClose(); }}
                 title={`Delete ${order.order_number}?`} description="This action cannot be undone. The sales order and all linked data will be permanently removed." />
 
             <EmailSend

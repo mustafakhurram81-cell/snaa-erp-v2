@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,7 +20,9 @@ import {
     UserCog,
     Plus,
     Search,
+    Loader2,
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 const pages = [
     { label: "Dashboard", href: "/", icon: LayoutDashboard, group: "Navigate" },
@@ -48,6 +50,15 @@ const quickActions = [
     { label: "New Vendor", href: "/vendors?action=new", icon: Plus, group: "Quick Actions" },
 ];
 
+interface SearchResult {
+    id: string;
+    label: string;
+    sublabel?: string;
+    href: string;
+    icon: typeof Users;
+    iconColor: string;
+}
+
 interface CommandPaletteProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -56,7 +67,11 @@ interface CommandPaletteProps {
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     const router = useRouter();
     const [search, setSearch] = useState("");
+    const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+    const [searching, setSearching] = useState(false);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Keyboard shortcut
     useEffect(() => {
         const down = (e: KeyboardEvent) => {
             if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
@@ -67,6 +82,61 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         document.addEventListener("keydown", down);
         return () => document.removeEventListener("keydown", down);
     }, [open, onOpenChange]);
+
+    // Clear state when closed
+    useEffect(() => {
+        if (!open) {
+            setSearch("");
+            setSearchResults([]);
+            setSearching(false);
+        }
+    }, [open]);
+
+    // Debounced live search
+    useEffect(() => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        if (search.length < 2) {
+            setSearchResults([]);
+            setSearching(false);
+            return;
+        }
+        setSearching(true);
+        debounceRef.current = setTimeout(async () => {
+            try {
+                const term = `%${search}%`;
+                const [customers, products, invoices, orders] = await Promise.all([
+                    supabase.from("customers").select("id, name, city").ilike("name", term).limit(4),
+                    supabase.from("products").select("id, name, sku").ilike("name", term).limit(4),
+                    supabase.from("invoices").select("id, invoice_number, customer_name").ilike("invoice_number", term).limit(4),
+                    supabase.from("sales_orders").select("id, order_number, customer_name").ilike("order_number", term).limit(4),
+                ]);
+                const results: SearchResult[] = [
+                    ...(customers.data || []).map((c: any) => ({
+                        id: c.id, label: c.name, sublabel: c.city || "Customer",
+                        href: `/customers`, icon: Users, iconColor: "text-cyan-500",
+                    })),
+                    ...(products.data || []).map((p: any) => ({
+                        id: p.id, label: p.name, sublabel: p.sku || "Product",
+                        href: `/products`, icon: Package, iconColor: "text-violet-500",
+                    })),
+                    ...(invoices.data || []).map((i: any) => ({
+                        id: i.id, label: i.invoice_number, sublabel: i.customer_name || "Invoice",
+                        href: `/invoices`, icon: Receipt, iconColor: "text-emerald-500",
+                    })),
+                    ...(orders.data || []).map((o: any) => ({
+                        id: o.id, label: o.order_number, sublabel: o.customer_name || "Sales Order",
+                        href: `/sales-orders`, icon: ShoppingCart, iconColor: "text-blue-500",
+                    })),
+                ];
+                setSearchResults(results);
+            } catch (err) {
+                console.error("Command palette search error:", err);
+            } finally {
+                setSearching(false);
+            }
+        }, 300);
+        return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    }, [search]);
 
     const runCommand = useCallback(
         (command: () => void) => {
@@ -109,15 +179,51 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                                 <Command.Input
                                     value={search}
                                     onValueChange={setSearch}
-                                    placeholder="Type a command or search..."
+                                    placeholder="Type a command or search records…"
                                     className="flex h-12 w-full bg-transparent text-sm outline-none placeholder:text-[var(--muted-foreground)]"
                                     style={{ color: "var(--foreground)" }}
                                 />
+                                {searching && <Loader2 className="w-4 h-4 animate-spin" style={{ color: "var(--muted-foreground)" }} />}
                             </div>
                             <Command.List className="max-h-[340px] overflow-y-auto p-2">
                                 <Command.Empty className="py-8 text-center text-sm" style={{ color: "var(--muted-foreground)" }}>
                                     No results found.
                                 </Command.Empty>
+
+                                {/* Live search results */}
+                                {searchResults.length > 0 && (
+                                    <>
+                                        <Command.Group
+                                            heading="Search Results"
+                                            className="text-xs font-semibold uppercase tracking-wider px-2 py-1.5"
+                                            style={{ color: "var(--muted-foreground)" }}
+                                        >
+                                            {searchResults.map((result) => {
+                                                const Icon = result.icon;
+                                                return (
+                                                    <Command.Item
+                                                        key={`search-${result.id}`}
+                                                        value={`${result.label} ${result.sublabel}`}
+                                                        onSelect={() => runCommand(() => router.push(result.href))}
+                                                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer transition-colors data-[selected=true]:bg-[var(--accent)]"
+                                                        style={{ color: "var(--foreground)" }}
+                                                    >
+                                                        <Icon className={`w-4 h-4 ${result.iconColor}`} />
+                                                        <div className="flex flex-col">
+                                                            <span>{result.label}</span>
+                                                            {result.sublabel && (
+                                                                <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                                                                    {result.sublabel}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </Command.Item>
+                                                );
+                                            })}
+                                        </Command.Group>
+                                        <Command.Separator className="my-2 h-px" style={{ background: "var(--border)" }} />
+                                    </>
+                                )}
 
                                 <Command.Group
                                     heading="Navigate"

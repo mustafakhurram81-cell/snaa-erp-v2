@@ -1,9 +1,14 @@
 "use client";
 
-import React from "react";
-import { Drawer, Button, StatusBadge } from "@/components/ui/shared";
+import React, { useState, useEffect } from "react";
+import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
 import { formatDate } from "@/lib/utils";
-import { Play, CheckCircle2, Clock, Factory } from "lucide-react";
+import { Play, CheckCircle2, Clock, Factory, Edit3, Save, X, Trash2 } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
+import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
+import { LiveActivityLog } from "@/components/shared/activity-log";
+import { supabase } from "@/lib/supabase";
+import { MANUFACTURING_STAGES, type StageStatus as ManufacturingStageStatus } from "@/lib/stages";
 
 interface ProductionOrder {
     id: string;
@@ -22,74 +27,182 @@ interface ProductionDetailProps {
     order: ProductionOrder | null;
     open: boolean;
     onClose: () => void;
+    onUpdate?: (order: ProductionOrder) => void;
+    onDelete?: (order: ProductionOrder) => void;
 }
 
-const timeline = [
-    { label: "Order created", date: "Feb 20, 2026", done: true },
-    { label: "Materials allocated", date: "Feb 21, 2026", done: true },
-    { label: "Production started", date: "Feb 22, 2026", done: true },
-    { label: "Quality check", date: "Pending", done: false },
-    { label: "Completed", date: "—", done: false },
-];
+interface LiveStage {
+    id: string;
+    stage_number: number;
+    stage_name: string;
+    status: string;
+    execution_type: string | null;
+    vendor_id: string | null;
+    created_at: string | null;
+    updated_at: string | null;
+}
 
-export function ProductionDetail({ order, open, onClose }: ProductionDetailProps) {
+const stageStatusColors: Record<string, string> = {
+    not_started: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
+    pending: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
+    in_progress: "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
+    completed: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
+    skipped: "bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
+};
+
+export function ProductionDetail({ order, open, onClose, onUpdate, onDelete }: ProductionDetailProps) {
     if (!order) return null;
+    const { toast } = useToast();
+    const [showDelete, setShowDelete] = useState(false);
+    const [activeTab, setActiveTab] = useState("stages");
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState({ ...order });
+    const [liveStages, setLiveStages] = useState<LiveStage[]>([]);
+    const [loadingStages, setLoadingStages] = useState(false);
+
+    useEffect(() => {
+        if (order) { setEditData({ ...order }); setIsEditing(false); }
+    }, [order]);
+
+    // Fetch real production stages for this production order
+    useEffect(() => {
+        if (!order?.id || !open) return;
+        setLoadingStages(true);
+        supabase
+            .from("production_stages")
+            .select("*")
+            .eq("production_order_id", order.id)
+            .order("stage_number", { ascending: true })
+            .then(({ data }) => {
+                setLiveStages(data || []);
+                setLoadingStages(false);
+            });
+    }, [order?.id, open]);
 
     const progress = order.quantity > 0 ? Math.round((order.completed / order.quantity) * 100) : 0;
+    const completedStages = liveStages.filter(s => s.status === "completed").length;
+    const totalStages = liveStages.length || MANUFACTURING_STAGES.length;
+    const stageProgress = totalStages > 0 ? Math.round((completedStages / totalStages) * 100) : 0;
+
+    const handleSave = async () => {
+        if (onUpdate) onUpdate(editData);
+        setIsEditing(false);
+        toast("success", "Production order updated", `${editData.po_number} saved`);
+        const { logActivity } = await import("@/lib/activity-logger");
+        logActivity({ entityType: "production_order", entityId: order.id, action: "Production order updated", details: order.po_number });
+    };
+    const handleCancel = () => { setEditData({ ...order }); setIsEditing(false); };
+
+    const tabs = [
+        { key: "stages", label: "Manufacturing Stages", count: liveStages.length || undefined },
+        { key: "activity", label: "Activity" },
+    ];
+
+    // Get the matching manufacturing stage definition for icon/description
+    const getStageInfo = (stageName: string) => {
+        return MANUFACTURING_STAGES.find(s => s.name.toLowerCase() === stageName.toLowerCase());
+    };
 
     return (
         <Drawer
             open={open}
-            onClose={onClose}
-            title="Production Order"
-            width="max-w-xl"
+            onClose={() => { handleCancel(); onClose(); }}
+            title={isEditing ? "Edit Production Order" : "Production Order"}
+            width="max-w-2xl"
             footer={
                 <div className="flex justify-between">
-                    <Button variant="secondary" onClick={onClose}>Close</Button>
                     <div className="flex gap-2">
-                        {order.status === "planned" && (
-                            <Button>
-                                <Play className="w-3.5 h-3.5" />
-                                Start Production
-                            </Button>
-                        )}
-                        {order.status === "in_progress" && (
-                            <Button>
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                Mark Complete
-                            </Button>
+                        <Button variant="secondary" onClick={() => { handleCancel(); onClose(); }}>Close</Button>
+                        {isEditing ? (
+                            <>
+                                <Button variant="secondary" onClick={handleCancel}><X className="w-3.5 h-3.5" /> Cancel</Button>
+                                <Button onClick={handleSave}><Save className="w-3.5 h-3.5" /> Save</Button>
+                            </>
+                        ) : (
+                            <>
+                                <Button variant="secondary" onClick={() => setIsEditing(true)}><Edit3 className="w-3.5 h-3.5" /> Edit</Button>
+                                <button onClick={() => setShowDelete(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </>
                         )}
                     </div>
+                    {!isEditing && (
+                        <div className="flex gap-2">
+                            {order.status === "planned" && (
+                                <Button>
+                                    <Play className="w-3.5 h-3.5" />
+                                    Start Production
+                                </Button>
+                            )}
+                            {order.status === "in_progress" && (
+                                <Button>
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    Mark Complete
+                                </Button>
+                            )}
+                        </div>
+                    )}
                 </div>
             }
         >
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h3 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>{order.po_number}</h3>
+                    {isEditing ? (
+                        <Input value={editData.po_number} onChange={(e) => setEditData({ ...editData, po_number: e.target.value })} placeholder="Order number" />
+                    ) : (
+                        <h3 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>{order.po_number}</h3>
+                    )}
                     <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>{order.product}</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <StatusBadge status={order.priority} />
-                    <StatusBadge status={order.status} />
+                    {isEditing ? (
+                        <select value={editData.status} onChange={(e) => setEditData({ ...editData, status: e.target.value })}
+                            className="h-8 px-3 rounded-lg border text-xs font-medium" style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}>
+                            <option value="planned">Planned</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    ) : (
+                        <StatusBadge status={order.status} />
+                    )}
                 </div>
             </div>
 
-            {/* Progress Bar */}
-            <div className="rounded-xl border p-4 mb-5" style={{ borderColor: "var(--border)" }}>
-                <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Production Progress</p>
-                    <p className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{progress}%</p>
+            {/* Progress Bars */}
+            <div className="grid grid-cols-2 gap-4 mb-5">
+                <div className="rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Quantity Progress</p>
+                        <p className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{progress}%</p>
+                    </div>
+                    <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: "var(--secondary)" }}>
+                        <div
+                            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
+                            style={{ width: `${progress}%` }}
+                        />
+                    </div>
+                    <div className="flex justify-between mt-2">
+                        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{order.completed} completed</span>
+                        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{order.quantity} total</span>
+                    </div>
                 </div>
-                <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: "var(--secondary)" }}>
-                    <div
-                        className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
-                        style={{ width: `${progress}%` }}
-                    />
-                </div>
-                <div className="flex justify-between mt-2">
-                    <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{order.completed} completed</span>
-                    <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{order.quantity} total</span>
+                <div className="rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Stage Progress</p>
+                        <p className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{stageProgress}%</p>
+                    </div>
+                    <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: "var(--secondary)" }}>
+                        <div
+                            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-500"
+                            style={{ width: `${stageProgress}%` }}
+                        />
+                    </div>
+                    <div className="flex justify-between mt-2">
+                        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{completedStages} completed</span>
+                        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{totalStages} stages</span>
+                    </div>
                 </div>
             </div>
 
@@ -103,43 +216,108 @@ export function ProductionDetail({ order, open, onClose }: ProductionDetailProps
                     <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Quantity</p>
                     <p className="text-sm font-medium mt-1" style={{ color: "var(--foreground)" }}>{order.quantity} units</p>
                 </div>
-                <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Start Date</p>
-                    <p className="text-sm font-medium mt-1" style={{ color: "var(--foreground)" }}>{formatDate(order.start_date)}</p>
-                </div>
-                <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Due Date</p>
-                    <p className="text-sm font-medium mt-1" style={{ color: "var(--foreground)" }}>{formatDate(order.due_date)}</p>
-                </div>
+                {isEditing ? (
+                    <>
+                        <Input label="Start Date" type="date" value={editData.start_date} onChange={(e) => setEditData({ ...editData, start_date: e.target.value })} />
+                        <Input label="Due Date" type="date" value={editData.due_date} onChange={(e) => setEditData({ ...editData, due_date: e.target.value })} />
+                    </>
+                ) : (
+                    <>
+                        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Start Date</p>
+                            <p className="text-sm font-medium mt-1" style={{ color: "var(--foreground)" }}>{formatDate(order.start_date)}</p>
+                        </div>
+                        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Due Date</p>
+                            <p className="text-sm font-medium mt-1" style={{ color: "var(--foreground)" }}>{formatDate(order.due_date)}</p>
+                        </div>
+                    </>
+                )}
             </div>
 
-            {/* Timeline */}
-            <div>
-                <h4 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>Timeline</h4>
-                <div className="space-y-0">
-                    {timeline.map((step, idx) => (
-                        <div key={idx} className="flex gap-3">
-                            <div className="flex flex-col items-center">
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${step.done ? "bg-blue-600" : "border-2"
-                                    }`} style={!step.done ? { borderColor: "var(--border)" } : undefined}>
-                                    {step.done ? (
-                                        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                                    ) : (
-                                        <Clock className="w-3 h-3" style={{ color: "var(--muted-foreground)" }} />
-                                    )}
+            {/* Tabs (hidden during edit) */}
+            {!isEditing && (
+                <>
+                    <DrawerTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+
+                    {activeTab === "stages" && (
+                        <div>
+                            {loadingStages ? (
+                                <div className="py-8 text-center text-sm" style={{ color: "var(--muted-foreground)" }}>Loading stages...</div>
+                            ) : liveStages.length === 0 ? (
+                                <div className="py-8 text-center">
+                                    <Factory className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--muted-foreground)" }} />
+                                    <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>No manufacturing stages found</p>
+                                    <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>Stages will appear when this order is started</p>
                                 </div>
-                                {idx < timeline.length - 1 && (
-                                    <div className="w-px h-8" style={{ background: step.done ? "#2563eb" : "var(--border)" }} />
-                                )}
-                            </div>
-                            <div className="pb-6">
-                                <p className={`text-sm ${step.done ? "font-medium" : ""}`} style={{ color: step.done ? "var(--foreground)" : "var(--muted-foreground)" }}>{step.label}</p>
-                                <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{step.date}</p>
-                            </div>
+                            ) : (
+                                <div className="space-y-0">
+                                    {liveStages.map((stage, idx) => {
+                                        const stageInfo = getStageInfo(stage.stage_name);
+                                        const statusNorm = (stage.status || "not_started").toLowerCase().replace(/[\s-]/g, "_");
+                                        const isComplete = statusNorm === "completed";
+                                        const isActive = statusNorm === "in_progress";
+                                        return (
+                                            <div key={stage.id} className="flex gap-3">
+                                                <div className="flex flex-col items-center">
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${isComplete ? "bg-emerald-600 text-white" :
+                                                            isActive ? "bg-blue-600 text-white animate-pulse" :
+                                                                "border-2"
+                                                        }`} style={!isComplete && !isActive ? { borderColor: "var(--border)", color: "var(--muted-foreground)" } : undefined}>
+                                                        {isComplete ? (
+                                                            <CheckCircle2 className="w-4 h-4" />
+                                                        ) : isActive ? (
+                                                            <Play className="w-3.5 h-3.5" />
+                                                        ) : (
+                                                            stage.stage_number
+                                                        )}
+                                                    </div>
+                                                    {idx < liveStages.length - 1 && (
+                                                        <div className="w-px h-8 mt-1" style={{ background: isComplete ? "#059669" : "var(--border)" }} />
+                                                    )}
+                                                </div>
+                                                <div className="pb-4 flex-1">
+                                                    <div className="flex items-center justify-between">
+                                                        <p className={`text-sm ${isComplete || isActive ? "font-semibold" : ""}`} style={{ color: isComplete || isActive ? "var(--foreground)" : "var(--muted-foreground)" }}>
+                                                            {stage.stage_name}
+                                                        </p>
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${stageStatusColors[statusNorm] || stageStatusColors.not_started}`}>
+                                                            {(stage.status || "Not Started").replace(/_/g, " ")}
+                                                        </span>
+                                                    </div>
+                                                    {stageInfo && (
+                                                        <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>{stageInfo.description}</p>
+                                                    )}
+                                                    <div className="flex items-center gap-3 mt-1">
+                                                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
+                                                            {stage.execution_type === "in-house" ? "🏭 In-house" : "🔧 Vendor"}
+                                                        </span>
+                                                        {stage.updated_at && (
+                                                            <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Updated {formatDate(stage.updated_at)}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
-                    ))}
-                </div>
-            </div>
+                    )}
+
+                    {activeTab === "activity" && (
+                        <LiveActivityLog entityType="production_order" entityId={order.id} />
+                    )}
+                </>
+            )}
+
+            <DeleteConfirmation
+                open={showDelete}
+                onClose={() => setShowDelete(false)}
+                onConfirm={async () => { setShowDelete(false); if (onDelete) { onDelete(order); } const { logActivity } = await import("@/lib/activity-logger"); logActivity({ entityType: "production_order", entityId: order.id, action: "Production order deleted", details: order.po_number }); toast("success", "Order deleted", `${order.po_number} deleted`); onClose(); }}
+                title={`Delete ${order.po_number}?`}
+                description="This action cannot be undone. The production order and all stage data will be permanently removed."
+            />
         </Drawer>
     );
 }

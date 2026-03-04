@@ -3,13 +3,21 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Plus, ArrowRight, Copy, Send, Trash2, ImageIcon } from "lucide-react";
+import { Plus, Upload, ArrowRight, Copy, Send, Trash2, ImageIcon } from "lucide-react";
 import { PageHeader, Button, Drawer, Input, Card, StatusBadge, Tabs } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { QuotationDetail } from "@/components/details/quotation-detail";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { useSupabaseTable } from "@/lib/supabase-hooks";
+import { supabase } from "@/lib/supabase";
+import { TableSkeleton } from "@/components/ui/skeleton";
+import { CSVImportDialog } from "@/components/shared/csv-import";
+import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
+import { logActivity } from "@/lib/activity-logger";
+import { validateRequired, validateForm, hasErrors } from "@/lib/form-validation";
+
+interface DBCustomer { id: string; name: string; }
 
 // --- Types ---
 interface LineItem {
@@ -35,21 +43,14 @@ interface Quotation {
   notes?: string;
 }
 
-// --- Mock Products for selection ---
-const mockProducts = [
-  { name: 'Mayo Scissors 6.5" Straight', price: 24.0 },
-  { name: 'Metzenbaum Scissors 7" Curved', price: 28.0 },
-  { name: 'Adson Forceps 4.75"', price: 15.0 },
-  { name: 'Debakey Forceps 8"', price: 35.0 },
-  { name: "Army-Navy Retractor Set", price: 52.0 },
-  { name: 'Kelly Clamp 5.5" Curved', price: 20.0 },
-  { name: 'Mayo-Hegar Needle Holder 7"', price: 30.0 },
-];
-
-let nextQTNumber = 90;
-function getNextQTNumber() {
-  return `QT-2026-${String(nextQTNumber++).padStart(3, "0")}`;
+interface DBProduct {
+  id: string;
+  name: string;
+  selling_price: number;
 }
+
+// --- DB-based number generation ---
+import { getNextQTNumber } from "@/lib/doc-numbers";
 
 // --- Columns ---
 const columns: ColumnDef<Quotation, unknown>[] = [
@@ -95,29 +96,6 @@ const columns: ColumnDef<Quotation, unknown>[] = [
     header: "Status",
     cell: ({ row }) => <StatusBadge status={row.original.status} />,
   },
-  {
-    id: "actions",
-    header: "",
-    enableSorting: false,
-    enableHiding: false,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-        {row.original.status === "draft" && (
-          <button className="p-1.5 rounded-md hover:bg-[var(--secondary)] transition-colors" title="Send">
-            <Send className="w-3.5 h-3.5" style={{ color: "var(--muted-foreground)" }} />
-          </button>
-        )}
-        {row.original.status === "accepted" && !row.original.so_number && (
-          <button className="p-1.5 rounded-md hover:bg-[var(--secondary)] transition-colors" title="Convert to SO">
-            <ArrowRight className="w-3.5 h-3.5 text-blue-500" />
-          </button>
-        )}
-        <button className="p-1.5 rounded-md hover:bg-[var(--secondary)] transition-colors" title="Duplicate">
-          <Copy className="w-3.5 h-3.5" style={{ color: "var(--muted-foreground)" }} />
-        </button>
-      </div>
-    ),
-  },
 ];
 
 // --- Empty line item ---
@@ -127,11 +105,23 @@ function emptyLineItem(): LineItem {
 
 // --- Page ---
 function QuotationsContent() {
-  const { data: dbQuotations, loading, create, update, remove } = useSupabaseTable<Quotation>("quotations");
+  const { data: dbQuotations, loading, create, update, remove, fetchAll } = useSupabaseTable<Quotation>("quotations");
+  const { data: dbProducts } = useSupabaseTable<DBProduct>("products", { orderBy: "name", ascending: true });
+  const { data: dbCustomers } = useSupabaseTable<DBCustomer>("customers", { orderBy: "name", ascending: true });
   const [activeTab, setActiveTab] = useState("all");
   const [showDialog, setShowDialog] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
   const { toast } = useToast();
+  // Keyboard shortcut: N to create new
+  useEffect(() => {
+    const handleNew = () => { resetForm(); setShowDialog(true); };
+    const handleEsc = () => { setShowDialog(false); };
+    window.addEventListener("keyboard-new", handleNew);
+    window.addEventListener("keyboard-escape", handleEsc);
+    return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
+  }, []);
+
   const searchParams = useSearchParams();
 
   // Map DB fields
@@ -171,8 +161,8 @@ function QuotationsContent() {
     setFormLineItems(formLineItems.map((li) => (li.id === id ? { ...li, [field]: value } : li)));
   };
   const handleProductSelect = (id: string, productName: string) => {
-    const product = mockProducts.find((p) => p.name === productName);
-    setFormLineItems(formLineItems.map((li) => li.id === id ? { ...li, product: productName, unit_price: product?.price || li.unit_price } : li));
+    const product = dbProducts.find((p) => p.name === productName);
+    setFormLineItems(formLineItems.map((li) => li.id === id ? { ...li, product: productName, unit_price: product?.selling_price || li.unit_price } : li));
   };
 
   const formTotal = formLineItems.reduce((sum, li) => sum + li.qty * li.unit_price, 0);
@@ -181,8 +171,9 @@ function QuotationsContent() {
     if (!formCustomer.trim()) { toast("error", "Please enter a customer name"); return; }
     if (formLineItems.some((li) => !li.product.trim())) { toast("error", "Please fill in all line item products"); return; }
 
+    const quoteNumber = await getNextQTNumber();
     const result = await create({
-      quote_number: getNextQTNumber(),
+      quote_number: quoteNumber,
       customer_name: formCustomer,
       date: new Date().toISOString().split("T")[0],
       valid_until: formValidUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
@@ -193,7 +184,6 @@ function QuotationsContent() {
 
     if (result) {
       // Persist line items to quotation_items table
-      const { supabase } = await import("@/lib/supabase");
       const items = formLineItems.map(li => ({
         quotation_id: result.id,
         product_name: li.product,
@@ -205,16 +195,17 @@ function QuotationsContent() {
       setShowDialog(false);
       resetForm();
       toast("success", `Quotation ${result.quote_number} created with ${items.length} item(s)`);
+      logActivity({ entityType: "quotation", entityId: result.id, action: "Quotation created", details: `${result.quote_number} — ${formCustomer}` });
     } else {
       toast("error", "Failed to create quotation");
     }
   };
 
   const handleConvertToSO = async (quotation: Quotation) => {
-    const soNumber = `SO-2026-${String(nextQTNumber++).padStart(3, "0")}`;
+    const { getNextSONumber } = await import("@/lib/doc-numbers");
+    const soNumber = await getNextSONumber();
 
     // 1. Create the sales order
-    const { supabase } = await import("@/lib/supabase");
     const { data: so, error: soErr } = await supabase.from("sales_orders").insert({
       order_number: soNumber,
       customer_name: quotation.customer_name || quotation.customer,
@@ -250,11 +241,18 @@ function QuotationsContent() {
     // 3. Update quotation status
     await update(quotation.id, { status: "converted", so_number: soNumber } as Partial<Quotation>);
     toast("success", `Sales Order ${soNumber} created from ${quotation.quote_number} with ${qtItems?.length || 0} item(s)`);
+    logActivity({ entityType: "quotation", entityId: quotation.id, action: "Converted to SO", details: `${quotation.quote_number} → ${soNumber}` });
   };
 
+  const [pendingDelete, setPendingDelete] = useState<Quotation | null>(null);
   const handleDeleteQuotation = async (quotation: Quotation) => {
-    await remove(quotation.id);
+    setPendingDelete(quotation);
+  };
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    await remove(pendingDelete.id);
     setSelectedQuotation(null);
+    setPendingDelete(null);
   };
 
   const handleUpdateQuotation = async (updated: Quotation) => {
@@ -290,9 +288,7 @@ function QuotationsContent() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-        </div>
+        <TableSkeleton rows={5} columns={5} />
       ) : (
         <DataTable
           columns={columns}
@@ -328,7 +324,18 @@ function QuotationsContent() {
       >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Customer" placeholder="e.g. City Hospital" value={formCustomer} onChange={(e) => setFormCustomer(e.target.value)} />
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--foreground)" }}>Customer *</label>
+              <select
+                value={formCustomer}
+                onChange={(e) => setFormCustomer(e.target.value)}
+                className="w-full h-9 px-3 rounded-lg border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                style={{ background: "var(--background)", borderColor: "var(--border)", color: formCustomer ? "var(--foreground)" : "var(--muted-foreground)" }}
+              >
+                <option value="">Select customer...</option>
+                {dbCustomers.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+              </select>
+            </div>
             <Input label="Valid Until" type="date" value={formValidUntil} onChange={(e) => setFormValidUntil(e.target.value)} />
           </div>
 
@@ -371,7 +378,7 @@ function QuotationsContent() {
                       style={{ background: "var(--background)", borderColor: "var(--border)", color: li.product ? "var(--foreground)" : "var(--muted-foreground)" }}
                     >
                       <option value="">Select product...</option>
-                      {mockProducts.map((p) => (<option key={p.name} value={p.name}>{p.name}</option>))}
+                      {dbProducts.map((p) => (<option key={p.id} value={p.name}>{p.name} — {formatCurrency(p.selling_price || 0)}</option>))}
                     </select>
                   </div>
                   <div className="col-span-2">
@@ -405,6 +412,24 @@ function QuotationsContent() {
           </div>
         </div>
       </Drawer>
+
+      <CSVImportDialog
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        tableName="quotations"
+        displayName="Quotations"
+        requiredFields={["quote_number", "customer_name", "total_amount"]}
+        optionalFields={["status", "valid_until", "notes"]}
+        onImportComplete={() => fetchAll()}
+      />
+
+      <DeleteConfirmation
+        open={!!pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+        title={`Delete ${pendingDelete?.quote_number}?`}
+        description="This quotation and all its line items will be permanently deleted. This action cannot be undone."
+      />
     </motion.div>
   );
 }

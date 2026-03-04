@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from "react";
 import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 import { Download, Truck, CheckCircle, Edit3, Trash2, Save, X, Send } from "lucide-react";
 import { generatePDF } from "@/lib/pdf";
 import { useToast } from "@/components/ui/toast";
-import { ActivityLog, getMockActivities } from "@/components/shared/activity-log";
+import { LiveActivityLog } from "@/components/shared/activity-log";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 import { EmailSend } from "@/components/shared/email-send";
+import { adjustStockForPO } from "@/lib/inventory-adjustment";
 
 interface PurchaseOrder {
     id: string;
@@ -24,11 +26,7 @@ interface PurchaseOrder {
     line_items?: { id: string; item: string; qty: number; unit_cost: number }[];
 }
 
-const mockLineItems = [
-    { description: "Stainless Steel 410 (Bars)", qty: 500, unitPrice: 12.0, total: 6000 },
-    { description: "Tungsten Carbide Inserts", qty: 200, unitPrice: 45.0, total: 9000 },
-    { description: "Handle Components Set", qty: 100, unitPrice: 8.0, total: 800 },
-];
+
 
 interface PurchaseOrderDetailProps {
     order: PurchaseOrder | null;
@@ -46,21 +44,34 @@ export function PurchaseOrderDetail({ order, open, onClose, onUpdate, onDelete }
     const [activeTab, setActiveTab] = useState("items");
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({ vendor: order.vendor, expected_date: order.expected_date, status: order.status });
+    const [dbLineItems, setDbLineItems] = useState<{ description: string; qty: number; unitPrice: number; total: number }[]>([]);
 
     useEffect(() => {
         if (order) { setEditData({ vendor: order.vendor, expected_date: order.expected_date, status: order.status }); setIsEditing(false); }
     }, [order]);
 
-    const handleSave = () => {
+    useEffect(() => {
+        if (!order?.line_items && order?.id) {
+            (supabase as any).from("purchase_order_items").select("*").eq("purchase_order_id", order.id).then(({ data }: any) => {
+                if (data && data.length > 0) {
+                    setDbLineItems(data.map((li: any) => ({ description: li.product_name || li.item_name || li.description || "Item", qty: li.quantity, unitPrice: li.unit_cost || li.unit_price, total: li.quantity * (li.unit_cost || li.unit_price) })));
+                }
+            });
+        }
+    }, [order?.id, order?.line_items]);
+
+    const handleSave = async () => {
         if (onUpdate) onUpdate({ ...order, ...editData });
         setIsEditing(false);
-        toast("success", "PO updated", `${order.po_number} saved`);
+        toast("success", "Purchase Order updated", `${order.po_number} saved`);
+        const { logActivity } = await import("@/lib/activity-logger");
+        logActivity({ entityType: "purchase_order", entityId: order.id, action: "PO updated", details: order.po_number });
     };
     const handleCancel = () => { setEditData({ vendor: order.vendor, expected_date: order.expected_date, status: order.status }); setIsEditing(false); };
 
     const lineItems = order.line_items
         ? order.line_items.map(li => ({ description: li.item, qty: li.qty, unitPrice: li.unit_cost, total: li.qty * li.unit_cost }))
-        : mockLineItems.slice(0, Math.min(order.items_count, 3));
+        : dbLineItems;
 
     const handleDownloadPDF = () => {
         generatePDF({ documentType: "Purchase Order", documentNumber: order.po_number, date: formatDate(order.date), dueDate: formatDate(order.expected_date), recipientName: order.vendor, lineItems, subtotal: order.total, total: order.total, status: order.status, terms: "Please ship to: Smith Instruments, Industrial Area, Sialkot. Payment terms: Net 30." });
@@ -98,10 +109,27 @@ export function PurchaseOrderDetail({ order, open, onClose, onUpdate, onDelete }
                             <Button variant="secondary" onClick={handleDownloadPDF}><Download className="w-3.5 h-3.5" /> PDF</Button>
                             <Button variant="secondary" onClick={() => setShowEmail(true)}><Send className="w-3.5 h-3.5" /> Send</Button>
                             {order.status === "sent" && (
-                                <Button onClick={() => { toast("success", "PO received", `${order.po_number} marked as received`); onClose(); }}><Truck className="w-3.5 h-3.5" /> Mark Received</Button>
+                                <Button onClick={async () => {
+                                    const result = await adjustStockForPO(order.id);
+                                    if (result.adjustments.length > 0) {
+                                        toast("success", "Stock updated", `Added: ${result.adjustments.map(a => `${a.product} (+${a.qty})`).join(", ")}`);
+                                    }
+                                    await supabase.from("purchase_orders").update({ status: "received" }).eq("id", order.id);
+                                    toast("success", "PO received", `${order.po_number} marked as received`);
+                                    const { logActivity } = await import("@/lib/activity-logger");
+                                    logActivity({ entityType: "purchase_order", entityId: order.id, action: "PO received", details: `${order.po_number} — stock adjusted` });
+                                    if (onUpdate) onUpdate({ ...order, status: "received" });
+                                }}><Truck className="w-3.5 h-3.5" /> Mark Received</Button>
                             )}
                             {order.status === "received" && (
-                                <Button onClick={() => { toast("success", "PO closed", `${order.po_number} closed`); onClose(); }}><CheckCircle className="w-3.5 h-3.5" /> Close PO</Button>
+                                <Button onClick={async () => {
+                                    await supabase.from("purchase_orders").update({ status: "closed" }).eq("id", order.id);
+                                    toast("success", "PO closed", `${order.po_number} closed`);
+                                    const { logActivity } = await import("@/lib/activity-logger");
+                                    logActivity({ entityType: "purchase_order", entityId: order.id, action: "PO closed", details: order.po_number });
+                                    if (onUpdate) onUpdate({ ...order, status: "closed" });
+                                    onClose();
+                                }}><CheckCircle className="w-3.5 h-3.5" /> Close PO</Button>
                             )}
                         </div>
                     )}
@@ -201,12 +229,12 @@ export function PurchaseOrderDetail({ order, open, onClose, onUpdate, onDelete }
                             </div>
                         </div>
                     )}
-                    {activeTab === "activity" && (<ActivityLog entries={getMockActivities("Purchase Order", order.id)} />)}
+                    {activeTab === "activity" && (<LiveActivityLog entityType="purchase_order" entityId={order.id} />)}
                 </>
             )}
 
             <DeleteConfirmation open={showDelete} onClose={() => setShowDelete(false)}
-                onConfirm={() => { setShowDelete(false); if (onDelete) { onDelete(order); } toast("success", "PO deleted", `${order.po_number} deleted`); onClose(); }}
+                onConfirm={async () => { setShowDelete(false); if (onDelete) { onDelete(order); } const { logActivity } = await import("@/lib/activity-logger"); logActivity({ entityType: "purchase_order", entityId: order.id, action: "PO deleted", details: order.po_number }); toast("success", "PO deleted", `${order.po_number} deleted`); onClose(); }}
                 title={`Delete ${order.po_number}?`} description="This action cannot be undone. The purchase order will be permanently removed." />
 
             <EmailSend

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 // --- Page Header ---
@@ -451,9 +451,21 @@ interface DrawerProps {
     children: React.ReactNode;
     width?: string;
     footer?: React.ReactNode;
+    onSave?: () => void;
 }
 
-export function Drawer({ open, onClose, title, children, width = "max-w-lg", footer }: DrawerProps) {
+export function Drawer({ open, onClose, title, children, width = "max-w-lg", footer, onSave }: DrawerProps) {
+    // Keyboard shortcuts: Escape to close, Ctrl/Cmd+S to save
+    useEffect(() => {
+        if (!open) return;
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") { e.preventDefault(); onClose(); }
+            if ((e.metaKey || e.ctrlKey) && e.key === "s" && onSave) { e.preventDefault(); onSave(); }
+        };
+        window.addEventListener("keydown", handleKey);
+        return () => window.removeEventListener("keydown", handleKey);
+    }, [open, onClose, onSave]);
+
     return (
         <AnimatePresence>
             {open && (
@@ -468,7 +480,7 @@ export function Drawer({ open, onClose, title, children, width = "max-w-lg", foo
                         onClick={onClose}
                     />
 
-                    {/* Panel */}
+                    {/* Panel — full-width on mobile, constrained on desktop */}
                     <motion.div
                         initial={{ x: "100%" }}
                         animate={{ x: 0 }}
@@ -476,6 +488,7 @@ export function Drawer({ open, onClose, title, children, width = "max-w-lg", foo
                         transition={{ type: "spring", damping: 30, stiffness: 300 }}
                         className={cn(
                             "fixed right-0 top-0 z-50 h-screen w-full flex flex-col shadow-soft-lg",
+                            "max-sm:max-w-full",
                             width
                         )}
                         style={{ background: "var(--card)" }}

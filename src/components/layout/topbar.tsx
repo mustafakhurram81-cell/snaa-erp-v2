@@ -1,13 +1,17 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { usePathname } from "next/navigation";
-import { Bell, Sun, Moon, ChevronRight, ChevronDown, Menu } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import {
+    Bell, Sun, Moon, ChevronRight, ChevronDown, Menu,
+    Settings, LogOut, User, Keyboard,
+} from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useCurrency, currencies } from "@/lib/currency";
 import { NotificationPanel } from "@/components/layout/notifications";
 import { useSidebar } from "@/components/layout/sidebar";
 import { CommandSearch } from "@/components/shared/command-search";
+import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
 const breadcrumbMap: Record<string, string> = {
@@ -24,23 +28,33 @@ const breadcrumbMap: Record<string, string> = {
     vendors: "Vendors",
     hr: "HR & Payroll",
     reports: "Reports",
+    settings: "Settings",
 };
 
 export function Topbar() {
     const { theme, toggleTheme } = useTheme();
     const { collapsed } = useSidebar();
     const pathname = usePathname();
+    const router = useRouter();
     const { currency, setCurrency } = useCurrency();
+    const { user, signOut, role } = useAuth();
     const [showNotifications, setShowNotifications] = useState(false);
     const [showCurrency, setShowCurrency] = useState(false);
+    const [showUserMenu, setShowUserMenu] = useState(false);
     const currencyRef = useRef<HTMLDivElement>(null);
+    const userMenuRef = useRef<HTMLDivElement>(null);
 
-    // Close currency dropdown on outside click
+    // Derive user initials from email
+    const email = user?.email || "User";
+    const initials = email.includes("@")
+        ? email.split("@")[0].slice(0, 2).toUpperCase()
+        : email.slice(0, 2).toUpperCase();
+
+    // Close dropdowns on outside click
     useEffect(() => {
         const handler = (e: MouseEvent) => {
-            if (currencyRef.current && !currencyRef.current.contains(e.target as Node)) {
-                setShowCurrency(false);
-            }
+            if (currencyRef.current && !currencyRef.current.contains(e.target as Node)) setShowCurrency(false);
+            if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setShowUserMenu(false);
         };
         document.addEventListener("mousedown", handler);
         return () => document.removeEventListener("mousedown", handler);
@@ -50,29 +64,26 @@ export function Topbar() {
     const breadcrumbs = [
         { label: "Dashboard", href: "/" },
         ...segments.map((seg, i) => ({
-            label: breadcrumbMap[seg] || seg,
+            label: breadcrumbMap[seg] || seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, " "),
             href: "/" + segments.slice(0, i + 1).join("/"),
         })),
     ];
-
-    // Remove duplicate "Dashboard" if on home
     const crumbs = pathname === "/" ? [{ label: "Dashboard", href: "/" }] : breadcrumbs;
 
     return (
         <header
             className={cn(
-                "fixed top-0 right-0 z-30 h-16 flex items-center justify-between px-6 border-b transition-all duration-300 backdrop-blur-xl shadow-soft",
+                "fixed top-0 right-0 z-30 h-14 flex items-center justify-between px-4 md:px-6 border-b transition-all duration-300 backdrop-blur-xl",
                 collapsed
                     ? "left-[var(--sidebar-collapsed-width)]"
                     : "left-[var(--sidebar-width)]"
             )}
             style={{
-                background: "rgba(var(--background), 0.8)",
                 backgroundColor: theme === "dark" ? "rgba(9,9,11,0.85)" : "rgba(255,255,255,0.85)",
                 borderColor: "var(--border)",
             }}
         >
-            {/* Mobile hamburger */}
+            {/* Left: Hamburger + Breadcrumbs */}
             <div className="flex items-center gap-2">
                 <button
                     className="md:hidden p-1.5 rounded-lg hover:bg-[var(--secondary)] transition-colors"
@@ -81,8 +92,7 @@ export function Topbar() {
                     <Menu className="w-5 h-5" style={{ color: "var(--foreground)" }} />
                 </button>
 
-                {/* Breadcrumbs */}
-                <div className="flex items-center gap-1.5 text-sm">
+                <nav className="flex items-center gap-1.5 text-sm">
                     {crumbs.map((crumb, idx) => (
                         <React.Fragment key={crumb.href}>
                             {idx > 0 && (
@@ -95,19 +105,20 @@ export function Topbar() {
                                         ? "text-[var(--foreground)]"
                                         : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
                                 )}
+                                onClick={() => idx < crumbs.length - 1 && router.push(crumb.href)}
                             >
                                 {crumb.label}
                             </span>
                         </React.Fragment>
                     ))}
-                </div>
+                </nav>
             </div>
 
-            {/* Right section */}
-            <div className="flex items-center gap-2">
-                {/* Search */}
+            {/* Right: Search → Notifications → Currency → Theme → User */}
+            <div className="flex items-center gap-1">
                 <CommandSearch />
 
+                {/* Notifications */}
                 <div className="relative">
                     <button
                         onClick={() => setShowNotifications(!showNotifications)}
@@ -120,8 +131,8 @@ export function Topbar() {
                     <NotificationPanel open={showNotifications} onClose={() => setShowNotifications(false)} />
                 </div>
 
-                {/* Currency selector */}
-                <div className="relative" ref={currencyRef}>
+                {/* Currency — hidden on mobile */}
+                <div className="relative hidden sm:block" ref={currencyRef}>
                     <button
                         onClick={() => setShowCurrency(!showCurrency)}
                         className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-[var(--secondary)]"
@@ -158,14 +169,62 @@ export function Topbar() {
                     onClick={toggleTheme}
                     className="p-2 rounded-lg transition-colors hover:bg-[var(--secondary)]"
                     style={{ color: "var(--muted-foreground)" }}
+                    title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
                 >
                     {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                 </button>
 
-                {/* User avatar */}
-                <button className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center text-white text-xs font-semibold ml-1">
-                    MK
-                </button>
+                {/* User avatar + dropdown */}
+                <div className="relative" ref={userMenuRef}>
+                    <button
+                        onClick={() => setShowUserMenu(!showUserMenu)}
+                        className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center text-white text-xs font-semibold ml-1 ring-2 ring-transparent hover:ring-blue-300 transition-all"
+                        title={email}
+                    >
+                        {initials}
+                    </button>
+                    {showUserMenu && (
+                        <div
+                            className="absolute right-0 top-full mt-2 w-56 rounded-xl border shadow-xl z-50 overflow-hidden"
+                            style={{ background: "var(--card)", borderColor: "var(--border)" }}
+                        >
+                            {/* User info */}
+                            <div className="px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>
+                                <p className="text-sm font-semibold truncate" style={{ color: "var(--foreground)" }}>{email}</p>
+                                <p className="text-[10px] font-medium capitalize mt-0.5 px-1.5 py-0.5 rounded-full inline-block" style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>{role}</p>
+                            </div>
+                            {/* Menu items */}
+                            <div className="py-1">
+                                <button
+                                    onClick={() => { router.push("/settings"); setShowUserMenu(false); }}
+                                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors hover:bg-[var(--secondary)]"
+                                    style={{ color: "var(--foreground)" }}
+                                >
+                                    <Settings className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
+                                    Settings
+                                </button>
+                                <button
+                                    onClick={() => { window.dispatchEvent(new KeyboardEvent("keydown", { key: "?", bubbles: true })); setShowUserMenu(false); }}
+                                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors hover:bg-[var(--secondary)]"
+                                    style={{ color: "var(--foreground)" }}
+                                >
+                                    <Keyboard className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
+                                    Keyboard Shortcuts
+                                </button>
+                            </div>
+                            {/* Sign out */}
+                            <div className="border-t py-1" style={{ borderColor: "var(--border)" }}>
+                                <button
+                                    onClick={() => { signOut(); setShowUserMenu(false); }}
+                                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors hover:bg-red-50 dark:hover:bg-red-900/10 text-red-600 dark:text-red-400"
+                                >
+                                    <LogOut className="w-4 h-4" />
+                                    Sign Out
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
         </header>
     );

@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
-import { formatCurrency, getInitials } from "@/lib/utils";
+import { formatCurrency, formatDate, getInitials } from "@/lib/utils";
 import { Mail, Phone, MapPin, ClipboardList, Edit3, Save, X, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
+import { LiveActivityLog } from "@/components/shared/activity-log";
+import { supabase } from "@/lib/supabase";
 
 interface Vendor {
     id: string;
@@ -20,11 +22,13 @@ interface Vendor {
     ap_balance: number;
 }
 
-const relatedPOs = [
-    { id: "PO-2026-028", date: "Feb 24, 2026", total: 28000, status: "sent" },
-    { id: "PO-2026-024", date: "Feb 10, 2026", total: 9500, status: "closed" },
-    { id: "PO-2026-019", date: "Jan 28, 2026", total: 15000, status: "closed" },
-];
+interface RelatedPO {
+    id: string;
+    po_number: string;
+    total_amount: number;
+    status: string;
+    order_date: string;
+}
 
 interface VendorDetailProps {
     vendor: Vendor | null;
@@ -41,21 +45,44 @@ export function VendorDetail({ vendor, open, onClose, onUpdate, onDelete }: Vend
     const [activeTab, setActiveTab] = useState("pos");
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({ ...vendor });
+    const [relatedPOs, setRelatedPOs] = useState<RelatedPO[]>([]);
+    const [loadingPOs, setLoadingPOs] = useState(false);
 
     useEffect(() => {
         if (vendor) { setEditData({ ...vendor }); setIsEditing(false); }
     }, [vendor]);
 
-    const handleSave = () => {
+    // Fetch real purchase orders for this vendor
+    useEffect(() => {
+        if (!vendor?.id || !open) return;
+        setLoadingPOs(true);
+        supabase
+            .from("purchase_orders")
+            .select("id, po_number, total_amount, status, order_date")
+            .eq("vendor_id", vendor.id)
+            .order("order_date", { ascending: false })
+            .limit(10)
+            .then(({ data }) => {
+                setRelatedPOs(data || []);
+                setLoadingPOs(false);
+            });
+    }, [vendor?.id, open]);
+
+    const totalSpend = relatedPOs.reduce((s, p) => s + (p.total_amount || 0), 0);
+
+    const handleSave = async () => {
         if (onUpdate) onUpdate(editData);
         setIsEditing(false);
         toast("success", "Vendor updated", `${editData.name} saved successfully`);
+        const { logActivity } = await import("@/lib/activity-logger");
+        logActivity({ entityType: "vendor", entityId: vendor.id, action: "Vendor updated", details: vendor.name });
     };
 
     const handleCancel = () => { setEditData({ ...vendor }); setIsEditing(false); };
 
     const tabs = [
         { key: "pos", label: "Purchase Orders", count: relatedPOs.length },
+        { key: "activity", label: "Activity" },
     ];
 
     return (
@@ -150,11 +177,11 @@ export function VendorDetail({ vendor, open, onClose, onUpdate, onDelete }: Vend
             <div className="grid grid-cols-2 gap-4 mb-5">
                 <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
                     <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Total Orders</p>
-                    <p className="text-2xl font-bold mt-0.5" style={{ color: "var(--foreground)" }}>{vendor.total_orders ?? relatedPOs.length}</p>
+                    <p className="text-2xl font-bold mt-0.5" style={{ color: "var(--foreground)" }}>{relatedPOs.length}</p>
                 </div>
                 <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
                     <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Total Spend</p>
-                    <p className="text-2xl font-bold mt-0.5" style={{ color: "var(--foreground)" }}>{formatCurrency(relatedPOs.reduce((s, p) => s + p.total, 0))}</p>
+                    <p className="text-2xl font-bold mt-0.5" style={{ color: "var(--foreground)" }}>{formatCurrency(totalSpend)}</p>
                 </div>
             </div>
 
@@ -164,19 +191,28 @@ export function VendorDetail({ vendor, open, onClose, onUpdate, onDelete }: Vend
                     <DrawerTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
                     {activeTab === "pos" && (
                         <div className="space-y-2">
-                            {relatedPOs.map((po) => (
-                                <div key={po.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: "var(--border)" }}>
-                                    <div>
-                                        <p className="text-sm font-medium" style={{ color: "var(--primary)" }}>{po.id}</p>
-                                        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{po.date}</p>
+                            {loadingPOs ? (
+                                <div className="py-8 text-center text-sm" style={{ color: "var(--muted-foreground)" }}>Loading purchase orders...</div>
+                            ) : relatedPOs.length === 0 ? (
+                                <div className="py-8 text-center text-sm" style={{ color: "var(--muted-foreground)" }}>No purchase orders found</div>
+                            ) : (
+                                relatedPOs.map((po) => (
+                                    <div key={po.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: "var(--border)" }}>
+                                        <div>
+                                            <p className="text-sm font-medium" style={{ color: "var(--primary)" }}>{po.po_number}</p>
+                                            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{formatDate(po.order_date)}</p>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{formatCurrency(po.total_amount)}</span>
+                                            <StatusBadge status={po.status} />
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{formatCurrency(po.total)}</span>
-                                        <StatusBadge status={po.status} />
-                                    </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
+                    )}
+                    {activeTab === "activity" && (
+                        <LiveActivityLog entityType="vendor" entityId={vendor.id} />
                     )}
                 </>
             )}
@@ -184,7 +220,7 @@ export function VendorDetail({ vendor, open, onClose, onUpdate, onDelete }: Vend
             <DeleteConfirmation
                 open={showDelete}
                 onClose={() => setShowDelete(false)}
-                onConfirm={() => { setShowDelete(false); if (onDelete) { onDelete(vendor); } toast("success", "Vendor deleted", `${vendor.name} deleted`); onClose(); }}
+                onConfirm={async () => { setShowDelete(false); if (onDelete) { onDelete(vendor); } const { logActivity } = await import("@/lib/activity-logger"); logActivity({ entityType: "vendor", entityId: vendor.id, action: "Vendor deleted", details: vendor.name }); toast("success", "Vendor deleted", `${vendor.name} deleted`); onClose(); }}
                 title={`Delete ${vendor.name}?`}
                 description="This action cannot be undone. The vendor and all associated data will be permanently removed."
             />

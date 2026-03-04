@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Save, Building2, Globe, Receipt, Palette, Hash, Bell, User, Lock, Eye, EyeOff, Mail, Users, Trash2, UserPlus } from "lucide-react";
+import { Save, Building2, Globe, Receipt, Palette, Hash, Bell, User, Lock, Eye, EyeOff, Mail, Users, Trash2, UserPlus, Download, Database } from "lucide-react";
 import { PageHeader, Button, Card, Input } from "@/components/ui/shared";
 import { useToast } from "@/components/ui/toast";
 import { useCurrency, currencies } from "@/lib/currency";
 import { useSupabaseSingleton } from "@/lib/supabase-hooks";
+import { exportFullBackup, exportAllCSV, EXPORTABLE_TABLES, exportTable } from "@/lib/data-backup";
 
 interface SystemSettings {
     id: string;
@@ -34,7 +35,7 @@ const item = {
 export default function SettingsPage() {
     const { toast } = useToast();
     const { currency, setCurrency } = useCurrency();
-    const { data: settings, loading, update: updateSettings } = useSupabaseSingleton<SystemSettings>("system_settings");
+    const { data: settings, loading, error: settingsError, update: updateSettings } = useSupabaseSingleton<SystemSettings>("system_settings");
 
     const [company, setCompany] = useState({
         name: "Smith Instruments",
@@ -120,29 +121,26 @@ export default function SettingsPage() {
         }
     };
 
-    if (loading) {
-        return (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <PageHeader title="Settings" description="Loading..." />
-                <div className="flex items-center justify-center py-20">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-                </div>
-            </motion.div>
-        );
-    }
-
     return (
         <motion.div variants={container} initial="hidden" animate="show">
             <PageHeader
                 title="Settings"
-                description="Company profile and application preferences"
+                description={loading ? "Syncing..." : "Company profile and application preferences"}
                 actions={
-                    <Button onClick={handleSave}>
+                    <Button onClick={handleSave} disabled={loading}>
                         <Save className="w-3.5 h-3.5" />
                         Save Changes
                     </Button>
                 }
             />
+
+            {settingsError && (
+                <div className="mb-4 p-3 rounded-xl border border-amber-500/30 bg-amber-50 dark:bg-amber-900/10">
+                    <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                        ⚠️ Could not load saved settings — showing defaults. Make sure you are logged in.
+                    </p>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 {/* Company Profile */}
@@ -452,6 +450,40 @@ export default function SettingsPage() {
             {/* User Management */}
             <motion.div variants={item} className="mt-5">
                 <UserManagement />
+            </motion.div>
+
+            {/* Data Backup & Export */}
+            <motion.div variants={item} className="mt-5">
+                <Card>
+                    <div className="flex items-center gap-2 mb-5">
+                        <Database className="w-4 h-4" style={{ color: "var(--primary)" }} />
+                        <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Data Backup & Export</h3>
+                    </div>
+                    <p className="text-xs mb-4" style={{ color: "var(--muted-foreground)" }}>
+                        Download a complete backup of your ERP data. JSON backup includes all tables in a single file. CSV exports create separate files per table.
+                    </p>
+                    <div className="flex flex-wrap gap-2 mb-5">
+                        <Button onClick={async () => { toast("info", "Preparing backup..."); const ok = await exportFullBackup(); if (ok) toast("success", "Backup downloaded", "Full JSON backup saved"); else toast("error", "Backup failed"); }}>
+                            <Download className="w-3.5 h-3.5" /> Full JSON Backup
+                        </Button>
+                        <Button variant="secondary" onClick={async () => { toast("info", "Exporting all tables..."); const results = await exportAllCSV(); const total = results.reduce((s, r) => s + r.count, 0); toast("success", "Export complete", `${total} records across ${results.filter(r => r.count > 0).length} tables`); }}>
+                            <Download className="w-3.5 h-3.5" /> Export All CSVs
+                        </Button>
+                    </div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: "var(--muted-foreground)" }}>Individual Tables</div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                        {EXPORTABLE_TABLES.map(t => (
+                            <button
+                                key={t.name}
+                                onClick={async () => { const ok = await exportTable(t.name); if (ok) toast("success", `${t.label} exported`); else toast("info", `${t.label} is empty`); }}
+                                className="text-left text-xs px-3 py-2 rounded-lg border transition-all hover:bg-[var(--secondary)] hover:border-blue-500/30"
+                                style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
+                            >
+                                {t.label}
+                            </button>
+                        ))}
+                    </div>
+                </Card>
             </motion.div>
         </motion.div>
     );

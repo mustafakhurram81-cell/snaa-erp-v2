@@ -6,6 +6,8 @@ import { formatCurrency, formatDate, getInitials } from "@/lib/utils";
 import { Mail, Phone, MapPin, ShoppingCart, FileText, Edit3, Save, X, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
+import { LiveActivityLog } from "@/components/shared/activity-log";
+import { supabase } from "@/lib/supabase";
 import { CUSTOMER_TYPES } from "@/app/customers/page";
 
 const typeColors: Record<string, string> = {
@@ -33,17 +35,21 @@ interface Customer {
     created_at: string;
 }
 
-// Mock related data
-const relatedOrders = [
-    { id: "SO-2026-042", date: "Feb 25, 2026", total: 12500, status: "confirmed" },
-    { id: "SO-2026-038", date: "Feb 21, 2026", total: 6300, status: "delivered" },
-    { id: "SO-2026-030", date: "Feb 10, 2026", total: 9200, status: "delivered" },
-];
+interface RelatedOrder {
+    id: string;
+    order_number: string;
+    total_amount: number;
+    status: string;
+    created_at: string;
+}
 
-const relatedQuotations = [
-    { id: "QT-2026-089", date: "Feb 25, 2026", total: 18500, status: "sent" },
-    { id: "QT-2026-084", date: "Feb 12, 2026", total: 9200, status: "accepted" },
-];
+interface RelatedQuotation {
+    id: string;
+    quote_number: string;
+    total_amount: number;
+    status: string;
+    created_at: string;
+}
 
 interface CustomerDetailProps {
     customer: Customer | null;
@@ -60,6 +66,10 @@ export function CustomerDetail({ customer, open, onClose, onUpdate, onDelete }: 
     const [activeTab, setActiveTab] = useState("orders");
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({ ...customer });
+    const [relatedOrders, setRelatedOrders] = useState<RelatedOrder[]>([]);
+    const [relatedQuotations, setRelatedQuotations] = useState<RelatedQuotation[]>([]);
+    const [loadingOrders, setLoadingOrders] = useState(false);
+    const [loadingQuotations, setLoadingQuotations] = useState(false);
 
     // Reset edit state when customer changes
     useEffect(() => {
@@ -69,12 +79,46 @@ export function CustomerDetail({ customer, open, onClose, onUpdate, onDelete }: 
         }
     }, [customer]);
 
-    const handleSave = () => {
+    // Fetch related sales orders for this customer
+    useEffect(() => {
+        if (!customer?.name || !open) return;
+        setLoadingOrders(true);
+        supabase
+            .from("sales_orders")
+            .select("id, order_number, total_amount, status, created_at")
+            .ilike("customer_name", customer.name)
+            .order("created_at", { ascending: false })
+            .limit(10)
+            .then(({ data }) => {
+                setRelatedOrders(data || []);
+                setLoadingOrders(false);
+            });
+    }, [customer?.name, open]);
+
+    // Fetch related quotations for this customer
+    useEffect(() => {
+        if (!customer?.name || !open) return;
+        setLoadingQuotations(true);
+        supabase
+            .from("quotations")
+            .select("id, quote_number, total_amount, status, created_at")
+            .ilike("customer_name", customer.name)
+            .order("created_at", { ascending: false })
+            .limit(10)
+            .then(({ data }) => {
+                setRelatedQuotations(data || []);
+                setLoadingQuotations(false);
+            });
+    }, [customer?.name, open]);
+
+    const handleSave = async () => {
         if (onUpdate) {
             onUpdate(editData);
         }
         setIsEditing(false);
         toast("success", "Customer updated", `${editData.name} saved successfully`);
+        const { logActivity } = await import("@/lib/activity-logger");
+        logActivity({ entityType: "customer", entityId: customer.id, action: "Customer updated", details: customer.name });
     };
 
     const handleCancel = () => {
@@ -85,6 +129,7 @@ export function CustomerDetail({ customer, open, onClose, onUpdate, onDelete }: 
     const tabs = [
         { key: "orders", label: "Orders", count: relatedOrders.length },
         { key: "quotations", label: "Quotations", count: relatedQuotations.length },
+        { key: "activity", label: "Activity" },
     ];
 
     return (
@@ -209,36 +254,52 @@ export function CustomerDetail({ customer, open, onClose, onUpdate, onDelete }: 
 
                     {activeTab === "orders" && (
                         <div className="space-y-2">
-                            {relatedOrders.map((order) => (
-                                <div key={order.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: "var(--border)" }}>
-                                    <div>
-                                        <p className="text-sm font-medium" style={{ color: "var(--primary)" }}>{order.id}</p>
-                                        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{order.date}</p>
+                            {loadingOrders ? (
+                                <div className="py-8 text-center text-sm" style={{ color: "var(--muted-foreground)" }}>Loading orders...</div>
+                            ) : relatedOrders.length === 0 ? (
+                                <div className="py-8 text-center text-sm" style={{ color: "var(--muted-foreground)" }}>No sales orders found</div>
+                            ) : (
+                                relatedOrders.map((order) => (
+                                    <div key={order.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: "var(--border)" }}>
+                                        <div>
+                                            <p className="text-sm font-medium" style={{ color: "var(--primary)" }}>{order.order_number}</p>
+                                            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{formatDate(order.created_at)}</p>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{formatCurrency(order.total_amount)}</span>
+                                            <StatusBadge status={order.status} />
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{formatCurrency(order.total)}</span>
-                                        <StatusBadge status={order.status} />
-                                    </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
                     )}
 
                     {activeTab === "quotations" && (
                         <div className="space-y-2">
-                            {relatedQuotations.map((qt) => (
-                                <div key={qt.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: "var(--border)" }}>
-                                    <div>
-                                        <p className="text-sm font-medium" style={{ color: "var(--primary)" }}>{qt.id}</p>
-                                        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{qt.date}</p>
+                            {loadingQuotations ? (
+                                <div className="py-8 text-center text-sm" style={{ color: "var(--muted-foreground)" }}>Loading quotations...</div>
+                            ) : relatedQuotations.length === 0 ? (
+                                <div className="py-8 text-center text-sm" style={{ color: "var(--muted-foreground)" }}>No quotations found</div>
+                            ) : (
+                                relatedQuotations.map((qt) => (
+                                    <div key={qt.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: "var(--border)" }}>
+                                        <div>
+                                            <p className="text-sm font-medium" style={{ color: "var(--primary)" }}>{qt.quote_number}</p>
+                                            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{formatDate(qt.created_at)}</p>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{formatCurrency(qt.total_amount)}</span>
+                                            <StatusBadge status={qt.status} />
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{formatCurrency(qt.total)}</span>
-                                        <StatusBadge status={qt.status} />
-                                    </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
+                    )}
+
+                    {activeTab === "activity" && (
+                        <LiveActivityLog entityType="customer" entityId={customer.id} />
                     )}
                 </>
             )}
@@ -246,7 +307,7 @@ export function CustomerDetail({ customer, open, onClose, onUpdate, onDelete }: 
             <DeleteConfirmation
                 open={showDelete}
                 onClose={() => setShowDelete(false)}
-                onConfirm={() => { setShowDelete(false); if (onDelete) { onDelete(customer); } toast("success", "Customer deleted", `${customer.name} deleted`); onClose(); }}
+                onConfirm={async () => { setShowDelete(false); if (onDelete) { onDelete(customer); } const { logActivity } = await import("@/lib/activity-logger"); logActivity({ entityType: "customer", entityId: customer.id, action: "Customer deleted", details: customer.name }); toast("success", "Customer deleted", `${customer.name} deleted`); onClose(); }}
                 title={`Delete ${customer.name}?`}
                 description="This action cannot be undone. The customer and all associated data will be permanently removed."
             />

@@ -1,22 +1,32 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, Users, DollarSign, Calendar, Briefcase, Mail, Phone } from "lucide-react";
+import { Plus, Users, DollarSign, Calendar, Briefcase, Mail, Phone, Download, Upload } from "lucide-react";
 import { PageHeader, Button, Card, StatusBadge, Drawer, Input, Tabs, StatCard } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { EmployeeDetail } from "@/components/details/employee-detail";
 import { formatCurrency, getInitials } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { useSupabaseTable } from "@/lib/supabase-hooks";
+import { supabase } from "@/lib/supabase";
+import { exportToCSV } from "@/lib/csv-export";
+import { TableSkeleton } from "@/components/ui/skeleton";
+import { CSVImportDialog } from "@/components/shared/csv-import";
+import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
+import { validateEmail } from "@/lib/form-validation";
 
 interface Employee {
   id: string;
-  name: string;
+  employee_id: string;
+  first_name: string;
+  last_name: string;
+  name: string; // computed field for display
   email: string;
   phone: string;
   department: string;
   position: string;
+  role: string;
   hire_date: string;
   salary: number;
   status: string;
@@ -25,28 +35,19 @@ interface Employee {
 interface PayrollRun {
   id: string;
   month: string;
-  employees: number;
+  year: number;
+  total_employees: number;
   gross_total: number;
   deductions: number;
   net_total: number;
   status: string;
 }
 
-// Payroll and attendance remain mock since no DB tables exist for them
-const mockPayrollRuns: PayrollRun[] = [
-  { id: "1", month: "February 2026", employees: 7, gross_total: 380000, deductions: 38000, net_total: 342000, status: "pending" },
-  { id: "2", month: "January 2026", employees: 8, gross_total: 405000, deductions: 40500, net_total: 364500, status: "completed" },
-  { id: "3", month: "December 2025", employees: 8, gross_total: 405000, deductions: 40500, net_total: 364500, status: "completed" },
-  { id: "4", month: "November 2025", employees: 8, gross_total: 395000, deductions: 39500, net_total: 355500, status: "completed" },
-];
+// Empty fallback — show only real DB data
+const fallbackPayroll: PayrollRun[] = [];
 
-const attendanceData: Record<string, Record<string, string>> = {
-  "Mon 24": { "1": "present", "2": "present", "3": "present", "4": "present", "5": "present", "6": "present", "7": "present", "8": "absent" },
-  "Tue 25": { "1": "present", "2": "present", "3": "leave", "4": "present", "5": "present", "6": "present", "7": "present", "8": "absent" },
-  "Wed 26": { "1": "present", "2": "present", "3": "present", "4": "absent", "5": "present", "6": "present", "7": "leave", "8": "absent" },
-  "Thu 27": { "1": "present", "2": "present", "3": "present", "4": "present", "5": "present", "6": "absent", "7": "present", "8": "absent" },
-  "Fri 28": { "1": "present", "2": "present", "3": "present", "4": "present", "5": "leave", "6": "present", "7": "present", "8": "absent" },
-};
+// Live attendance data — populated from DB
+const defaultAttendance: Record<string, Record<string, string>> = {};
 
 const departments = ["All", "Management", "Production", "Finance", "Sales", "HR"];
 
@@ -112,11 +113,15 @@ const employeeColumns: ColumnDef<Employee, unknown>[] = [
 ];
 
 const payrollColumns: ColumnDef<PayrollRun, unknown>[] = [
-  { accessorKey: "month", header: "Month" },
   {
-    accessorKey: "employees",
+    accessorKey: "month",
+    header: "Month",
+    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.month} {row.original.year}</span>,
+  },
+  {
+    accessorKey: "total_employees",
     header: "Employees",
-    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.employees}</span>,
+    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.total_employees}</span>,
   },
   {
     accessorKey: "gross_total",
@@ -141,31 +146,84 @@ const payrollColumns: ColumnDef<PayrollRun, unknown>[] = [
 ];
 
 export default function HRPage() {
-  const { data: employees, loading, create, update } = useSupabaseTable<Employee>("employees");
+  const { data: rawEmployees, loading, create, update, remove, fetchAll } = useSupabaseTable<Employee>("employees");
+  const employees = rawEmployees.map(e => ({ ...e, name: `${e.first_name || ''} ${e.last_name || ''}`.trim() || e.email, position: e.role || '' }));
+  const { data: payrollRuns } = useSupabaseTable<PayrollRun>("payroll_runs", { orderBy: "created_at", ascending: false });
+  const [attendanceData, setAttendanceData] = useState<Record<string, Record<string, string>>>(defaultAttendance);
+
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // 0=Sun
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7)); // go back to Monday
+      monday.setHours(0, 0, 0, 0);
+      const friday = new Date(monday);
+      friday.setDate(monday.getDate() + 4);
+      friday.setHours(23, 59, 59, 999);
+
+      const { data } = await supabase.from("attendance").select("*")
+        .gte("date", monday.toISOString().split("T")[0])
+        .lte("date", friday.toISOString().split("T")[0]);
+
+      if (data && data.length > 0) {
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const result: Record<string, Record<string, string>> = {};
+        data.forEach((row: any) => {
+          const d = new Date(row.date);
+          const key = `${dayNames[d.getDay()]} ${d.getDate()}`;
+          if (!result[key]) result[key] = {};
+          result[key][row.employee_id] = row.status?.toLowerCase() || "absent";
+        });
+        setAttendanceData(result);
+      }
+    };
+    fetchAttendance();
+  }, []);
+  const displayPayroll = payrollRuns.length > 0 ? payrollRuns : fallbackPayroll;
   const [activeDept, setActiveDept] = useState("All");
   const [activeTab, setActiveTab] = useState("employees");
   const [showDialog, setShowDialog] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const { toast } = useToast();
+  const [showImport, setShowImport] = useState(false);
 
   // Form state
-  const [formData, setFormData] = useState({ name: "", email: "", phone: "", department: "", position: "", salary: "", hire_date: "" });
-  const resetForm = () => setFormData({ name: "", email: "", phone: "", department: "", position: "", salary: "", hire_date: "" });
+  const [formData, setFormData] = useState({ first_name: "", last_name: "", email: "", phone: "", department: "", position: "", salary: "", hire_date: "" });
+  const resetForm = () => setFormData({ first_name: "", last_name: "", email: "", phone: "", department: "", position: "", salary: "", hire_date: "" });
 
   const activeEmployees = employees.filter((e) => e.status === "active");
   const totalPayroll = activeEmployees.reduce((sum, e) => sum + (e.salary || 0), 0);
 
   const filtered = employees.filter((e) => activeDept === "All" || e.department === activeDept);
 
+  // Delete confirmation
+  const [pendingDelete, setPendingDelete] = useState<Employee | null>(null);
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    await remove(pendingDelete.id);
+    setSelectedEmployee(null);
+    setPendingDelete(null);
+  };
+
   const handleCreate = async () => {
-    if (!formData.name.trim()) { toast("error", "Name is required"); return; }
+    if (!formData.first_name.trim()) { toast("error", "First name is required"); return; }
+    if (!formData.email.trim()) { toast("error", "Email is required"); return; }
+    const emailErr = validateEmail(formData.email);
+    if (emailErr) { toast("error", emailErr); return; }
+
+    // Auto-generate employee_id: EMP-XXX
+    const empCount = employees.length + 1;
+    const empId = `EMP-${String(empCount).padStart(3, "0")}`;
 
     const result = await create({
-      name: formData.name,
+      employee_id: empId,
+      first_name: formData.first_name,
+      last_name: formData.last_name,
       email: formData.email,
       phone: formData.phone,
       department: formData.department || "General",
-      position: formData.position || "Employee",
+      role: formData.position || "Employee",
       salary: parseFloat(formData.salary) || 0,
       hire_date: formData.hire_date || new Date().toISOString().split("T")[0],
       status: "active",
@@ -174,7 +232,7 @@ export default function HRPage() {
     if (result) {
       setShowDialog(false);
       resetForm();
-      toast("success", `${formData.name} added successfully`);
+      toast("success", `${formData.first_name} ${formData.last_name} added as ${empId}`);
     } else {
       toast("error", "Failed to add employee");
     }
@@ -186,10 +244,26 @@ export default function HRPage() {
         title="HR & Payroll"
         description="Employee management and payroll processing"
         actions={
-          <Button onClick={() => { resetForm(); setShowDialog(true); }}>
-            <Plus className="w-3.5 h-3.5" />
-            Add Employee
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" onClick={() => setShowImport(true)}>
+              <Upload className="w-3.5 h-3.5" />
+              Import
+            </Button>
+            <Button variant="secondary" onClick={() => exportToCSV(employees, 'employees', [
+              { key: 'employee_id' as keyof Employee, label: 'ID' },
+              { key: 'name' as keyof Employee, label: 'Name' },
+              { key: 'email' as keyof Employee, label: 'Email' },
+              { key: 'department' as keyof Employee, label: 'Department' },
+              { key: 'salary' as keyof Employee, label: 'Salary' },
+              { key: 'status' as keyof Employee, label: 'Status' },
+            ])}>
+              <Download className="w-3.5 h-3.5" /> Export
+            </Button>
+            <Button onClick={() => { resetForm(); setShowDialog(true); }}>
+              <Plus className="w-3.5 h-3.5" />
+              Add Employee
+            </Button>
+          </div>
         }
       />
 
@@ -198,14 +272,14 @@ export default function HRPage() {
         <StatCard title="Total Employees" value={employees.length.toString()} icon={<Users className="w-5 h-5 text-blue-500" />} />
         <StatCard title="Active" value={activeEmployees.length.toString()} icon={<Briefcase className="w-5 h-5 text-emerald-500" />} />
         <StatCard title="Monthly Payroll" value={formatCurrency(totalPayroll)} icon={<DollarSign className="w-5 h-5 text-violet-500" />} />
-        <StatCard title="Departments" value="5" icon={<Calendar className="w-5 h-5 text-amber-500" />} />
+        <StatCard title="Departments" value={new Set(employees.map(e => e.department).filter(Boolean)).size.toString()} icon={<Calendar className="w-5 h-5 text-amber-500" />} />
       </div>
 
       <div className="flex items-center justify-between gap-4 mb-5">
         <Tabs
           tabs={[
             { key: "employees", label: "Employees", count: employees.length },
-            { key: "payroll", label: "Payroll", count: mockPayrollRuns.length },
+            { key: "payroll", label: "Payroll", count: displayPayroll.length },
             { key: "attendance", label: "Attendance" },
           ]}
           activeTab={activeTab}
@@ -229,9 +303,7 @@ export default function HRPage() {
 
       {activeTab === "employees" && (
         loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-          </div>
+          <TableSkeleton rows={5} columns={5} />
         ) : (
           <DataTable
             columns={employeeColumns}
@@ -246,7 +318,7 @@ export default function HRPage() {
       {activeTab === "payroll" && (
         <DataTable
           columns={payrollColumns}
-          data={mockPayrollRuns}
+          data={displayPayroll}
           emptyMessage="No payroll runs"
           searchPlaceholder="Search payroll..."
           enablePagination={false}
@@ -332,20 +404,41 @@ export default function HRPage() {
       >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Full Name *" placeholder="John Doe" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-            <Input label="Email" type="email" placeholder="email@smithinst.com" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+            <Input label="First Name *" placeholder="John" value={formData.first_name} onChange={(e) => setFormData({ ...formData, first_name: e.target.value })} />
+            <Input label="Last Name *" placeholder="Doe" value={formData.last_name} onChange={(e) => setFormData({ ...formData, last_name: e.target.value })} />
           </div>
           <div className="grid grid-cols-2 gap-4">
+            <Input label="Email *" type="email" placeholder="email@smithinst.com" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
             <Input label="Phone" placeholder="+92-300-0000000" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
-            <Input label="Department" placeholder="Production" value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })} />
           </div>
           <div className="grid grid-cols-2 gap-4">
+            <Input label="Department" placeholder="Production" value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })} />
             <Input label="Position" placeholder="Machine Operator" value={formData.position} onChange={(e) => setFormData({ ...formData, position: e.target.value })} />
-            <Input label="Salary" type="number" placeholder="0" value={formData.salary} onChange={(e) => setFormData({ ...formData, salary: e.target.value })} />
           </div>
-          <Input label="Hire Date" type="date" value={formData.hire_date} onChange={(e) => setFormData({ ...formData, hire_date: e.target.value })} />
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Salary" type="number" placeholder="0" value={formData.salary} onChange={(e) => setFormData({ ...formData, salary: e.target.value })} />
+            <Input label="Hire Date" type="date" value={formData.hire_date} onChange={(e) => setFormData({ ...formData, hire_date: e.target.value })} />
+          </div>
         </div>
       </Drawer>
+
+      <CSVImportDialog
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        tableName="employees"
+        displayName="Employees"
+        requiredFields={["employee_id", "first_name", "last_name", "email", "hire_date"]}
+        optionalFields={["phone", "department", "role", "salary", "status"]}
+        onImportComplete={() => fetchAll()}
+      />
+
+      <DeleteConfirmation
+        open={!!pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+        title={`Delete ${pendingDelete?.name}?`}
+        description="This employee record will be permanently deleted. This action cannot be undone."
+      />
     </motion.div>
   );
 }

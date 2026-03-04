@@ -13,7 +13,7 @@ const shortcutGroups: ShortcutGroup[] = [
     {
         title: "Navigation",
         shortcuts: [
-            { keys: ["Ctrl", "K"], description: "Open command palette" },
+            { keys: ["⌘", "K"], description: "Open command palette" },
             { keys: ["?"], description: "Show keyboard shortcuts" },
             { keys: ["Esc"], description: "Close any dialog or drawer" },
         ],
@@ -22,16 +22,6 @@ const shortcutGroups: ShortcutGroup[] = [
         title: "Quick Actions",
         shortcuts: [
             { keys: ["N"], description: "Create new item (on any page)" },
-            { keys: ["S"], description: "Save / Submit form" },
-            { keys: ["E"], description: "Edit selected item" },
-            { keys: ["Delete"], description: "Delete selected items" },
-        ],
-    },
-    {
-        title: "Table",
-        shortcuts: [
-            { keys: ["Ctrl", "A"], description: "Select all rows" },
-            { keys: ["Ctrl", "Shift", "E"], description: "Export as CSV" },
         ],
     },
     {
@@ -43,6 +33,12 @@ const shortcutGroups: ShortcutGroup[] = [
             { keys: ["G", "O"], description: "Go to Sales Orders" },
             { keys: ["G", "I"], description: "Go to Invoices" },
             { keys: ["G", "V"], description: "Go to Vendors" },
+            { keys: ["G", "Q"], description: "Go to Quotations" },
+            { keys: ["G", "R"], description: "Go to Reports" },
+            { keys: ["G", "H"], description: "Go to HR" },
+            { keys: ["G", "S"], description: "Go to Settings" },
+            { keys: ["G", "A"], description: "Go to Accounting" },
+            { keys: ["G", "M"], description: "Go to Production" },
         ],
     },
 ];
@@ -62,7 +58,16 @@ export function KeyboardShortcuts() {
                 e.preventDefault();
                 setOpen((v) => !v);
             }
-            if (e.key === "Escape") setOpen(false);
+            if (e.key === "Escape") {
+                setOpen(false);
+                window.dispatchEvent(new CustomEvent("keyboard-escape"));
+            }
+
+            // N key — open create dialog on current page
+            if (e.key === "n" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                e.preventDefault();
+                window.dispatchEvent(new CustomEvent("keyboard-new"));
+            }
 
             // "G then letter" navigation shortcuts
             const now = Date.now();
@@ -74,6 +79,12 @@ export function KeyboardShortcuts() {
                     o: "/sales-orders",
                     i: "/invoices",
                     v: "/vendors",
+                    q: "/quotations",
+                    r: "/reports",
+                    h: "/hr",
+                    s: "/settings",
+                    a: "/accounting",
+                    m: "/production",
                 };
                 if (routes[e.key]) {
                     e.preventDefault();

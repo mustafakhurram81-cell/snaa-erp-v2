@@ -43,6 +43,7 @@ const pages = [
     { title: "Inventory", href: "/inventory" },
     { title: "HR & Payroll", href: "/hr" },
     { title: "Accounting", href: "/accounting" },
+    { title: "Audit Log", href: "/audit-log" },
     { title: "Settings", href: "/settings" },
 ];
 

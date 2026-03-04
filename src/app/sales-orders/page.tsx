@@ -3,13 +3,21 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Plus, Trash2, ImageIcon } from "lucide-react";
+import { Plus, Upload, Trash2, ImageIcon, Download } from "lucide-react";
 import { PageHeader, Button, Drawer, Input, Card, StatusBadge, Tabs } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { SalesOrderDetail } from "@/components/details/sales-order-detail";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { useSupabaseTable } from "@/lib/supabase-hooks";
+import { supabase } from "@/lib/supabase";
+import { exportToCSV } from "@/lib/csv-export";
+import { logActivity } from "@/lib/activity-logger";
+import { TableSkeleton } from "@/components/ui/skeleton";
+import { CSVImportDialog } from "@/components/shared/csv-import";
+import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
+
+interface DBCustomer { id: string; name: string; }
 
 // --- Types ---
 interface LineItem {
@@ -38,21 +46,14 @@ interface SalesOrder {
   notes?: string;
 }
 
-// --- Mock Products (until products are loaded from DB) ---
-const mockProducts = [
-  { name: 'Mayo Scissors 6.5" Straight', price: 24.0 },
-  { name: 'Metzenbaum Scissors 7" Curved', price: 28.0 },
-  { name: 'Adson Forceps 4.75"', price: 15.0 },
-  { name: 'Debakey Forceps 8"', price: 35.0 },
-  { name: "Army-Navy Retractor Set", price: 52.0 },
-  { name: 'Kelly Clamp 5.5" Curved', price: 20.0 },
-  { name: 'Mayo-Hegar Needle Holder 7"', price: 30.0 },
-];
-
-let nextSONumber = 43;
-function getNextSONumber() {
-  return `SO-2026-${String(nextSONumber++).padStart(3, "0")}`;
+interface DBProduct {
+  id: string;
+  name: string;
+  selling_price: number;
 }
+
+// --- DB-based number generation ---
+import { getNextSONumber } from "@/lib/doc-numbers";
 
 function emptyLineItem(): LineItem {
   return { id: Date.now().toString() + Math.random(), product: "", qty: 1, unit_price: 0 };
@@ -108,11 +109,23 @@ const columns: ColumnDef<SalesOrder, unknown>[] = [
 ];
 
 function SalesOrdersContent() {
-  const { data: dbOrders, loading, create, update, remove } = useSupabaseTable<SalesOrder>("sales_orders");
+  const { data: dbOrders, loading, create, update, remove, fetchAll } = useSupabaseTable<SalesOrder>("sales_orders");
+  const { data: dbProducts } = useSupabaseTable<DBProduct>("products", { orderBy: "name", ascending: true });
+  const { data: dbCustomers } = useSupabaseTable<DBCustomer>("customers", { orderBy: "name", ascending: true });
   const [activeTab, setActiveTab] = useState("all");
   const [showDialog, setShowDialog] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
   const { toast } = useToast();
+  // Keyboard shortcut: N to create new
+  useEffect(() => {
+    const handleNew = () => { resetForm(); setShowDialog(true); };
+    const handleEsc = () => { setShowDialog(false); };
+    window.addEventListener("keyboard-new", handleNew);
+    window.addEventListener("keyboard-escape", handleEsc);
+    return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
+  }, []);
+
   const searchParams = useSearchParams();
 
   // Map DB fields to display fields
@@ -156,9 +169,9 @@ function SalesOrdersContent() {
     setFormLineItems(formLineItems.map((li) => (li.id === id ? { ...li, [field]: value } : li)));
   };
   const handleProductSelect = (id: string, productName: string) => {
-    const product = mockProducts.find((p) => p.name === productName);
+    const product = dbProducts.find((p) => p.name === productName);
     setFormLineItems(
-      formLineItems.map((li) => (li.id === id ? { ...li, product: productName, unit_price: product?.price || li.unit_price } : li))
+      formLineItems.map((li) => (li.id === id ? { ...li, product: productName, unit_price: product?.selling_price || li.unit_price } : li))
     );
   };
 
@@ -168,8 +181,9 @@ function SalesOrdersContent() {
     if (!formCustomer.trim()) { toast("error", "Please enter a customer name"); return; }
     if (formLineItems.some((li) => !li.product.trim())) { toast("error", "Please fill in all line item products"); return; }
 
+    const orderNumber = await getNextSONumber();
     const result = await create({
-      order_number: getNextSONumber(),
+      order_number: orderNumber,
       customer_name: formCustomer,
       order_date: new Date().toISOString().split("T")[0],
       expected_delivery_date: formDeliveryDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
@@ -180,7 +194,6 @@ function SalesOrdersContent() {
 
     if (result) {
       // Persist line items to sales_order_items table
-      const { supabase } = await import("@/lib/supabase");
       const items = formLineItems.map(li => ({
         sales_order_id: result.id,
         product_name: li.product,
@@ -192,6 +205,7 @@ function SalesOrdersContent() {
       setShowDialog(false);
       resetForm();
       toast("success", `Sales Order ${result.order_number} created with ${items.length} item(s)`);
+      logActivity({ entityType: "sales_order", entityId: result.id, action: "Sales Order created", details: `${result.order_number} — ${formCustomer}` });
     } else {
       toast("error", "Failed to create sales order");
     }
@@ -199,40 +213,107 @@ function SalesOrdersContent() {
 
   // --- Create Invoice from SO ---
   const handleCreateInvoice = async (order: SalesOrder) => {
-    const invNumber = `INV-2026-${String(nextSONumber++).padStart(3, "0")}`;
+    // Generate next invoice number from DB
+    const { data: lastInv } = await supabase.from("invoices").select("invoice_number").order("created_at", { ascending: false }).limit(1);
+    let invNum = 1;
+    if (lastInv && lastInv.length > 0) { const m = lastInv[0].invoice_number.match(/(\d+)$/); if (m) invNum = parseInt(m[1]) + 1; }
+    const invNumber = `INV-2026-${String(invNum).padStart(3, "0")}`;
 
-    // Create real invoice record
-    const { supabase } = await import("@/lib/supabase");
-    const { error: invErr } = await supabase.from("invoices").insert({
+    // 1. Create invoice record (link customer_id if available)
+    const { data: inv, error: invErr } = await supabase.from("invoices").insert({
       invoice_number: invNumber,
-      customer_name: order.customer_name || order.customer,
+      customer_id: (order as any).customer_id || null,
+      customer_name: (order as any).customer_name || order.customer,
       issue_date: new Date().toISOString().split("T")[0],
       due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      total_amount: order.total_amount || order.total,
+      total_amount: (order as any).total_amount || order.total,
       status: "draft",
       notes: `From ${order.order_number}`,
-    });
+    }).select().single();
 
-    if (invErr) {
+    if (invErr || !inv) {
       toast("error", "Failed to create invoice");
       return;
     }
 
-    // Update SO with invoice reference
+    // 2. Copy line items from sales_order_items → invoice_items
+    const { data: soItems } = await supabase
+      .from("sales_order_items")
+      .select("*")
+      .eq("sales_order_id", order.id);
+
+    if (soItems && soItems.length > 0) {
+      const invoiceItems = soItems.map((item: any) => ({
+        invoice_id: inv.id,
+        product_id: item.product_id,
+        product_name: item.product_name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+      }));
+      await supabase.from("invoice_items").insert(invoiceItems);
+    }
+
+    // 3. Update SO with invoice reference
     await update(order.id, { invoice_number: invNumber } as Partial<SalesOrder>);
-    toast("success", `Invoice ${invNumber} created from ${order.order_number}`);
+    toast("success", `Invoice ${invNumber} created from ${order.order_number} with ${soItems?.length || 0} item(s)`);
+    logActivity({ entityType: "sales_order", entityId: order.id, action: "Invoice created from SO", details: `${invNumber} from ${order.order_number}` });
+    logActivity({ entityType: "invoice", entityId: inv.id, action: "Invoice created", details: `${invNumber} — ${order.customer}` });
   };
 
   // --- Create Job Orders from SO ---
-  const handleCreateJobOrders = (order: SalesOrder) => {
-    const itemCount = order.line_items?.length || order.items_count || 1;
-    toast("success", `${itemCount} Job Order(s) created from ${order.order_number}`);
+  const handleCreateJobOrders = async (order: SalesOrder) => {
+    // Fetch line items for this SO
+    const { data: soItems } = await supabase.from("sales_order_items").select("*").eq("sales_order_id", order.id);
+    const items = soItems && soItems.length > 0 ? soItems : [{ product_name: order.customer_name || "Production Item", quantity: 1 }];
+
+    let created = 0;
+    for (const item of items) {
+      // Generate next JO number
+      const { data: lastJO } = await supabase.from("production_orders").select("job_number").order("created_at", { ascending: false }).limit(1);
+      let joNum = 1;
+      if (lastJO && lastJO.length > 0) { const m = lastJO[0].job_number.match(/(\d+)$/); if (m) joNum = parseInt(m[1]) + 1; }
+      const joNumber = `JO-2026-${String(joNum).padStart(3, "0")}`;
+
+      const { data: joData, error: joErr } = await supabase.from("production_orders").insert({
+        job_number: joNumber,
+        product_name: (item as any).product_name || "Item",
+        quantity: (item as any).quantity || 1,
+        start_date: new Date().toISOString().split("T")[0],
+        status: "Planned",
+        priority: "Medium",
+        sales_order_id: order.id,
+      }).select().single();
+
+      if (!joErr && joData) {
+        // Insert 10 default manufacturing stages
+        const stages = Array.from({ length: 10 }, (_, i) => ({
+          production_order_id: joData.id,
+          stage_number: i + 1,
+          stage_name: ["Die Making", "Forging", "Grinding", "Filing", "Heat Treatment", "Electroplating", "Assembly", "Quality Control", "Finishing", "Packaging"][i],
+          status: "Pending",
+          execution_type: "In-House",
+        }));
+        await supabase.from("production_stages").insert(stages);
+        created++;
+      }
+    }
+
+    // Update SO status
+    await update(order.id, { status: "in_progress" } as Partial<SalesOrder>);
+    toast("success", `${created} Job Order(s) created from ${order.order_number}`);
+    logActivity({ entityType: "sales_order", entityId: order.id, action: "Job Orders created", details: `${created} JOs from ${order.order_number}` });
   };
 
   // --- Delete SO ---
+  const [pendingDelete, setPendingDelete] = useState<SalesOrder | null>(null);
   const handleDeleteOrder = async (order: SalesOrder) => {
-    await remove(order.id);
+    setPendingDelete(order);
+  };
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    await remove(pendingDelete.id);
     setSelectedOrder(null);
+    setPendingDelete(null);
   };
 
   const tabs = [
@@ -251,10 +332,26 @@ function SalesOrdersContent() {
         title="Sales Orders"
         description="Track and manage customer orders"
         actions={
-          <Button onClick={() => { resetForm(); setShowDialog(true); }}>
-            <Plus className="w-3.5 h-3.5" />
-            New Sales Order
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" onClick={() => setShowImport(true)}>
+              <Upload className="w-3.5 h-3.5" />
+              Import
+            </Button>
+            <Button variant="secondary" onClick={() => exportToCSV(orders, "sales_orders", [
+              { key: "order_number" as keyof typeof orders[0], label: "Order #" },
+              { key: "customer" as keyof typeof orders[0], label: "Customer" },
+              { key: "date" as keyof typeof orders[0], label: "Date" },
+              { key: "delivery_date" as keyof typeof orders[0], label: "Delivery" },
+              { key: "total" as keyof typeof orders[0], label: "Total" },
+              { key: "status" as keyof typeof orders[0], label: "Status" },
+            ])}>
+              <Download className="w-3.5 h-3.5" /> Export
+            </Button>
+            <Button onClick={() => { resetForm(); setShowDialog(true); }}>
+              <Plus className="w-3.5 h-3.5" />
+              New Sales Order
+            </Button>
+          </div>
         }
       />
 
@@ -263,9 +360,7 @@ function SalesOrdersContent() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-        </div>
+        <TableSkeleton rows={5} columns={5} />
       ) : (
         <DataTable
           columns={columns}
@@ -273,6 +368,16 @@ function SalesOrdersContent() {
           emptyMessage="No sales orders found"
           searchPlaceholder="Search sales orders..."
           enableSelection
+          enableColumnFilters
+          filterableColumns={["status"]}
+          onBulkStatusUpdate={async (items, status) => {
+            for (const item of items) {
+              await supabase.from("sales_orders").update({ status }).eq("id", (item as any).id);
+            }
+            toast("success", "Status updated", `${items.length} items set to ${status}`);
+            fetchAll();
+          }}
+          bulkStatusOptions={["pending", "in_progress", "shipped", "completed"]}
           onRowClick={(item) => setSelectedOrder(item)}
         />
       )}
@@ -301,7 +406,18 @@ function SalesOrdersContent() {
       >
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
-            <Input label="Customer" placeholder="e.g. City Hospital" value={formCustomer} onChange={(e) => setFormCustomer(e.target.value)} />
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--foreground)" }}>Customer *</label>
+              <select
+                value={formCustomer}
+                onChange={(e) => setFormCustomer(e.target.value)}
+                className="w-full h-9 px-3 rounded-lg border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                style={{ background: "var(--background)", borderColor: "var(--border)", color: formCustomer ? "var(--foreground)" : "var(--muted-foreground)" }}
+              >
+                <option value="">Select customer...</option>
+                {dbCustomers.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+              </select>
+            </div>
             <Input label="Source Quotation" placeholder="QT-2026-XXX" value={formQuotation} onChange={(e) => setFormQuotation(e.target.value)} />
             <Input label="Delivery Date" type="date" value={formDeliveryDate} onChange={(e) => setFormDeliveryDate(e.target.value)} />
           </div>
@@ -345,8 +461,8 @@ function SalesOrdersContent() {
                       style={{ background: "var(--background)", borderColor: "var(--border)", color: li.product ? "var(--foreground)" : "var(--muted-foreground)" }}
                     >
                       <option value="">Select product...</option>
-                      {mockProducts.map((p) => (
-                        <option key={p.name} value={p.name}>{p.name}</option>
+                      {dbProducts.map((p) => (
+                        <option key={p.id} value={p.name}>{p.name} — {formatCurrency(p.selling_price || 0)}</option>
                       ))}
                     </select>
                   </div>
@@ -381,6 +497,24 @@ function SalesOrdersContent() {
           </div>
         </div>
       </Drawer>
+
+      <CSVImportDialog
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        tableName="sales_orders"
+        displayName="Sales Orders"
+        requiredFields={["order_number", "customer_name", "total_amount"]}
+        optionalFields={["status", "delivery_date", "notes"]}
+        onImportComplete={() => fetchAll()}
+      />
+
+      <DeleteConfirmation
+        open={!!pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+        title={`Delete ${pendingDelete?.order_number}?`}
+        description="This sales order and all its line items will be permanently deleted. This action cannot be undone."
+      />
     </motion.div>
   );
 }

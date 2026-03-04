@@ -1,16 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
-import { Drawer, Button, StatusBadge, Input } from "@/components/ui/shared";
+import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { MANUFACTURING_STAGES, type JobStage, type StageStatus, type StageType, getProgress } from "@/lib/stages";
 import { useToast } from "@/components/ui/toast";
-import { ActivityLog, getMockActivities } from "@/components/shared/activity-log";
+import { supabase } from "@/lib/supabase";
+import { LiveActivityLog } from "@/components/shared/activity-log";
 import {
     Hammer, Flame, CircleDot, FileSliders, Thermometer, Sparkles,
     Wrench, ShieldCheck, PaintBucket, Package as PackageIcon,
     CheckCircle2, Clock, Play, SkipForward, Building2, Store,
-    Plus, ChevronDown, ChevronUp, ShoppingCart, ImageIcon
+    Plus, ChevronDown, ChevronUp, ShoppingCart, ImageIcon, Trash2
 } from "lucide-react";
 
 const stageIcons: Record<string, React.ReactNode> = {
@@ -57,6 +58,8 @@ interface JobOrderDetailProps {
     jobOrder: JobOrder | null;
     open: boolean;
     onClose: () => void;
+    onDelete?: (jobOrder: JobOrder) => void;
+    onStageUpdate?: () => void;
 }
 
 // Line item for PO creation from job
@@ -70,24 +73,59 @@ interface POLineItem {
     alreadyOrdered: boolean;
 }
 
-export function JobOrderDetail({ jobOrder, open, onClose }: JobOrderDetailProps) {
+export function JobOrderDetail({ jobOrder, open, onClose, onDelete, onStageUpdate }: JobOrderDetailProps) {
     if (!jobOrder) return null;
     const { toast } = useToast();
     const [expandedStage, setExpandedStage] = useState<number | null>(null);
+    const [activeTab, setActiveTab] = useState("stages");
     const [showPOCreation, setShowPOCreation] = useState(false);
     const [poLineItems, setPOLineItems] = useState<POLineItem[]>([]);
     const [poVendor, setPOVendor] = useState("");
     const [poExpectedDate, setPOExpectedDate] = useState("");
     const progress = getProgress(jobOrder.stages);
 
-    const handleStartStage = (stageId: number) => {
+    const handleStartStage = async (stageId: number) => {
         const stage = MANUFACTURING_STAGES.find(s => s.id === stageId);
+        const today = new Date().toISOString().split("T")[0];
+        // Update production_stages in DB
+        const { error } = await supabase
+            .from("production_stages")
+            .update({ status: "In Progress", start_date: today })
+            .eq("production_order_id", jobOrder.id)
+            .eq("stage_number", stageId);
+        if (error) {
+            toast("error", "Failed to start stage");
+            return;
+        }
         toast("info", "Stage started", `${stage?.name} is now in progress`);
+        if (onStageUpdate) onStageUpdate();
     };
 
-    const handleCompleteStage = (stageId: number) => {
+    const handleCompleteStage = async (stageId: number) => {
         const stage = MANUFACTURING_STAGES.find(s => s.id === stageId);
-        toast("success", "Stage completed", `${stage?.name} marked as complete`);
+        const today = new Date().toISOString().split("T")[0];
+        const { error } = await supabase
+            .from("production_stages")
+            .update({ status: "Completed", completed_date: today })
+            .eq("production_order_id", jobOrder.id)
+            .eq("stage_number", stageId);
+        if (error) {
+            toast("error", "Failed to complete stage");
+            return;
+        }
+        // Check if all stages are now completed
+        const { data: allStages } = await supabase
+            .from("production_stages")
+            .select("status")
+            .eq("production_order_id", jobOrder.id);
+        const allDone = allStages && allStages.every((s: any) => s.status === "Completed" || s.status === "Skipped");
+        if (allDone) {
+            await supabase.from("production_orders").update({ status: "Completed" }).eq("id", jobOrder.id);
+            toast("success", "Job order completed", `All stages for ${jobOrder.jo_number} are done!`);
+        } else {
+            toast("success", "Stage completed", `${stage?.name} marked as complete`);
+        }
+        if (onStageUpdate) onStageUpdate();
     };
 
     const handleCreatePO = (stageId: number, vendor: string) => {
@@ -148,7 +186,14 @@ export function JobOrderDetail({ jobOrder, open, onClose }: JobOrderDetailProps)
                 width="max-w-2xl"
                 footer={
                     <div className="flex justify-between">
-                        <Button variant="secondary" onClick={onClose}>Close</Button>
+                        <div className="flex gap-2">
+                            <Button variant="secondary" onClick={onClose}>Close</Button>
+                            {onDelete && (
+                                <Button variant="secondary" onClick={() => onDelete(jobOrder)} className="!text-red-500 hover:!bg-red-50 dark:hover:!bg-red-900/20">
+                                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                                </Button>
+                            )}
+                        </div>
                         <div className="flex gap-2">
                             {jobOrder.status !== "completed" && (
                                 <>
@@ -209,9 +254,17 @@ export function JobOrderDetail({ jobOrder, open, onClose }: JobOrderDetailProps)
                     </div>
                 </div>
 
-                {/* Manufacturing Stages */}
-                <div>
-                    <h4 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>Manufacturing Stages</h4>
+                {/* Tabs */}
+                <DrawerTabs
+                    tabs={[
+                        { key: "stages", label: "Manufacturing Stages", count: MANUFACTURING_STAGES.length },
+                        { key: "activity", label: "Activity" },
+                    ]}
+                    activeTab={activeTab}
+                    onChange={setActiveTab}
+                />
+
+                {activeTab === "stages" && (
                     <div className="space-y-1.5">
                         {MANUFACTURING_STAGES.map((stage) => {
                             const jobStage = jobOrder.stages.find(s => s.stageId === stage.id) || {
@@ -308,13 +361,11 @@ export function JobOrderDetail({ jobOrder, open, onClose }: JobOrderDetailProps)
                             );
                         })}
                     </div>
-                </div>
+                )}
 
-                {/* Activity Log */}
-                <div className="mt-5">
-                    <h4 className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>Activity</h4>
-                    <ActivityLog entries={getMockActivities("Job Order", jobOrder.id)} />
-                </div>
+                {activeTab === "activity" && (
+                    <LiveActivityLog entityType="production_order" entityId={jobOrder.id} />
+                )}
             </Drawer>
 
             {/* PO Creation Sub-Drawer */}

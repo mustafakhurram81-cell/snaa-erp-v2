@@ -10,6 +10,8 @@ import { MANUFACTURING_STAGES, type JobStage, type StageStatus, getProgress, get
 import { JobOrderDetail, type JobOrder } from "@/components/details/job-order-detail";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/toast";
+import { TableSkeleton } from "@/components/ui/skeleton";
+import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 
 // DB types
 interface DBProductionOrder {
@@ -97,10 +99,8 @@ const item = {
   show: { opacity: 1, y: 0, transition: { type: "tween" as const, duration: 0.3 } },
 };
 
-let nextJONumber = 6;
-function getNextJONumber() {
-  return `JO-2026-${String(nextJONumber++).padStart(3, "0")}`;
-}
+// --- DB-based number generation ---
+import { getNextJONumber } from "@/lib/doc-numbers";
 
 export default function ProductionPage() {
   const [jobOrders, setJobOrders] = useState<JobOrder[]>([]);
@@ -111,6 +111,19 @@ export default function ProductionPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const { toast } = useToast();
+
+  // Delete confirmation
+  const [pendingDelete, setPendingDelete] = useState<JobOrder | null>(null);
+  const confirmDeleteJO = async () => {
+    if (!pendingDelete) return;
+    // Delete stages first, then the order
+    await supabase.from("production_stages").delete().eq("production_order_id", pendingDelete.id);
+    await supabase.from("production_orders").delete().eq("id", pendingDelete.id);
+    setSelectedJO(null);
+    setPendingDelete(null);
+    toast("success", "Job order deleted");
+    fetchJobOrders();
+  };
 
   // Form state
   const [formProduct, setFormProduct] = useState("");
@@ -142,7 +155,7 @@ export default function ProductionPage() {
   const handleCreate = async () => {
     if (!formProduct.trim()) { toast("error", "Product name is required"); return; }
 
-    const joNumber = getNextJONumber();
+    const joNumber = await getNextJONumber();
 
     // Insert production order
     const { data: order, error: orderError } = await supabase
@@ -295,9 +308,7 @@ export default function ProductionPage() {
       </motion.div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-        </div>
+        <TableSkeleton rows={5} columns={5} />
       ) : (
         <>
           {/* Kanban View */}
@@ -379,7 +390,13 @@ export default function ProductionPage() {
         </>
       )}
 
-      <JobOrderDetail jobOrder={selectedJO} open={!!selectedJO} onClose={() => setSelectedJO(null)} />
+      <JobOrderDetail
+        jobOrder={selectedJO}
+        open={!!selectedJO}
+        onClose={() => setSelectedJO(null)}
+        onDelete={(jo) => setPendingDelete(jo)}
+        onStageUpdate={() => { fetchJobOrders(); setSelectedJO(null); }}
+      />
 
       {/* Create Dialog */}
       <Drawer
@@ -405,6 +422,14 @@ export default function ProductionPage() {
           </div>
         </div>
       </Drawer>
+
+      <DeleteConfirmation
+        open={!!pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmDeleteJO}
+        title={`Delete ${pendingDelete?.jo_number}?`}
+        description="This will permanently delete this job order and all its stages. This action cannot be undone."
+      />
     </motion.div>
   );
 }

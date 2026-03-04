@@ -1,14 +1,20 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, Trash2, ImageIcon } from "lucide-react";
+import { Plus, Upload, Trash2, ImageIcon, Download } from "lucide-react";
 import { PageHeader, Button, Drawer, Input, Card, StatusBadge, Tabs } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { PurchaseOrderDetail } from "@/components/details/purchase-order-detail";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { useSupabaseTable } from "@/lib/supabase-hooks";
+import { supabase } from "@/lib/supabase";
+import { exportToCSV } from "@/lib/csv-export";
+import { TableSkeleton } from "@/components/ui/skeleton";
+import { CSVImportDialog } from "@/components/shared/csv-import";
+import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
+import { logActivity } from "@/lib/activity-logger";
 
 interface LineItem {
   id: string;
@@ -36,12 +42,13 @@ interface PurchaseOrder {
   notes?: string;
 }
 
-const mockVendors = ["Premium Steel Corp", "Global Stainless Ltd", "Euro Metals GMBH", "Precision Parts Ltd", "Packaging World"];
-
-let nextPONumber = 29;
-function getNextPONumber() {
-  return `PO-2026-${String(nextPONumber++).padStart(3, "0")}`;
+interface DBVendor {
+  id: string;
+  name: string;
 }
+
+// --- DB-based number generation ---
+import { getNextPONumber } from "@/lib/doc-numbers";
 
 function emptyLineItem(): LineItem {
   return { id: Date.now().toString() + Math.random(), item: "", qty: 1, unit_cost: 0 };
@@ -81,11 +88,31 @@ const columns: ColumnDef<PurchaseOrder, unknown>[] = [
 ];
 
 export default function PurchaseOrdersPage() {
-  const { data: dbOrders, loading, create, update, remove } = useSupabaseTable<PurchaseOrder>("purchase_orders");
+  const { data: dbOrders, loading, create, update, remove, fetchAll } = useSupabaseTable<PurchaseOrder>("purchase_orders");
+  const { data: dbVendors } = useSupabaseTable<DBVendor>("vendors", { orderBy: "name", ascending: true });
   const [activeTab, setActiveTab] = useState("all");
   const [showDialog, setShowDialog] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
   const { toast } = useToast();
+
+  // Delete confirmation
+  const [pendingDelete, setPendingDelete] = useState<PurchaseOrder | null>(null);
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    await remove(pendingDelete.id);
+    setSelectedPO(null);
+    setPendingDelete(null);
+  };
+  // Keyboard shortcut: N to create new
+  useEffect(() => {
+    const handleNew = () => { resetForm(); setShowDialog(true); };
+    const handleEsc = () => { setShowDialog(false); };
+    window.addEventListener("keyboard-new", handleNew);
+    window.addEventListener("keyboard-escape", handleEsc);
+    return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
+  }, []);
+
 
   // Map DB fields
   const orders = dbOrders.map(o => ({
@@ -115,8 +142,9 @@ export default function PurchaseOrdersPage() {
     if (!formVendor.trim()) { toast("error", "Please select a vendor"); return; }
     if (formLineItems.some((li) => !li.item.trim())) { toast("error", "Please fill in all line items"); return; }
 
+    const poNumber = await getNextPONumber();
     const result = await create({
-      po_number: getNextPONumber(),
+      po_number: poNumber,
       vendor_name: formVendor,
       order_date: new Date().toISOString().split("T")[0],
       expected_delivery_date: formExpectedDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
@@ -129,6 +157,7 @@ export default function PurchaseOrdersPage() {
       setShowDialog(false);
       resetForm();
       toast("success", `Purchase Order ${result.po_number} created`);
+      logActivity({ entityType: "purchase_order", entityId: result.id, action: "Purchase Order created", details: `${result.po_number} — ${formVendor}` });
     } else {
       toast("error", "Failed to create purchase order");
     }
@@ -150,10 +179,26 @@ export default function PurchaseOrdersPage() {
         title="Purchase Orders"
         description="Manage supplier purchase orders and receiving"
         actions={
-          <Button onClick={() => { resetForm(); setShowDialog(true); }}>
-            <Plus className="w-3.5 h-3.5" />
-            New Purchase Order
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" onClick={() => setShowImport(true)}>
+              <Upload className="w-3.5 h-3.5" />
+              Import
+            </Button>
+            <Button variant="secondary" onClick={() => exportToCSV(orders, "purchase_orders", [
+              { key: "po_number" as keyof typeof orders[0], label: "PO #" },
+              { key: "vendor" as keyof typeof orders[0], label: "Vendor" },
+              { key: "date" as keyof typeof orders[0], label: "Date" },
+              { key: "expected_date" as keyof typeof orders[0], label: "Expected" },
+              { key: "total" as keyof typeof orders[0], label: "Total" },
+              { key: "status" as keyof typeof orders[0], label: "Status" },
+            ])}>
+              <Download className="w-3.5 h-3.5" /> Export
+            </Button>
+            <Button onClick={() => { resetForm(); setShowDialog(true); }}>
+              <Plus className="w-3.5 h-3.5" />
+              New Purchase Order
+            </Button>
+          </div>
         }
       />
 
@@ -162,9 +207,7 @@ export default function PurchaseOrdersPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-        </div>
+        <TableSkeleton rows={5} columns={5} />
       ) : (
         <DataTable
           columns={columns}
@@ -172,6 +215,16 @@ export default function PurchaseOrdersPage() {
           emptyMessage="No purchase orders found"
           searchPlaceholder="Search POs..."
           enableSelection
+          enableColumnFilters
+          filterableColumns={["status"]}
+          onBulkStatusUpdate={async (items, status) => {
+            for (const item of items) {
+              await supabase.from("purchase_orders").update({ status }).eq("id", (item as any).id);
+            }
+            toast("success", "Status updated", `${items.length} items set to ${status}`);
+            fetchAll();
+          }}
+          bulkStatusOptions={["draft", "sent", "received", "closed"]}
           onRowClick={(item) => setSelectedPO(item)}
         />
       )}
@@ -181,7 +234,7 @@ export default function PurchaseOrdersPage() {
         open={!!selectedPO}
         onClose={() => setSelectedPO(null)}
         onUpdate={async (updated) => { const result = await update(updated.id, updated); if (result) setSelectedPO(result); }}
-        onDelete={async (po) => { await remove(po.id); setSelectedPO(null); }}
+        onDelete={async (po) => { setPendingDelete(po); }}
       />
 
       <Drawer
@@ -208,7 +261,7 @@ export default function PurchaseOrdersPage() {
                 style={{ background: "var(--background)", borderColor: "var(--border)", color: formVendor ? "var(--foreground)" : "var(--muted-foreground)" }}
               >
                 <option value="">Select vendor...</option>
-                {mockVendors.map((v) => (<option key={v} value={v}>{v}</option>))}
+                {dbVendors.map((v) => (<option key={v.id} value={v.name}>{v.name}</option>))}
               </select>
             </div>
             <Input label="Expected Delivery" type="date" value={formExpectedDate} onChange={(e) => setFormExpectedDate(e.target.value)} />
@@ -279,6 +332,24 @@ export default function PurchaseOrdersPage() {
           </div>
         </div>
       </Drawer>
+
+      <CSVImportDialog
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        tableName="purchase_orders"
+        displayName="Purchase Orders"
+        requiredFields={["po_number", "vendor_name", "total_amount"]}
+        optionalFields={["status", "expected_date", "notes"]}
+        onImportComplete={() => fetchAll()}
+      />
+
+      <DeleteConfirmation
+        open={!!pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+        title={`Delete ${pendingDelete?.po_number}?`}
+        description="This will permanently delete this purchase order. This action cannot be undone."
+      />
     </motion.div>
   );
 }

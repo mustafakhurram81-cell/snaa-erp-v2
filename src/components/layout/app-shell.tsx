@@ -93,13 +93,12 @@ function AppContent({ children }: { children: React.ReactNode }) {
             <Topbar />
             <main
                 className={cn(
-                    "pt-16 min-h-screen transition-all duration-300",
-                    collapsed
-                        ? "ml-[var(--sidebar-collapsed-width)]"
-                        : "ml-[var(--sidebar-width)]"
+                    "pt-14 min-h-screen transition-all duration-300",
+                    "ml-0 md:ml-[var(--sidebar-width)]",
+                    collapsed && "md:ml-[var(--sidebar-collapsed-width)]"
                 )}
             >
-                <div className="p-6">
+                <div className="p-4 md:p-6">
                     {children}
                 </div>
             </main>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "./supabase";
+import { logActivity } from "./activity-logger";
 
 // Generic type for any table record with an id
 type BaseRecord = {
@@ -71,6 +72,10 @@ export function useSupabaseTable<T extends BaseRecord>(
                     .single();
 
                 if (createError) throw createError;
+                // Log activity
+                if (result) {
+                    logActivity({ entityType: tableName, entityId: (result as any).id, action: "created", details: `Created ${tableName} record` });
+                }
                 // If realtime is off, update local state manually
                 if (!enableRealtime && mountedRef.current && result) {
                     setData((prev) => [result as T, ...prev]);
@@ -97,6 +102,10 @@ export function useSupabaseTable<T extends BaseRecord>(
                     .single();
 
                 if (updateError) throw updateError;
+                // Log activity
+                if (result) {
+                    logActivity({ entityType: tableName, entityId: id, action: "updated", details: `Updated ${tableName} record` });
+                }
                 if (!enableRealtime && mountedRef.current && result) {
                     setData((prev) =>
                         prev.map((item) => (item.id === id ? (result as T) : item))
@@ -122,6 +131,8 @@ export function useSupabaseTable<T extends BaseRecord>(
                     .eq("id", id);
 
                 if (deleteError) throw deleteError;
+                // Log activity
+                logActivity({ entityType: tableName, entityId: id, action: "deleted", details: `Deleted ${tableName} record` });
                 if (!enableRealtime && mountedRef.current) {
                     setData((prev) => prev.filter((item) => item.id !== id));
                 }
@@ -204,6 +215,7 @@ export function useSupabaseSingleton<T extends BaseRecord>(tableName: string) {
     const [data, setData] = useState<T | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const retryRef = useRef(0);
 
     const fetch = useCallback(async () => {
         try {
@@ -213,13 +225,20 @@ export function useSupabaseSingleton<T extends BaseRecord>(tableName: string) {
                 .from(tableName)
                 .select("*")
                 .limit(1)
-                .single();
+                .maybeSingle();
 
             if (fetchError) throw fetchError;
+            // If no data returned (auth session may not be ready), retry up to 3 times
+            if (!result && retryRef.current < 3) {
+                retryRef.current++;
+                setTimeout(() => fetch(), 500);
+                return;
+            }
             setData(result as T);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to fetch";
             setError(message);
+            console.error(`useSupabaseSingleton(${tableName}):`, message);
         } finally {
             setLoading(false);
         }

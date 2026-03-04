@@ -3,13 +3,22 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Plus, DollarSign, Clock, AlertTriangle, Check, Trash2, ImageIcon } from "lucide-react";
+import { Plus, Upload, DollarSign, Clock, AlertTriangle, Check, Trash2, ImageIcon, Download, CreditCard } from "lucide-react";
 import { PageHeader, Button, Drawer, Input, Card, StatusBadge, Tabs, StatCard } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { InvoiceDetail } from "@/components/details/invoice-detail";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { useSupabaseTable } from "@/lib/supabase-hooks";
+import { supabase } from "@/lib/supabase";
+import { exportToCSV } from "@/lib/csv-export";
+import { logActivity } from "@/lib/activity-logger";
+import { TableSkeleton } from "@/components/ui/skeleton";
+import { validateRequired, validateForm, hasErrors } from "@/lib/form-validation";
+import { CSVImportDialog } from "@/components/shared/csv-import";
+import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
+
+interface DBCustomer { id: string; name: string; }
 
 // --- Types ---
 interface LineItem {
@@ -37,21 +46,14 @@ interface Invoice {
   notes?: string;
 }
 
-// --- Mock Products ---
-const mockProducts = [
-  { name: 'Mayo Scissors 6.5" Straight', price: 24.0 },
-  { name: 'Metzenbaum Scissors 7" Curved', price: 28.0 },
-  { name: 'Adson Forceps 4.75"', price: 15.0 },
-  { name: 'Debakey Forceps 8"', price: 35.0 },
-  { name: "Army-Navy Retractor Set", price: 52.0 },
-  { name: 'Kelly Clamp 5.5" Curved', price: 20.0 },
-  { name: 'Mayo-Hegar Needle Holder 7"', price: 30.0 },
-];
-
-let nextINVNumber = 46;
-function getNextINVNumber() {
-  return `INV-2026-${String(nextINVNumber++).padStart(3, "0")}`;
+interface DBProduct {
+  id: string;
+  name: string;
+  selling_price: number;
 }
+
+// --- DB-based number generation ---
+import { getNextINVNumber } from "@/lib/doc-numbers";
 
 function emptyLineItem(): LineItem {
   return { id: Date.now().toString() + Math.random(), product: "", qty: 1, unit_price: 0 };
@@ -96,11 +98,52 @@ const columns: ColumnDef<Invoice, unknown>[] = [
 ];
 
 function InvoicesContent() {
-  const { data: dbInvoices, loading, create, update, remove } = useSupabaseTable<Invoice>("invoices");
+  const { data: dbInvoices, loading, create, update, remove, fetchAll } = useSupabaseTable<Invoice>("invoices");
+  const { data: dbProducts } = useSupabaseTable<DBProduct>("products", { orderBy: "name", ascending: true });
+  const { data: dbCustomers } = useSupabaseTable<DBCustomer>("customers", { orderBy: "name", ascending: true });
   const [activeTab, setActiveTab] = useState("all");
   const [showDialog, setShowDialog] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const { toast } = useToast();
+  // Keyboard shortcut: N to create new
+  useEffect(() => {
+    const handleNew = () => { resetForm(); setShowDialog(true); };
+    const handleEsc = () => { setShowDialog(false); };
+    window.addEventListener("keyboard-new", handleNew);
+    window.addEventListener("keyboard-escape", handleEsc);
+    return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
+  }, []);
+
+  const [pendingDelete, setPendingDelete] = useState<Invoice | null>(null);
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    await remove(pendingDelete.id);
+    setSelectedInvoice(null);
+    setPendingDelete(null);
+  };
+
+  // Payment recording
+  const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("bank_transfer");
+  const handleRecordPayment = async () => {
+    if (!paymentInvoice) return;
+    const amount = parseFloat(paymentAmount);
+    if (!amount || amount <= 0) { toast("error", "Enter a valid payment amount"); return; }
+    const prevPaid = paymentInvoice.amount_paid || paymentInvoice.paid || 0;
+    const totalAmt = paymentInvoice.total_amount || paymentInvoice.total || 0;
+    const newPaid = Math.min(prevPaid + amount, totalAmt);
+    const newStatus = newPaid >= totalAmt ? "paid" : "partial";
+    const { error } = await supabase.from("invoices").update({ amount_paid: newPaid, status: newStatus }).eq("id", paymentInvoice.id);
+    if (error) { toast("error", "Failed to record payment"); return; }
+    toast("success", "Payment recorded", `${formatCurrency(amount)} applied to ${paymentInvoice.invoice_number}`);
+    logActivity({ entityType: "invoice", entityId: paymentInvoice.id, action: "Payment recorded", details: `${formatCurrency(amount)} — ${paymentInvoice.invoice_number}` });
+    setPaymentInvoice(null);
+    setPaymentAmount("");
+    fetchAll();
+  };
+
   const searchParams = useSearchParams();
 
   // Map DB fields
@@ -112,6 +155,25 @@ function InvoicesContent() {
     paid: i.amount_paid || i.paid || 0,
     sales_order: i.sales_order || "—",
   }));
+
+  // Auto-detect overdue invoices
+  useEffect(() => {
+    if (!invoices.length) return;
+    const today = new Date().toISOString().split("T")[0];
+    const overdueInvoices = invoices.filter(
+      i => i.due_date && i.due_date < today && (i.status === "pending" || i.status === "partial")
+    );
+    if (overdueInvoices.length > 0) {
+      overdueInvoices.forEach(async (inv) => {
+        await supabase.from("invoices").update({ status: "overdue" }).eq("id", inv.id);
+      });
+      // Only refetch if we actually flagged some as overdue
+      if (overdueInvoices.length > 0) {
+        const timer = setTimeout(() => fetchAll(), 500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [dbInvoices.length]); // Only re-run when invoice count changes
 
   useEffect(() => {
     const openId = searchParams.get("open");
@@ -126,26 +188,36 @@ function InvoicesContent() {
   const [formSO, setFormSO] = useState("");
   const [formDueDate, setFormDueDate] = useState("");
   const [formLineItems, setFormLineItems] = useState<LineItem[]>([emptyLineItem()]);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  const resetForm = () => { setFormCustomer(""); setFormSO(""); setFormDueDate(""); setFormLineItems([emptyLineItem()]); };
+  const resetForm = () => { setFormCustomer(""); setFormSO(""); setFormDueDate(""); setFormLineItems([emptyLineItem()]); setFormErrors({}); };
   const addLineItem = () => setFormLineItems([...formLineItems, emptyLineItem()]);
   const removeLineItem = (id: string) => { if (formLineItems.length <= 1) return; setFormLineItems(formLineItems.filter((li) => li.id !== id)); };
   const updateLineItem = (id: string, field: keyof LineItem, value: string | number) => {
     setFormLineItems(formLineItems.map((li) => (li.id === id ? { ...li, [field]: value } : li)));
   };
   const handleProductSelect = (id: string, productName: string) => {
-    const product = mockProducts.find((p) => p.name === productName);
-    setFormLineItems(formLineItems.map((li) => (li.id === id ? { ...li, product: productName, unit_price: product?.price || li.unit_price } : li)));
+    const product = dbProducts.find((p) => p.name === productName);
+    setFormLineItems(formLineItems.map((li) => (li.id === id ? { ...li, product: productName, unit_price: product?.selling_price || li.unit_price } : li)));
   };
 
   const formTotal = formLineItems.reduce((sum, li) => sum + li.qty * li.unit_price, 0);
 
   const handleCreate = async (asDraft: boolean) => {
-    if (!formCustomer.trim()) { toast("error", "Please enter a customer name"); return; }
-    if (formLineItems.some((li) => !li.product.trim())) { toast("error", "Please fill in all line item products"); return; }
+    const errors = validateForm({
+      customer: [validateRequired(formCustomer, "Customer name")],
+      due_date: [validateRequired(formDueDate, "Due date")],
+    });
+    // Check line items
+    if (formLineItems.some((li) => !li.product.trim())) {
+      errors.line_items = "Please fill in all line item products";
+    }
+    setFormErrors(errors);
+    if (hasErrors(errors)) return;
 
+    const invNumber = await getNextINVNumber();
     const result = await create({
-      invoice_number: getNextINVNumber(),
+      invoice_number: invNumber,
       customer_name: formCustomer,
       invoice_date: new Date().toISOString().split("T")[0],
       due_date: formDueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
@@ -156,9 +228,20 @@ function InvoicesContent() {
     } as Partial<Invoice>);
 
     if (result) {
+      // Persist line items to invoice_items table
+      const items = formLineItems.map(li => ({
+        invoice_id: result.id,
+        product_name: li.product,
+        quantity: li.qty,
+        unit_price: li.unit_price,
+        total: li.qty * li.unit_price,
+      }));
+      await supabase.from("invoice_items").insert(items);
+
       setShowDialog(false);
       resetForm();
-      toast("success", `Invoice ${result.invoice_number} created`);
+      toast("success", `Invoice ${result.invoice_number} created with ${items.length} item(s)`);
+      logActivity({ entityType: "invoice", entityId: result.id, action: "Invoice created", details: `${result.invoice_number} — ${formCustomer}` });
     } else {
       toast("error", "Failed to create invoice");
     }
@@ -184,10 +267,27 @@ function InvoicesContent() {
         title="Invoices"
         description="Manage billing and track payments"
         actions={
-          <Button onClick={() => { resetForm(); setShowDialog(true); }}>
-            <Plus className="w-3.5 h-3.5" />
-            New Invoice
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" onClick={() => setShowImport(true)}>
+              <Upload className="w-3.5 h-3.5" />
+              Import
+            </Button>
+            <Button variant="secondary" onClick={() => exportToCSV(invoices, "invoices", [
+              { key: "invoice_number" as keyof typeof invoices[0], label: "Invoice #" },
+              { key: "customer" as keyof typeof invoices[0], label: "Customer" },
+              { key: "date" as keyof typeof invoices[0], label: "Date" },
+              { key: "due_date" as keyof typeof invoices[0], label: "Due Date" },
+              { key: "total" as keyof typeof invoices[0], label: "Total" },
+              { key: "paid" as keyof typeof invoices[0], label: "Paid" },
+              { key: "status" as keyof typeof invoices[0], label: "Status" },
+            ])}>
+              <Download className="w-3.5 h-3.5" /> Export
+            </Button>
+            <Button onClick={() => { resetForm(); setShowDialog(true); }}>
+              <Plus className="w-3.5 h-3.5" />
+              New Invoice
+            </Button>
+          </div>
         }
       />
 
@@ -203,9 +303,7 @@ function InvoicesContent() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-        </div>
+        <TableSkeleton rows={5} columns={7} />
       ) : (
         <DataTable
           columns={columns}
@@ -213,6 +311,16 @@ function InvoicesContent() {
           emptyMessage="No invoices found"
           searchPlaceholder="Search invoices..."
           enableSelection
+          enableColumnFilters
+          filterableColumns={["status"]}
+          onBulkStatusUpdate={async (items, status) => {
+            for (const item of items) {
+              await supabase.from("invoices").update({ status }).eq("id", (item as any).id);
+            }
+            toast("success", "Status updated", `${items.length} items set to ${status}`);
+            fetchAll();
+          }}
+          bulkStatusOptions={["draft", "pending", "paid", "overdue"]}
           onRowClick={(item) => setSelectedInvoice(item)}
         />
       )}
@@ -222,7 +330,7 @@ function InvoicesContent() {
         open={!!selectedInvoice}
         onClose={() => setSelectedInvoice(null)}
         onUpdate={async (updated) => { const result = await update(updated.id, updated); if (result) setSelectedInvoice(result); }}
-        onDelete={async (inv) => { await remove(inv.id); setSelectedInvoice(null); }}
+        onDelete={async (inv) => { setPendingDelete(inv); }}
       />
 
       <Drawer
@@ -240,10 +348,28 @@ function InvoicesContent() {
       >
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
-            <Input label="Customer" placeholder="e.g. City Hospital" value={formCustomer} onChange={(e) => setFormCustomer(e.target.value)} />
+            <div>
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--foreground)" }}>Customer *</label>
+                <select
+                  value={formCustomer}
+                  onChange={(e) => { setFormCustomer(e.target.value); setFormErrors(prev => { const n = { ...prev }; delete n.customer; return n; }); }}
+                  className="w-full h-9 px-3 rounded-lg border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  style={{ background: "var(--background)", borderColor: "var(--border)", color: formCustomer ? "var(--foreground)" : "var(--muted-foreground)" }}
+                >
+                  <option value="">Select customer...</option>
+                  {dbCustomers.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                </select>
+                {formErrors.customer && <p className="text-xs text-red-500 mt-1">{formErrors.customer}</p>}
+              </div>
+            </div>
             <Input label="Sales Order" placeholder="SO-2026-XXX" value={formSO} onChange={(e) => setFormSO(e.target.value)} />
-            <Input label="Due Date" type="date" value={formDueDate} onChange={(e) => setFormDueDate(e.target.value)} />
+            <div>
+              <Input label="Due Date *" type="date" value={formDueDate} onChange={(e) => { setFormDueDate(e.target.value); setFormErrors(prev => { const n = { ...prev }; delete n.due_date; return n; }); }} />
+              {formErrors.due_date && <p className="text-xs text-red-500 mt-1">{formErrors.due_date}</p>}
+            </div>
           </div>
+          {formErrors.line_items && <p className="text-xs text-red-500">{formErrors.line_items}</p>}
 
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -284,7 +410,7 @@ function InvoicesContent() {
                       style={{ background: "var(--background)", borderColor: "var(--border)", color: li.product ? "var(--foreground)" : "var(--muted-foreground)" }}
                     >
                       <option value="">Select product...</option>
-                      {mockProducts.map((p) => (<option key={p.name} value={p.name}>{p.name}</option>))}
+                      {dbProducts.map((p) => (<option key={p.id} value={p.name}>{p.name} — {formatCurrency(p.selling_price || 0)}</option>))}
                     </select>
                   </div>
                   <div className="col-span-2">
@@ -317,6 +443,78 @@ function InvoicesContent() {
             </div>
           </div>
         </div>
+      </Drawer>
+
+      <CSVImportDialog
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        tableName="invoices"
+        displayName="Invoices"
+        requiredFields={["invoice_number", "customer_name", "total_amount"]}
+        optionalFields={["status", "invoice_date", "due_date", "amount_paid", "notes"]}
+        onImportComplete={() => fetchAll()}
+      />
+
+      <DeleteConfirmation
+        open={!!pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+        title={`Delete ${pendingDelete?.invoice_number}?`}
+        description="This invoice and all its line items will be permanently deleted. This action cannot be undone."
+      />
+
+      {/* Record Payment Drawer */}
+      <Drawer
+        open={!!paymentInvoice}
+        onClose={() => setPaymentInvoice(null)}
+        title="Record Payment"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setPaymentInvoice(null)}>Cancel</Button>
+            <Button onClick={handleRecordPayment}>
+              <CreditCard className="w-3.5 h-3.5" /> Record Payment
+            </Button>
+          </div>
+        }
+      >
+        {paymentInvoice && (
+          <div className="space-y-4">
+            <div className="rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--secondary)" }}>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{paymentInvoice.invoice_number}</span>
+                <StatusBadge status={paymentInvoice.status} />
+              </div>
+              <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{paymentInvoice.customer_name || paymentInvoice.customer}</p>
+              <div className="grid grid-cols-3 gap-3 mt-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase" style={{ color: "var(--muted-foreground)" }}>Total</p>
+                  <p className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{formatCurrency(paymentInvoice.total_amount || paymentInvoice.total || 0)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase" style={{ color: "var(--muted-foreground)" }}>Paid</p>
+                  <p className="text-sm font-bold text-emerald-600">{formatCurrency(paymentInvoice.amount_paid || paymentInvoice.paid || 0)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase" style={{ color: "var(--muted-foreground)" }}>Balance</p>
+                  <p className="text-sm font-bold text-red-500">{formatCurrency((paymentInvoice.total_amount || paymentInvoice.total || 0) - (paymentInvoice.amount_paid || paymentInvoice.paid || 0))}</p>
+                </div>
+              </div>
+            </div>
+            <Input label="Payment Amount *" type="number" placeholder="0.00" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} />
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--foreground)" }}>Payment Method</label>
+              <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="w-full h-9 px-3 rounded-lg border text-sm" style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="cash">Cash</option>
+                <option value="cheque">Cheque</option>
+                <option value="online">Online Payment</option>
+              </select>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setPaymentAmount(String((paymentInvoice.total_amount || paymentInvoice.total || 0) - (paymentInvoice.amount_paid || paymentInvoice.paid || 0)))}>
+              Pay Full Balance
+            </Button>
+          </div>
+        )}
       </Drawer>
     </motion.div>
   );

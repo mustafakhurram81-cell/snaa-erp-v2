@@ -1,13 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { Plus, Download, Upload } from "lucide-react";
 import { PageHeader, Button, Drawer, Input, StatusBadge } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { VendorDetail } from "@/components/details/vendor-detail";
 import { useToast } from "@/components/ui/toast";
 import { useSupabaseTable } from "@/lib/supabase-hooks";
+import { exportToCSV } from "@/lib/csv-export";
+import { CSVImportDialog } from "@/components/shared/csv-import";
+import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
+import { logActivity } from "@/lib/activity-logger";
+import { validateEmail } from "@/lib/form-validation";
+import { TableSkeleton } from "@/components/ui/skeleton";
 
 interface Vendor {
     id: string;
@@ -46,31 +52,46 @@ const columns: ColumnDef<Vendor, unknown>[] = [
 ];
 
 export default function VendorsPage() {
-    const { data: vendors, loading, create, update, remove } = useSupabaseTable<Vendor>("vendors");
+    const { data: vendors, loading, create, update, remove, fetchAll } = useSupabaseTable<Vendor>("vendors");
     const [showDialog, setShowDialog] = useState(false);
+    const [showImport, setShowImport] = useState(false);
     const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
-    const [formData, setFormData] = useState({ vendor_code: "", name: "" });
+    const [formData, setFormData] = useState({ vendor_code: "", name: "", contact_name: "", email: "", phone: "", city: "" });
     const { toast } = useToast();
+    // Keyboard shortcut: N to create new
+    useEffect(() => {
+        const handleNew = () => { setShowDialog(true); };
+        const handleEsc = () => { setShowDialog(false); };
+        window.addEventListener("keyboard-new", handleNew);
+        window.addEventListener("keyboard-escape", handleEsc);
+        return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
+    }, []);
+
 
     const handleCreate = async () => {
         if (!formData.name.trim()) { toast("error", "Vendor name is required"); return; }
         if (!formData.vendor_code.trim()) { toast("error", "Vendor code is required"); return; }
+        if (formData.email) {
+            const emailErr = validateEmail(formData.email);
+            if (emailErr) { toast("error", emailErr); return; }
+        }
 
         const result = await create({
             vendor_code: formData.vendor_code,
             name: formData.name,
-            contact_name: "",
-            email: "",
-            phone: "",
-            city: "",
+            contact_name: formData.contact_name,
+            email: formData.email,
+            phone: formData.phone,
+            city: formData.city,
             status: "active",
             ap_balance: 0,
         } as Partial<Vendor>);
 
         if (result) {
             setShowDialog(false);
-            setFormData({ vendor_code: "", name: "" });
+            setFormData({ vendor_code: "", name: "", contact_name: "", email: "", phone: "", city: "" });
             toast("success", "Vendor created", `${formData.name} added successfully`);
+            logActivity({ entityType: "vendor", entityId: result.id, action: "Vendor created", details: `${result.vendor_code} — ${formData.name}` });
         } else {
             toast("error", "Failed to create vendor");
         }
@@ -83,11 +104,15 @@ export default function VendorsPage() {
         }
     };
 
+    const [pendingDelete, setPendingDelete] = useState<Vendor | null>(null);
     const handleDeleteVendor = async (vendor: Vendor) => {
-        const success = await remove(vendor.id);
-        if (success) {
-            setSelectedVendor(null);
-        }
+        setPendingDelete(vendor);
+    };
+    const confirmDelete = async () => {
+        if (!pendingDelete) return;
+        const success = await remove(pendingDelete.id);
+        if (success) setSelectedVendor(null);
+        setPendingDelete(null);
     };
 
     return (
@@ -96,17 +121,25 @@ export default function VendorsPage() {
                 title="Vendors"
                 description={`${vendors.length} registered suppliers`}
                 actions={
-                    <Button onClick={() => setShowDialog(true)}>
-                        <Plus className="w-3.5 h-3.5" />
-                        Add Vendor
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button variant="secondary" onClick={() => setShowImport(true)}>
+                            <Upload className="w-3.5 h-3.5" />
+                            Import
+                        </Button>
+                        <Button variant="secondary" onClick={() => exportToCSV(vendors, 'vendors')}>
+                            <Download className="w-3.5 h-3.5" />
+                            Export
+                        </Button>
+                        <Button onClick={() => setShowDialog(true)}>
+                            <Plus className="w-3.5 h-3.5" />
+                            Add Vendor
+                        </Button>
+                    </div>
                 }
             />
 
             {loading ? (
-                <div className="flex items-center justify-center py-20">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-                </div>
+                <TableSkeleton rows={5} columns={5} />
             ) : (
                 <DataTable
                     columns={columns}
@@ -137,10 +170,38 @@ export default function VendorsPage() {
                 }
             >
                 <div className="space-y-4">
-                    <Input label="Vendor Name *" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Steel Corp" />
-                    <Input label="Vendor Code *" value={formData.vendor_code} onChange={(e) => setFormData({ ...formData, vendor_code: e.target.value })} placeholder="V-006" />
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input label="Vendor Name *" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Steel Corp" />
+                        <Input label="Vendor Code *" value={formData.vendor_code} onChange={(e) => setFormData({ ...formData, vendor_code: e.target.value })} placeholder="V-006" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input label="Contact Person" value={formData.contact_name} onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })} placeholder="Contact name" />
+                        <Input label="Email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="vendor@example.com" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input label="Phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+92-300-0000000" />
+                        <Input label="City" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} placeholder="City" />
+                    </div>
                 </div>
             </Drawer>
+
+            <CSVImportDialog
+                open={showImport}
+                onClose={() => setShowImport(false)}
+                tableName="vendors"
+                displayName="Vendors"
+                requiredFields={["name", "vendor_code"]}
+                optionalFields={["contact_name", "email", "phone", "city", "notes"]}
+                onImportComplete={() => fetchAll()}
+            />
+
+            <DeleteConfirmation
+                open={!!pendingDelete}
+                onClose={() => setPendingDelete(null)}
+                onConfirm={confirmDelete}
+                title={`Delete ${pendingDelete?.name}?`}
+                description="This vendor record will be permanently deleted. This action cannot be undone."
+            />
         </motion.div>
     );
 }
