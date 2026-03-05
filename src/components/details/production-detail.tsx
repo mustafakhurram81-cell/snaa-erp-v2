@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from "react";
 import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard } from "@/components/ui/shared";
 import { formatDate } from "@/lib/utils";
-import { Play, CheckCircle2, Clock, Factory, Edit3, Save, X, Trash2 } from "lucide-react";
+import { Play, CheckCircle2, Factory, Edit3, Save, X, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 import { LiveActivityLog } from "@/components/shared/activity-log";
 import { supabase } from "@/lib/supabase";
 import { RoleGuard } from "@/components/shared/role-guard";
-import { MANUFACTURING_STAGES, type StageStatus as ManufacturingStageStatus } from "@/lib/stages";
+import { MANUFACTURING_STAGES } from "@/lib/stages";
 
 interface ProductionOrder {
     id: string;
@@ -52,12 +52,11 @@ const stageStatusColors: Record<string, string> = {
 };
 
 export function ProductionDetail({ order, open, onClose, onUpdate, onDelete }: ProductionDetailProps) {
-    if (!order) return null;
     const { toast } = useToast();
     const [showDelete, setShowDelete] = useState(false);
     const [activeTab, setActiveTab] = useState("stages");
     const [isEditing, setIsEditing] = useState(false);
-    const [editData, setEditData] = useState({ ...order });
+    const [editData, setEditData] = useState(order ? { ...order } : {} as ProductionOrder);
     const [liveStages, setLiveStages] = useState<LiveStage[]>([]);
     const [loadingStages, setLoadingStages] = useState(false);
 
@@ -79,6 +78,8 @@ export function ProductionDetail({ order, open, onClose, onUpdate, onDelete }: P
                 setLoadingStages(false);
             });
     }, [order?.id, open]);
+
+    if (!order) return null;
 
     const progress = order.quantity > 0 ? Math.round((order.completed / order.quantity) * 100) : 0;
     const completedStages = liveStages.filter(s => s.status === "completed").length;

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard } from "@/components/ui/shared";
-import { formatCurrency, formatDate, getInitials } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { Mail, Phone, MapPin, ShoppingCart, FileText, Edit3, Save, X, Trash2, Building2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
@@ -61,12 +61,11 @@ interface CustomerDetailProps {
 }
 
 export function CustomerDetail({ customer, open, onClose, onUpdate, onDelete }: CustomerDetailProps) {
-    if (!customer) return null;
     const { toast } = useToast();
     const [showDelete, setShowDelete] = useState(false);
     const [activeTab, setActiveTab] = useState("orders");
     const [isEditing, setIsEditing] = useState(false);
-    const [editData, setEditData] = useState({ ...customer });
+    const [editData, setEditData] = useState(customer ? { ...customer } : {} as Customer);
     const [relatedOrders, setRelatedOrders] = useState<RelatedOrder[]>([]);
     const [relatedQuotations, setRelatedQuotations] = useState<RelatedQuotation[]>([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
@@ -111,6 +110,8 @@ export function CustomerDetail({ customer, open, onClose, onUpdate, onDelete }: 
                 setLoadingQuotations(false);
             });
     }, [customer?.name, open]);
+
+    if (!customer) return null;
 
     const handleSave = async () => {
         if (onUpdate) {

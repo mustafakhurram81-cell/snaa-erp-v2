@@ -39,12 +39,11 @@ interface RecentOrder {
 }
 
 export function ProductDetail({ product, open, onClose, onUpdate, onDelete }: ProductDetailProps) {
-    if (!product) return null;
     const { toast } = useToast();
     const [showDelete, setShowDelete] = useState(false);
     const [activeTab, setActiveTab] = useState("orders");
     const [isEditing, setIsEditing] = useState(false);
-    const [editData, setEditData] = useState({ ...product });
+    const [editData, setEditData] = useState(product ? { ...product } : {} as Product);
     const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
 
@@ -92,6 +91,8 @@ export function ProductDetail({ product, open, onClose, onUpdate, onDelete }: Pr
                 setLoadingOrders(false);
             });
     }, [product?.id, product?.name, open]);
+
+    if (!product) return null;
 
     const handleSave = async () => {
         if (onUpdate) onUpdate(editData);

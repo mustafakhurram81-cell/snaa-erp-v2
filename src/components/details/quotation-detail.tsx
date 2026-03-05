@@ -38,14 +38,13 @@ interface QuotationDetailProps {
 }
 
 export function QuotationDetail({ quotation, open, onClose, onConvertToSO, onDelete, onUpdate }: QuotationDetailProps) {
-    if (!quotation) return null;
     const router = useRouter();
     const { toast } = useToast();
     const [showDelete, setShowDelete] = useState(false);
     const [showEmail, setShowEmail] = useState(false);
     const [activeTab, setActiveTab] = useState("items");
     const [isEditing, setIsEditing] = useState(false);
-    const [editData, setEditData] = useState({ customer: quotation.customer, date: quotation.date, valid_until: quotation.valid_until, status: quotation.status });
+    const [editData, setEditData] = useState(quotation ? { customer: quotation.customer, date: quotation.date, valid_until: quotation.valid_until, status: quotation.status } : { customer: "", date: "", valid_until: "", status: "" });
     const [dbLineItems, setDbLineItems] = useState<{ description: string; qty: number; unitPrice: number; total: number }[]>([]);
 
     useEffect(() => {
@@ -64,6 +63,8 @@ export function QuotationDetail({ quotation, open, onClose, onConvertToSO, onDel
             });
         }
     }, [quotation?.id, quotation?.line_items]);
+
+    if (!quotation) return null;
 
     const handleSave = async () => {
         if (onUpdate) onUpdate({ ...quotation, ...editData });

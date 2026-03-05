@@ -41,14 +41,13 @@ interface SalesOrderDetailProps {
 }
 
 export function SalesOrderDetail({ order, open, onClose, onCreateInvoice, onCreateJobOrders, onDelete, onUpdate }: SalesOrderDetailProps) {
-    if (!order) return null;
     const router = useRouter();
     const { toast } = useToast();
     const [showDelete, setShowDelete] = useState(false);
     const [showEmail, setShowEmail] = useState(false);
     const [activeTab, setActiveTab] = useState("details");
     const [isEditing, setIsEditing] = useState(false);
-    const [editData, setEditData] = useState({ customer: order.customer, delivery_date: order.delivery_date, status: order.status });
+    const [editData, setEditData] = useState(order ? { customer: order.customer, delivery_date: order.delivery_date, status: order.status } : { customer: "", delivery_date: "", status: "" });
     const [dbLineItems, setDbLineItems] = useState<{ description: string; qty: number; unitPrice: number; total: number }[]>([]);
 
     useEffect(() => {
@@ -64,6 +63,8 @@ export function SalesOrderDetail({ order, open, onClose, onCreateInvoice, onCrea
             });
         }
     }, [order?.id, order?.line_items]);
+
+    if (!order) return null;
 
     const handleSave = async () => {
         // Check if status changed to shipped/delivered — deduct stock

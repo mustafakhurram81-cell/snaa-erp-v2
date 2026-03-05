@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard } from "@/components/ui/shared";
-import { formatCurrency, formatDate, getInitials } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { Mail, Phone, MapPin, ClipboardList, Edit3, Save, X, Trash2, Store } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
@@ -40,12 +40,11 @@ interface VendorDetailProps {
 }
 
 export function VendorDetail({ vendor, open, onClose, onUpdate, onDelete }: VendorDetailProps) {
-    if (!vendor) return null;
     const { toast } = useToast();
     const [showDelete, setShowDelete] = useState(false);
     const [activeTab, setActiveTab] = useState("pos");
     const [isEditing, setIsEditing] = useState(false);
-    const [editData, setEditData] = useState({ ...vendor });
+    const [editData, setEditData] = useState(vendor ? { ...vendor } : {} as Vendor);
     const [relatedPOs, setRelatedPOs] = useState<RelatedPO[]>([]);
     const [loadingPOs, setLoadingPOs] = useState(false);
 
@@ -68,6 +67,8 @@ export function VendorDetail({ vendor, open, onClose, onUpdate, onDelete }: Vend
                 setLoadingPOs(false);
             });
     }, [vendor?.id, open]);
+
+    if (!vendor) return null;
 
     const totalSpend = relatedPOs.reduce((s, p) => s + (p.total_amount || 0), 0);
 

@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/toast";
 import { LiveActivityLog } from "@/components/shared/activity-log";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 import { EmailSend } from "@/components/shared/email-send";
-import { adjustStockForPO, adjustStockForPartialReceipt } from "@/lib/inventory-adjustment";
+import { adjustStockForPartialReceipt } from "@/lib/inventory-adjustment";
 import { Dialog, Card } from "@/components/ui/shared";
 
 interface PurchaseOrder {
@@ -39,13 +39,12 @@ interface PurchaseOrderDetailProps {
 }
 
 export function PurchaseOrderDetail({ order, open, onClose, onUpdate, onDelete }: PurchaseOrderDetailProps) {
-    if (!order) return null;
     const { toast } = useToast();
     const [showDelete, setShowDelete] = useState(false);
     const [showEmail, setShowEmail] = useState(false);
     const [activeTab, setActiveTab] = useState("items");
     const [isEditing, setIsEditing] = useState(false);
-    const [editData, setEditData] = useState({ vendor: order.vendor, expected_date: order.expected_date, status: order.status });
+    const [editData, setEditData] = useState(order ? { vendor: order.vendor, expected_date: order.expected_date, status: order.status } : { vendor: "", expected_date: "", status: "" });
     const [dbLineItems, setDbLineItems] = useState<{ id: string; description: string; qty: number; unitPrice: number; total: number; receivedQty: number; productId: string | null }[]>([]);
     const [showReceiveModal, setShowReceiveModal] = useState(false);
     const [receiptData, setReceiptData] = useState<Record<string, number>>({});
@@ -76,6 +75,8 @@ export function PurchaseOrderDetail({ order, open, onClose, onUpdate, onDelete }
             });
         }
     }, [order?.id, order?.line_items]);
+
+    if (!order) return null;
 
     const handleSave = async () => {
         if (onUpdate) onUpdate({ ...order, ...editData });

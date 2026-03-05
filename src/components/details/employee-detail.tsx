@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard } from "@/components/ui/shared";
-import { formatCurrency, formatDate, getInitials } from "@/lib/utils";
-import { Mail, Phone, Edit3, Briefcase, Calendar, DollarSign, Save, X, Trash2, Users } from "lucide-react";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { Edit3, Save, X, Trash2, Users } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 import { LiveActivityLog } from "@/components/shared/activity-log";
@@ -39,12 +39,11 @@ interface PayHistoryRow {
 }
 
 export function EmployeeDetail({ employee, open, onClose, onUpdate, onDelete }: EmployeeDetailProps) {
-    if (!employee) return null;
     const { toast } = useToast();
     const [showDelete, setShowDelete] = useState(false);
     const [activeTab, setActiveTab] = useState("payhistory");
     const [isEditing, setIsEditing] = useState(false);
-    const [editData, setEditData] = useState({ ...employee });
+    const [editData, setEditData] = useState(employee ? { ...employee } : {} as Employee);
     const [payHistory, setPayHistory] = useState<PayHistoryRow[]>([]);
     const [loadingPayroll, setLoadingPayroll] = useState(false);
 
@@ -77,6 +76,8 @@ export function EmployeeDetail({ employee, open, onClose, onUpdate, onDelete }: 
                 setLoadingPayroll(false);
             });
     }, [employee?.id, open]);
+
+    if (!employee) return null;
 
     const handleSave = async () => {
         if (onUpdate) onUpdate(editData);

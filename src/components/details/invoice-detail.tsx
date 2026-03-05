@@ -42,7 +42,6 @@ interface InvoiceDetailProps {
 }
 
 export function InvoiceDetail({ invoice, open, onClose, onUpdate, onDelete }: InvoiceDetailProps) {
-    if (!invoice) return null;
     const { toast } = useToast();
     const router = useRouter();
     const [showDelete, setShowDelete] = useState(false);
@@ -50,7 +49,7 @@ export function InvoiceDetail({ invoice, open, onClose, onUpdate, onDelete }: In
     const [showPayment, setShowPayment] = useState(false);
     const [activeTab, setActiveTab] = useState("details");
     const [isEditing, setIsEditing] = useState(false);
-    const [editData, setEditData] = useState({ customer: invoice.customer, due_date: invoice.due_date, status: invoice.status });
+    const [editData, setEditData] = useState(invoice ? { customer: invoice.customer, due_date: invoice.due_date, status: invoice.status } : { customer: "", due_date: "", status: "" });
     const [dbLineItems, setDbLineItems] = useState<{ description: string; qty: number; unitPrice: number; total: number }[]>([]);
 
     useEffect(() => {
@@ -66,6 +65,8 @@ export function InvoiceDetail({ invoice, open, onClose, onUpdate, onDelete }: In
             });
         }
     }, [invoice?.id, invoice?.line_items]);
+
+    if (!invoice) return null;
 
     const handleSave = async () => {
         if (onUpdate) onUpdate({ ...invoice, ...editData });

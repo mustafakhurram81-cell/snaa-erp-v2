@@ -2,30 +2,15 @@
 
 import React, { useState } from "react";
 import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard } from "@/components/ui/shared";
-import { formatDate, formatCurrency } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { MANUFACTURING_STAGES, type JobStage, type StageStatus, type StageType, getProgress } from "@/lib/stages";
 import { useToast } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
 import { LiveActivityLog } from "@/components/shared/activity-log";
 import {
-    Hammer, Flame, CircleDot, FileSliders, Thermometer, Sparkles,
-    Wrench, ShieldCheck, PaintBucket, Package as PackageIcon,
-    CheckCircle2, Clock, Play, SkipForward, Building2, Store,
+    Hammer, CheckCircle2, Clock, Play, SkipForward, Building2, Store,
     Plus, ChevronDown, ChevronUp, ShoppingCart, ImageIcon, Trash2
 } from "lucide-react";
-
-const stageIcons: Record<string, React.ReactNode> = {
-    die_making: <Hammer className="w-4 h-4" />,
-    forging: <Flame className="w-4 h-4" />,
-    grinding: <CircleDot className="w-4 h-4" />,
-    filing: <FileSliders className="w-4 h-4" />,
-    heat_treatment: <Thermometer className="w-4 h-4" />,
-    electroplating: <Sparkles className="w-4 h-4" />,
-    assembly: <Wrench className="w-4 h-4" />,
-    quality_control: <ShieldCheck className="w-4 h-4" />,
-    finishing: <PaintBucket className="w-4 h-4" />,
-    packaging: <PackageIcon className="w-4 h-4" />,
-};
 
 const statusColors: Record<StageStatus, string> = {
     not_started: "text-zinc-400 bg-zinc-100 dark:bg-zinc-800",
@@ -74,7 +59,6 @@ interface POLineItem {
 }
 
 export function JobOrderDetail({ jobOrder, open, onClose, onDelete, onStageUpdate }: JobOrderDetailProps) {
-    if (!jobOrder) return null;
     const { toast } = useToast();
     const [expandedStage, setExpandedStage] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState("stages");
@@ -82,6 +66,9 @@ export function JobOrderDetail({ jobOrder, open, onClose, onDelete, onStageUpdat
     const [poLineItems, setPOLineItems] = useState<POLineItem[]>([]);
     const [poVendor, setPOVendor] = useState("");
     const [poExpectedDate, setPOExpectedDate] = useState("");
+
+    if (!jobOrder) return null;
+
     const progress = getProgress(jobOrder.stages);
 
     const handleStartStage = async (stageId: number) => {
