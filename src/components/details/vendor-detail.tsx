@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
+import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard } from "@/components/ui/shared";
 import { formatCurrency, formatDate, getInitials } from "@/lib/utils";
-import { Mail, Phone, MapPin, ClipboardList, Edit3, Save, X, Trash2 } from "lucide-react";
+import { Mail, Phone, MapPin, ClipboardList, Edit3, Save, X, Trash2, Store } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 import { LiveActivityLog } from "@/components/shared/activity-log";
 import { supabase } from "@/lib/supabase";
+import { RoleGuard } from "@/components/shared/role-guard";
 
 interface Vendor {
     id: string;
@@ -25,9 +26,9 @@ interface Vendor {
 interface RelatedPO {
     id: string;
     po_number: string;
-    total_amount: number;
-    status: string;
-    order_date: string;
+    total_amount: number | null;
+    status: string | null;
+    order_date: string | null;
 }
 
 interface VendorDetailProps {
@@ -105,7 +106,7 @@ export function VendorDetail({ vendor, open, onClose, onUpdate, onDelete }: Vend
                                 <Button variant="secondary" onClick={() => setIsEditing(true)}>
                                     <Edit3 className="w-3.5 h-3.5" /> Edit
                                 </Button>
-                                <button onClick={() => setShowDelete(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                                <RoleGuard minRole="admin"><button onClick={() => setShowDelete(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button></RoleGuard>
                                 <Button><ClipboardList className="w-3.5 h-3.5" /> New PO</Button>
                             </>
                         )}
@@ -114,9 +115,9 @@ export function VendorDetail({ vendor, open, onClose, onUpdate, onDelete }: Vend
             }
         >
             {/* Header */}
-            <div className="flex items-center gap-4 mb-5">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
-                    {getInitials(isEditing ? editData.name : vendor.name)}
+            <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white flex-shrink-0 shadow-md">
+                    <Store className="w-8 h-8" />
                 </div>
                 <div className="flex-1">
                     {isEditing ? (
@@ -126,64 +127,64 @@ export function VendorDetail({ vendor, open, onClose, onUpdate, onDelete }: Vend
                         </div>
                     ) : (
                         <>
-                            <h3 className="text-lg font-bold" style={{ color: "var(--foreground)" }}>{vendor.name}</h3>
-                            <p className="text-sm font-mono" style={{ color: "var(--muted-foreground)" }}>{vendor.vendor_code}</p>
+                            <h3 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>{vendor.name}</h3>
+                            <p className="text-sm mt-0.5 font-mono" style={{ color: "var(--muted-foreground)" }}>{vendor.vendor_code}</p>
                         </>
                     )}
                 </div>
-                {!isEditing && <StatusBadge status={vendor.status} />}
-                {isEditing && (
-                    <select
-                        value={editData.status}
-                        onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                        className="h-8 px-3 rounded-lg border text-xs font-medium"
-                        style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
-                    >
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                )}
+                <div className="flex flex-col items-end gap-2">
+                    {!isEditing && <StatusBadge status={vendor.status} />}
+                    {isEditing && (
+                        <select
+                            value={editData.status}
+                            onChange={(e) => setEditData({ ...editData, status: e.target.value })}
+                            className="h-8 px-3 rounded-lg border text-xs font-medium"
+                            style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+                        >
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    )}
+                </div>
             </div>
 
             {/* Contact Info */}
-            <div className="rounded-xl border p-4 mb-5" style={{ background: "var(--secondary)", borderColor: "var(--border)" }}>
-                {isEditing ? (
-                    <div className="grid grid-cols-2 gap-3">
-                        <Input label="Contact Name" value={editData.contact_name} onChange={(e) => setEditData({ ...editData, contact_name: e.target.value })} />
-                        <Input label="City" value={editData.city} onChange={(e) => setEditData({ ...editData, city: e.target.value })} />
-                        <Input label="Email" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} />
-                        <Input label="Phone" value={editData.phone} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} />
-                    </div>
-                ) : (
-                    <>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--muted-foreground)" }}>Contact Person</p>
-                        <p className="text-sm font-medium mb-3" style={{ color: "var(--foreground)" }}>{vendor.contact_name}</p>
+            <DrawerSection label="Contact Information">
+                <div className="rounded-xl border p-4" style={{ background: "var(--secondary)", borderColor: "var(--border)" }}>
+                    {isEditing ? (
                         <div className="grid grid-cols-2 gap-3">
-                            <div className="flex items-center gap-2 text-sm" style={{ color: "var(--foreground)" }}>
-                                <Mail className="w-3.5 h-3.5" style={{ color: "var(--muted-foreground)" }} /> {vendor.email}
-                            </div>
-                            <div className="flex items-center gap-2 text-sm" style={{ color: "var(--foreground)" }}>
-                                <Phone className="w-3.5 h-3.5" style={{ color: "var(--muted-foreground)" }} /> {vendor.phone}
-                            </div>
-                            <div className="flex items-center gap-2 text-sm col-span-2" style={{ color: "var(--foreground)" }}>
-                                <MapPin className="w-3.5 h-3.5" style={{ color: "var(--muted-foreground)" }} /> {vendor.city}
-                            </div>
+                            <Input label="Contact Name" value={editData.contact_name} onChange={(e) => setEditData({ ...editData, contact_name: e.target.value })} />
+                            <Input label="City" value={editData.city} onChange={(e) => setEditData({ ...editData, city: e.target.value })} />
+                            <Input label="Email" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} />
+                            <Input label="Phone" value={editData.phone} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} />
                         </div>
-                    </>
-                )}
-            </div>
+                    ) : (
+                        <>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--muted-foreground)" }}>Contact Person</p>
+                            <p className="text-sm font-medium mb-3" style={{ color: "var(--foreground)" }}>{vendor.contact_name}</p>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="flex items-center gap-2 text-sm" style={{ color: "var(--foreground)" }}>
+                                    <Mail className="w-3.5 h-3.5" style={{ color: "var(--muted-foreground)" }} /> {vendor.email}
+                                </div>
+                                <div className="flex items-center gap-2 text-sm" style={{ color: "var(--foreground)" }}>
+                                    <Phone className="w-3.5 h-3.5" style={{ color: "var(--muted-foreground)" }} /> {vendor.phone}
+                                </div>
+                                <div className="flex items-center gap-2 text-sm col-span-2" style={{ color: "var(--foreground)" }}>
+                                    <MapPin className="w-3.5 h-3.5" style={{ color: "var(--muted-foreground)" }} /> {vendor.city}
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </DrawerSection>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 gap-4 mb-5">
-                <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Total Orders</p>
-                    <p className="text-2xl font-bold mt-0.5" style={{ color: "var(--foreground)" }}>{relatedPOs.length}</p>
+            <DrawerSection label="Financial">
+                <div className="grid grid-cols-2 gap-3">
+                    <DrawerStatCard label="Total Orders" value={relatedPOs.length} accent="blue" />
+                    <DrawerStatCard label="Total Spend" value={formatCurrency(totalSpend)} accent="violet" />
                 </div>
-                <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Total Spend</p>
-                    <p className="text-2xl font-bold mt-0.5" style={{ color: "var(--foreground)" }}>{formatCurrency(totalSpend)}</p>
-                </div>
-            </div>
+            </DrawerSection>
 
             {/* Tabs (hidden during edit) */}
             {!isEditing && (
@@ -197,14 +198,14 @@ export function VendorDetail({ vendor, open, onClose, onUpdate, onDelete }: Vend
                                 <div className="py-8 text-center text-sm" style={{ color: "var(--muted-foreground)" }}>No purchase orders found</div>
                             ) : (
                                 relatedPOs.map((po) => (
-                                    <div key={po.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: "var(--border)" }}>
+                                    <div key={po.id} className="flex items-center justify-between p-3 rounded-xl border transition-all duration-200 hover:shadow-soft-md hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer group" style={{ borderColor: "var(--border)" }}>
                                         <div>
-                                            <p className="text-sm font-medium" style={{ color: "var(--primary)" }}>{po.po_number}</p>
-                                            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{formatDate(po.order_date)}</p>
+                                            <p className="text-sm font-bold group-hover:text-indigo-600 transition-colors" style={{ color: "var(--primary)" }}>{po.po_number}</p>
+                                            <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{formatDate(po.order_date || "")}</p>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{formatCurrency(po.total_amount)}</span>
-                                            <StatusBadge status={po.status} />
+                                            <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{formatCurrency(po.total_amount ?? 0)}</span>
+                                            <StatusBadge status={po.status || "unknown"} />
                                         </div>
                                     </div>
                                 ))

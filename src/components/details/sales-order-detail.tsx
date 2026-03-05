@@ -2,16 +2,17 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
+import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard } from "@/components/ui/shared";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
-import { Download, Receipt, Truck, ClipboardList, Edit3, Trash2, Save, X, Send } from "lucide-react";
+import { Download, Receipt, Truck, ClipboardList, Edit3, Trash2, Save, X, Send, ShoppingCart } from "lucide-react";
 import { generatePDF } from "@/lib/pdf";
 import { useToast } from "@/components/ui/toast";
 import { LiveActivityLog } from "@/components/shared/activity-log";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 import { EmailSend } from "@/components/shared/email-send";
 import { adjustStockForSO } from "@/lib/inventory-adjustment";
+import { RoleGuard } from "@/components/shared/role-guard";
 
 interface SalesOrder {
     id: string;
@@ -65,6 +66,16 @@ export function SalesOrderDetail({ order, open, onClose, onCreateInvoice, onCrea
     }, [order?.id, order?.line_items]);
 
     const handleSave = async () => {
+        // Check if status changed to shipped/delivered — deduct stock
+        const wasShippable = order.status !== "shipped" && order.status !== "delivered";
+        const nowShipped = editData.status === "shipped" || editData.status === "delivered";
+        if (wasShippable && nowShipped) {
+            const result = await adjustStockForSO(order.id, "deduct");
+            if (result.adjustments.length > 0) {
+                toast("info", "Stock adjusted", `${result.adjustments.length} product(s) deducted from inventory`);
+            }
+        }
+
         if (onUpdate) onUpdate({ ...order, ...editData });
         setIsEditing(false);
         toast("success", "Sales Order updated", `${order.order_number} saved`);
@@ -108,7 +119,7 @@ export function SalesOrderDetail({ order, open, onClose, onCreateInvoice, onCrea
                         ) : (
                             <>
                                 <Button variant="secondary" onClick={() => setIsEditing(true)}><Edit3 className="w-3.5 h-3.5" /> Edit</Button>
-                                <button onClick={() => setShowDelete(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                                <RoleGuard minRole="admin"><button onClick={() => setShowDelete(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button></RoleGuard>
                             </>
                         )}
                     </div>
@@ -143,7 +154,10 @@ export function SalesOrderDetail({ order, open, onClose, onCreateInvoice, onCrea
             }
         >
             {/* Header */}
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-4 mb-5">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white flex-shrink-0 shadow-md">
+                    <ShoppingCart className="w-8 h-8" />
+                </div>
                 <div className="flex-1">
                     <h3 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>{order.order_number}</h3>
                     {isEditing ? (
@@ -168,23 +182,33 @@ export function SalesOrderDetail({ order, open, onClose, onCreateInvoice, onCrea
 
             {/* Progress Tracker (hidden during edit) */}
             {!isEditing && order.status !== "cancelled" && (
-                <div className="mb-5 rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--muted-foreground)" }}>Order Progress</p>
-                    <div className="flex items-center gap-1">
-                        {statusSteps.map((step, idx) => (
-                            <React.Fragment key={step}>
-                                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${idx <= currentStep ? "bg-blue-600 text-white" : "border-2 text-[var(--muted-foreground)]"}`} style={idx > currentStep ? { borderColor: "var(--border)" } : undefined}>{idx + 1}</div>
-                                {idx < statusSteps.length - 1 && (<div className="flex-1 h-0.5 rounded" style={{ background: idx < currentStep ? "#2563eb" : "var(--border)" }} />)}
-                            </React.Fragment>
-                        ))}
+                <DrawerSection label="Order Status">
+                    <div className="rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>
+                        <div className="flex items-center gap-1">
+                            {statusSteps.map((step, idx) => (
+                                <React.Fragment key={step}>
+                                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${idx <= currentStep ? "bg-blue-600 text-white" : "border-2 text-[var(--muted-foreground)]"}`} style={idx > currentStep ? { borderColor: "var(--border)" } : undefined}>{idx + 1}</div>
+                                    {idx < statusSteps.length - 1 && (<div className="flex-1 h-0.5 rounded" style={{ background: idx < currentStep ? "#2563eb" : "var(--border)" }} />)}
+                                </React.Fragment>
+                            ))}
+                        </div>
+                        <div className="flex justify-between mt-2">
+                            {["Confirmed", "In Production", "Shipped", "Delivered"].map((label) => (
+                                <span key={label} className="text-[10px] font-medium" style={{ color: "var(--muted-foreground)" }}>{label}</span>
+                            ))}
+                        </div>
                     </div>
-                    <div className="flex justify-between mt-2">
-                        {["Confirmed", "In Production", "Shipped", "Delivered"].map((label) => (
-                            <span key={label} className="text-[10px] font-medium" style={{ color: "var(--muted-foreground)" }}>{label}</span>
-                        ))}
-                    </div>
-                </div>
+                </DrawerSection>
             )}
+
+            {/* Order Info Stats */}
+            <DrawerSection label="Order Summary">
+                <div className="grid grid-cols-3 gap-3">
+                    <DrawerStatCard label="Total Amount" value={formatCurrency(order.total)} accent="emerald" />
+                    <DrawerStatCard label="Total Items" value={order.items_count} accent="blue" />
+                    <DrawerStatCard label="Due Date" value={formatDate(order.delivery_date)} accent="amber" />
+                </div>
+            </DrawerSection>
 
             {/* Meta / Edit Fields */}
             {isEditing ? (
@@ -235,7 +259,7 @@ export function SalesOrderDetail({ order, open, onClose, onCreateInvoice, onCrea
                                     </tr></thead>
                                     <tbody>
                                         {lineItems.map((item, idx) => (
-                                            <tr key={idx} className="border-t" style={{ borderColor: "var(--border)" }}>
+                                            <tr key={idx} className="border-t hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors" style={{ borderColor: "var(--border)" }}>
                                                 <td className="px-4 py-3 text-sm" style={{ color: "var(--foreground)" }}>{item.description}</td>
                                                 <td className="px-4 py-3 text-sm text-right" style={{ color: "var(--muted-foreground)" }}>{item.qty}</td>
                                                 <td className="px-4 py-3 text-sm text-right" style={{ color: "var(--muted-foreground)" }}>{formatCurrency(item.unitPrice)}</td>

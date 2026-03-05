@@ -5,6 +5,7 @@ import { CurrencyProvider } from "@/lib/currency";
 import { ToastProvider } from "@/components/ui/toast";
 import { AppShell } from "@/components/layout/app-shell";
 import { AuthProvider } from "@/lib/auth-context";
+import { ErrorBoundary } from "@/components/shared/error-boundary";
 
 export const metadata: Metadata = {
   title: "Smith Instruments ERP",
@@ -31,7 +32,7 @@ export default function RootLayout({
           <AuthProvider>
             <CurrencyProvider>
               <ToastProvider>
-                <AppShell>{children}</AppShell>
+                <AppShell><ErrorBoundary>{children}</ErrorBoundary></AppShell>
               </ToastProvider>
             </CurrencyProvider>
           </AuthProvider>

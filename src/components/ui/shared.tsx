@@ -107,6 +107,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
         closed: "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800/50 dark:text-slate-400 dark:border-slate-700",
         cancelled: "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800",
         processing: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800",
+        partial: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800",
     };
 
     const colorClass = colors[status.toLowerCase().replace(/[\s-]/g, "_")] ||
@@ -332,27 +333,80 @@ interface DrawerTabsProps {
 
 export function DrawerTabs({ tabs, activeTab, onChange }: DrawerTabsProps) {
     return (
-        <div className="flex items-center gap-0 border-b mb-5" style={{ borderColor: "var(--border)" }}>
+        <div className="flex items-center gap-1 p-1 rounded-xl mb-5" style={{ background: "var(--secondary)" }}>
             {tabs.map((tab) => (
                 <button
                     key={tab.key}
                     onClick={() => onChange(tab.key)}
                     className={cn(
-                        "px-4 py-2.5 text-sm font-medium transition-all relative",
+                        "flex-1 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5",
                         activeTab === tab.key
-                            ? "text-[var(--foreground)]"
+                            ? "bg-[var(--card)] text-[var(--foreground)] shadow-sm"
                             : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                     )}
                 >
                     {tab.label}
                     {tab.count !== undefined && (
-                        <span className="ml-1.5 text-xs opacity-60">{tab.count}</span>
-                    )}
-                    {activeTab === tab.key && (
-                        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t" />
+                        <span className={cn(
+                            "text-[10px] px-1.5 py-0.5 rounded-full font-bold min-w-[18px] text-center transition-colors",
+                            activeTab === tab.key
+                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                                : "bg-[var(--card)] text-[var(--muted-foreground)]"
+                        )}>{tab.count}</span>
                     )}
                 </button>
             ))}
+        </div>
+    );
+}
+
+// --- Drawer Section Divider ---
+interface DrawerSectionProps {
+    label: string;
+    children: React.ReactNode;
+    className?: string;
+}
+
+export function DrawerSection({ label, children, className }: DrawerSectionProps) {
+    return (
+        <div className={cn("mb-5", className)}>
+            <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>{label}</span>
+                <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
+            </div>
+            {children}
+        </div>
+    );
+}
+
+// --- Drawer Stat Card ---
+interface DrawerStatCardProps {
+    label: string;
+    value: string | number;
+    subValue?: string;
+    icon?: React.ReactNode;
+    accent?: "blue" | "emerald" | "amber" | "violet" | "rose";
+}
+
+export function DrawerStatCard({ label, value, subValue, icon, accent = "blue" }: DrawerStatCardProps) {
+    const accentColors = {
+        blue: "from-blue-500 to-blue-600",
+        emerald: "from-emerald-500 to-emerald-600",
+        amber: "from-amber-500 to-amber-600",
+        violet: "from-violet-500 to-violet-600",
+        rose: "from-rose-500 to-rose-600",
+    };
+    return (
+        <div className="relative rounded-xl border p-3 overflow-hidden" style={{ borderColor: "var(--border)" }}>
+            <div className={cn("absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b", accentColors[accent])} />
+            <div className="flex items-center justify-between">
+                <div className="pl-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>{label}</p>
+                    <p className="text-sm font-bold mt-0.5" style={{ color: "var(--foreground)" }}>{value}</p>
+                    {subValue && <p className="text-[10px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>{subValue}</p>}
+                </div>
+                {icon && <div className="text-[var(--muted-foreground)] opacity-60">{icon}</div>}
+            </div>
         </div>
     );
 }
@@ -443,18 +497,20 @@ export function SearchInput({ value, onChange, placeholder = "Search..." }: Sear
 // --- Drawer ---
 import { AnimatePresence } from "framer-motion";
 import { motion } from "framer-motion";
+import { X as XIcon } from "lucide-react";
 
 interface DrawerProps {
     open: boolean;
     onClose: () => void;
     title: string;
+    subtitle?: string;
     children: React.ReactNode;
     width?: string;
     footer?: React.ReactNode;
     onSave?: () => void;
 }
 
-export function Drawer({ open, onClose, title, children, width = "max-w-lg", footer, onSave }: DrawerProps) {
+export function Drawer({ open, onClose, title, subtitle, children, width = "max-w-lg", footer, onSave }: DrawerProps) {
     // Keyboard shortcuts: Escape to close, Ctrl/Cmd+S to save
     useEffect(() => {
         if (!open) return;
@@ -480,14 +536,14 @@ export function Drawer({ open, onClose, title, children, width = "max-w-lg", foo
                         onClick={onClose}
                     />
 
-                    {/* Panel — full-width on mobile, constrained on desktop */}
+                    {/* Panel */}
                     <motion.div
                         initial={{ x: "100%" }}
                         animate={{ x: 0 }}
                         exit={{ x: "100%" }}
                         transition={{ type: "spring", damping: 30, stiffness: 300 }}
                         className={cn(
-                            "fixed right-0 top-0 z-50 h-screen w-full flex flex-col shadow-soft-lg",
+                            "fixed right-0 top-0 z-50 h-screen w-full flex flex-col shadow-2xl",
                             "max-sm:max-w-full",
                             width
                         )}
@@ -495,18 +551,25 @@ export function Drawer({ open, onClose, title, children, width = "max-w-lg", foo
                     >
                         {/* Header */}
                         <div
-                            className="flex items-center justify-between px-6 py-4 border-b shrink-0"
+                            className="flex items-center justify-between px-6 py-4 border-b shrink-0 relative"
                             style={{ borderColor: "var(--border)" }}
                         >
-                            <h2 className="text-lg font-semibold" style={{ color: "var(--foreground)" }}>
-                                {title}
-                            </h2>
+                            {/* Left accent */}
+                            <div className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-gradient-to-b from-blue-500 to-indigo-600" />
+                            <div className="pl-2">
+                                <h2 className="text-lg font-semibold" style={{ color: "var(--foreground)" }}>
+                                    {title}
+                                </h2>
+                                {subtitle && (
+                                    <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>{subtitle}</p>
+                                )}
+                            </div>
                             <button
                                 onClick={onClose}
-                                className="p-1.5 rounded-lg transition-colors hover:bg-[var(--secondary)]"
+                                className="p-2 rounded-lg transition-all duration-200 hover:bg-[var(--secondary)] hover:scale-105 active:scale-95"
                                 style={{ color: "var(--muted-foreground)" }}
                             >
-                                ✕
+                                <XIcon className="w-4 h-4" />
                             </button>
                         </div>
 

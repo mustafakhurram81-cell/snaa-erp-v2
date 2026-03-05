@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Save, Building2, Globe, Receipt, Palette, Hash, Bell, User, Lock, Eye, EyeOff, Mail, Users, Trash2, UserPlus, Download, Database } from "lucide-react";
+import { Save, Building2, Globe, Palette, Hash, Bell, User, Lock, Eye, EyeOff, Mail, Users, Trash2, UserPlus, Download, Database } from "lucide-react";
 import { PageHeader, Button, Card, Input } from "@/components/ui/shared";
 import { useToast } from "@/components/ui/toast";
 import { useCurrency, currencies } from "@/lib/currency";
@@ -16,9 +16,6 @@ interface SystemSettings {
     company_phone: string;
     company_email: string;
     company_website: string;
-    tax_id: string;
-    gst_rate: number;
-    withholding_tax_rate: number;
     default_currency: string;
     [key: string]: unknown;
 }
@@ -43,12 +40,6 @@ export default function SettingsPage() {
         phone: "+92 52 1234567",
         email: "info@smithinstruments.com",
         website: "www.smithinstruments.com",
-        taxId: "NTN-1234567-8",
-    });
-
-    const [tax, setTax] = useState({
-        gst: "18",
-        withholding: "4.5",
     });
 
     // Sync settings from DB when loaded
@@ -60,11 +51,6 @@ export default function SettingsPage() {
                 phone: (settings.company_phone as string) || company.phone,
                 email: (settings.company_email as string) || company.email,
                 website: (settings.company_website as string) || company.website,
-                taxId: (settings.tax_id as string) || company.taxId,
-            });
-            setTax({
-                gst: settings.gst_rate != null ? String(settings.gst_rate) : tax.gst,
-                withholding: settings.withholding_tax_rate != null ? String(settings.withholding_tax_rate) : tax.withholding,
             });
             if (settings.default_currency) {
                 setCurrency(settings.default_currency as string);
@@ -108,9 +94,6 @@ export default function SettingsPage() {
             company_phone: company.phone,
             company_email: company.email,
             company_website: company.website,
-            tax_id: company.taxId,
-            gst_rate: parseFloat(tax.gst) || 0,
-            withholding_tax_rate: parseFloat(tax.withholding) || 0,
             default_currency: currency.code,
         } as Partial<SystemSettings>);
 
@@ -169,23 +152,17 @@ export default function SettingsPage() {
                                     <Input value={company.email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCompany({ ...company, email: e.target.value })} />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>Website</label>
-                                    <Input value={company.website} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCompany({ ...company, website: e.target.value })} />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>Tax ID / NTN</label>
-                                    <Input value={company.taxId} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCompany({ ...company, taxId: e.target.value })} />
-                                </div>
+                            <div>
+                                <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>Website</label>
+                                <Input value={company.website} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCompany({ ...company, website: e.target.value })} />
                             </div>
                         </div>
                     </Card>
                 </motion.div>
 
-                {/* Currency & Tax */}
+                {/* Currency */}
                 <motion.div variants={item}>
-                    <Card className="mb-5">
+                    <Card>
                         <div className="flex items-center gap-2 mb-5">
                             <Globe className="w-4 h-4" style={{ color: "var(--primary)" }} />
                             <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Currency</h3>
@@ -205,23 +182,6 @@ export default function SettingsPage() {
                                         <div className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{curr.name}</div>
                                     </button>
                                 ))}
-                            </div>
-                        </div>
-                    </Card>
-
-                    <Card>
-                        <div className="flex items-center gap-2 mb-5">
-                            <Receipt className="w-4 h-4" style={{ color: "var(--primary)" }} />
-                            <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Tax Configuration</h3>
-                        </div>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>GST Rate (%)</label>
-                                <Input value={tax.gst} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTax({ ...tax, gst: e.target.value })} />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted-foreground)" }}>Withholding Tax (%)</label>
-                                <Input value={tax.withholding} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTax({ ...tax, withholding: e.target.value })} />
                             </div>
                         </div>
                     </Card>
@@ -442,7 +402,6 @@ export default function SettingsPage() {
                         <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
                             {company.phone} · {company.email} · {company.website}
                         </p>
-                        <p className="text-[10px] mt-1 font-medium" style={{ color: "var(--muted-foreground)" }}>NTN: {company.taxId}</p>
                     </div>
                 </Card>
             </motion.div>

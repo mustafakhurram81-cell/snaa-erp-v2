@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
+import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard } from "@/components/ui/shared";
 import { formatDate } from "@/lib/utils";
 import { Play, CheckCircle2, Clock, Factory, Edit3, Save, X, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 import { LiveActivityLog } from "@/components/shared/activity-log";
 import { supabase } from "@/lib/supabase";
+import { RoleGuard } from "@/components/shared/role-guard";
 import { MANUFACTURING_STAGES, type StageStatus as ManufacturingStageStatus } from "@/lib/stages";
 
 interface ProductionOrder {
@@ -35,7 +36,7 @@ interface LiveStage {
     id: string;
     stage_number: number;
     stage_name: string;
-    status: string;
+    status: string | null;
     execution_type: string | null;
     vendor_id: string | null;
     created_at: string | null;
@@ -121,7 +122,7 @@ export function ProductionDetail({ order, open, onClose, onUpdate, onDelete }: P
                         ) : (
                             <>
                                 <Button variant="secondary" onClick={() => setIsEditing(true)}><Edit3 className="w-3.5 h-3.5" /> Edit</Button>
-                                <button onClick={() => setShowDelete(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                                <RoleGuard minRole="admin"><button onClick={() => setShowDelete(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button></RoleGuard>
                             </>
                         )}
                     </div>
@@ -145,16 +146,24 @@ export function ProductionDetail({ order, open, onClose, onUpdate, onDelete }: P
             }
         >
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    {isEditing ? (
-                        <Input value={editData.po_number} onChange={(e) => setEditData({ ...editData, po_number: e.target.value })} placeholder="Order number" />
-                    ) : (
-                        <h3 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>{order.po_number}</h3>
-                    )}
-                    <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>{order.product}</p>
+            <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white flex-shrink-0 shadow-md">
+                    <Factory className="w-8 h-8" />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex-1">
+                    {isEditing ? (
+                        <div className="space-y-2">
+                            <Input value={editData.po_number} onChange={(e) => setEditData({ ...editData, po_number: e.target.value })} placeholder="Order number" />
+                            <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>{order.product}</p>
+                        </div>
+                    ) : (
+                        <>
+                            <h3 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>{order.po_number}</h3>
+                            <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>{order.product}</p>
+                        </>
+                    )}
+                </div>
+                <div className="flex flex-col items-end gap-2">
                     <StatusBadge status={order.priority} />
                     {isEditing ? (
                         <select value={editData.status} onChange={(e) => setEditData({ ...editData, status: e.target.value })}
@@ -171,69 +180,52 @@ export function ProductionDetail({ order, open, onClose, onUpdate, onDelete }: P
             </div>
 
             {/* Progress Bars */}
-            <div className="grid grid-cols-2 gap-4 mb-5">
-                <div className="rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Quantity Progress</p>
-                        <p className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{progress}%</p>
+            <DrawerSection label="Production Velocity">
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>Quantity Progress</p>
+                            <p className="text-xs font-bold" style={{ color: "var(--foreground)" }}>{progress}%</p>
+                        </div>
+                        <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "var(--secondary)" }}>
+                            <div
+                                className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
+                                style={{ width: `${progress}%` }}
+                            />
+                        </div>
+                        <div className="flex justify-between mt-2">
+                            <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{order.completed} completed</span>
+                            <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{order.quantity} total</span>
+                        </div>
                     </div>
-                    <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: "var(--secondary)" }}>
-                        <div
-                            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
-                    <div className="flex justify-between mt-2">
-                        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{order.completed} completed</span>
-                        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{order.quantity} total</span>
+                    <div className="rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>Stage Progress</p>
+                            <p className="text-xs font-bold" style={{ color: "var(--foreground)" }}>{stageProgress}%</p>
+                        </div>
+                        <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "var(--secondary)" }}>
+                            <div
+                                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-500"
+                                style={{ width: `${stageProgress}%` }}
+                            />
+                        </div>
+                        <div className="flex justify-between mt-2">
+                            <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{completedStages} completed</span>
+                            <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{totalStages} stages</span>
+                        </div>
                     </div>
                 </div>
-                <div className="rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Stage Progress</p>
-                        <p className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{stageProgress}%</p>
-                    </div>
-                    <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: "var(--secondary)" }}>
-                        <div
-                            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-500"
-                            style={{ width: `${stageProgress}%` }}
-                        />
-                    </div>
-                    <div className="flex justify-between mt-2">
-                        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{completedStages} completed</span>
-                        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{totalStages} stages</span>
-                    </div>
-                </div>
-            </div>
+            </DrawerSection>
 
-            {/* Meta */}
-            <div className="grid grid-cols-2 gap-4 mb-5">
-                <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Sales Order</p>
-                    <p className="text-sm font-medium mt-1" style={{ color: "var(--primary)" }}>{order.sales_order}</p>
+            {/* Order Info Stats */}
+            <DrawerSection label="Order Details">
+                <div className="grid grid-cols-2 gap-3">
+                    <DrawerStatCard label="Sales Order" value={order.sales_order} accent="violet" />
+                    <DrawerStatCard label="Units" value={order.quantity} accent="emerald" />
+                    <DrawerStatCard label="Start Date" value={formatDate(order.start_date)} accent="blue" />
+                    <DrawerStatCard label="Due Date" value={formatDate(order.due_date)} accent="rose" />
                 </div>
-                <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Quantity</p>
-                    <p className="text-sm font-medium mt-1" style={{ color: "var(--foreground)" }}>{order.quantity} units</p>
-                </div>
-                {isEditing ? (
-                    <>
-                        <Input label="Start Date" type="date" value={editData.start_date} onChange={(e) => setEditData({ ...editData, start_date: e.target.value })} />
-                        <Input label="Due Date" type="date" value={editData.due_date} onChange={(e) => setEditData({ ...editData, due_date: e.target.value })} />
-                    </>
-                ) : (
-                    <>
-                        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Start Date</p>
-                            <p className="text-sm font-medium mt-1" style={{ color: "var(--foreground)" }}>{formatDate(order.start_date)}</p>
-                        </div>
-                        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Due Date</p>
-                            <p className="text-sm font-medium mt-1" style={{ color: "var(--foreground)" }}>{formatDate(order.due_date)}</p>
-                        </div>
-                    </>
-                )}
-            </div>
+            </DrawerSection>
 
             {/* Tabs (hidden during edit) */}
             {!isEditing && (
@@ -261,8 +253,8 @@ export function ProductionDetail({ order, open, onClose, onUpdate, onDelete }: P
                                             <div key={stage.id} className="flex gap-3">
                                                 <div className="flex flex-col items-center">
                                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${isComplete ? "bg-emerald-600 text-white" :
-                                                            isActive ? "bg-blue-600 text-white animate-pulse" :
-                                                                "border-2"
+                                                        isActive ? "bg-blue-600 text-white animate-pulse" :
+                                                            "border-2"
                                                         }`} style={!isComplete && !isActive ? { borderColor: "var(--border)", color: "var(--muted-foreground)" } : undefined}>
                                                         {isComplete ? (
                                                             <CheckCircle2 className="w-4 h-4" />

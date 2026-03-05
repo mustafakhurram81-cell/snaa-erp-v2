@@ -154,6 +154,22 @@ export default function PurchaseOrdersPage() {
     } as Partial<PurchaseOrder>);
 
     if (result) {
+      // Persist line items
+      const items = formLineItems.map((li, idx) => ({
+        purchase_order_id: result.id,
+        description: li.item,
+        quantity: li.qty,
+        unit_price: li.unit_cost,
+        line_number: idx + 1,
+      }));
+      await (supabase as any).from("purchase_order_items").insert(items);
+
+      // Look up vendor_id and link to PO
+      const { data: vendorRow } = await supabase.from("vendors").select("id").eq("name", formVendor).maybeSingle();
+      if (vendorRow) {
+        await supabase.from("purchase_orders").update({ vendor_id: vendorRow.id }).eq("id", result.id);
+      }
+
       setShowDialog(false);
       resetForm();
       toast("success", `Purchase Order ${result.po_number} created`);

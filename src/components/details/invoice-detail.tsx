@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
+import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard } from "@/components/ui/shared";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
+import { RoleGuard } from "@/components/shared/role-guard";
 import { Download, DollarSign, Send, Edit3, Trash2, Save, X } from "lucide-react";
 import { generatePDF } from "@/lib/pdf";
 import { useToast } from "@/components/ui/toast";
@@ -109,7 +110,7 @@ export function InvoiceDetail({ invoice, open, onClose, onUpdate, onDelete }: In
                         ) : (
                             <>
                                 <Button variant="secondary" onClick={() => setIsEditing(true)}><Edit3 className="w-3.5 h-3.5" /> Edit</Button>
-                                <button onClick={() => setShowDelete(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                                <RoleGuard minRole="admin"><button onClick={() => setShowDelete(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button></RoleGuard>
                             </>
                         )}
                     </div>
@@ -124,7 +125,10 @@ export function InvoiceDetail({ invoice, open, onClose, onUpdate, onDelete }: In
             }
         >
             {/* Header */}
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-4 mb-5">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white flex-shrink-0 shadow-md">
+                    <DollarSign className="w-8 h-8" />
+                </div>
                 <div className="flex-1">
                     <h3 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>{invoice.invoice_number}</h3>
                     {isEditing ? (
@@ -159,20 +163,13 @@ export function InvoiceDetail({ invoice, open, onClose, onUpdate, onDelete }: In
             </div>
 
             {/* Payment Summary */}
-            <div className="grid grid-cols-3 gap-4 mb-5">
-                <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Total</p>
-                    <p className="text-lg font-bold mt-0.5" style={{ color: "var(--foreground)" }}>{formatCurrency(invoice.total)}</p>
+            <DrawerSection label="Financial Status">
+                <div className="grid grid-cols-3 gap-3">
+                    <DrawerStatCard label="Total Amount" value={formatCurrency(invoice.total)} accent="blue" />
+                    <DrawerStatCard label="Amount Paid" value={formatCurrency(invoice.paid)} accent="emerald" />
+                    <DrawerStatCard label="Balance Due" value={formatCurrency(balance)} accent={balance > 0 ? "rose" : "emerald"} />
                 </div>
-                <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Paid</p>
-                    <p className="text-lg font-bold mt-0.5 text-emerald-600">{formatCurrency(invoice.paid)}</p>
-                </div>
-                <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Balance Due</p>
-                    <p className={`text-lg font-bold mt-0.5 ${balance > 0 ? "text-red-600" : "text-emerald-600"}`}>{formatCurrency(balance)}</p>
-                </div>
-            </div>
+            </DrawerSection>
 
             {/* Edit: Due Date */}
             {isEditing && (
@@ -211,7 +208,7 @@ export function InvoiceDetail({ invoice, open, onClose, onUpdate, onDelete }: In
                                     </tr></thead>
                                     <tbody>
                                         {lineItems.map((item, idx) => (
-                                            <tr key={idx} className="border-t" style={{ borderColor: "var(--border)" }}>
+                                            <tr key={idx} className="border-t hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors" style={{ borderColor: "var(--border)" }}>
                                                 <td className="px-4 py-3 text-sm" style={{ color: "var(--foreground)" }}>{item.description}</td>
                                                 <td className="px-4 py-3 text-sm text-right" style={{ color: "var(--muted-foreground)" }}>{item.qty}</td>
                                                 <td className="px-4 py-3 text-sm text-right" style={{ color: "var(--muted-foreground)" }}>{formatCurrency(item.unitPrice)}</td>
@@ -285,11 +282,25 @@ export function InvoiceDetail({ invoice, open, onClose, onUpdate, onDelete }: In
                 invoiceNumber={invoice.invoice_number}
                 invoiceTotal={invoice.total}
                 invoicePaid={invoice.paid}
-                onRecord={(payment: PaymentRecord) => {
+                onRecord={async (payment: PaymentRecord) => {
                     const newPaid = invoice.paid + payment.amount;
                     const newStatus = newPaid >= invoice.total ? "paid" : "partial";
                     if (onUpdate) {
                         onUpdate({ ...invoice, paid: newPaid, status: newStatus });
+                    }
+                    // Update AR balance: look up customer and decrement
+                    if (invoice.customer) {
+                        const { data: cust } = await supabase
+                            .from("customers")
+                            .select("id, ar_balance")
+                            .eq("name", invoice.customer)
+                            .maybeSingle();
+                        if (cust) {
+                            await supabase
+                                .from("customers")
+                                .update({ ar_balance: Math.max(0, (cust.ar_balance || 0) - payment.amount) })
+                                .eq("id", cust.id);
+                        }
                     }
                 }}
             />

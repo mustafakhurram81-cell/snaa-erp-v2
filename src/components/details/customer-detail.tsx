@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
+import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard } from "@/components/ui/shared";
 import { formatCurrency, formatDate, getInitials } from "@/lib/utils";
-import { Mail, Phone, MapPin, ShoppingCart, FileText, Edit3, Save, X, Trash2 } from "lucide-react";
+import { Mail, Phone, MapPin, ShoppingCart, FileText, Edit3, Save, X, Trash2, Building2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 import { LiveActivityLog } from "@/components/shared/activity-log";
 import { supabase } from "@/lib/supabase";
+import { RoleGuard } from "@/components/shared/role-guard";
 import { CUSTOMER_TYPES } from "@/app/customers/page";
 
 const typeColors: Record<string, string> = {
@@ -38,17 +39,17 @@ interface Customer {
 interface RelatedOrder {
     id: string;
     order_number: string;
-    total_amount: number;
-    status: string;
-    created_at: string;
+    total_amount: number | null;
+    status: string | null;
+    created_at: string | null;
 }
 
 interface RelatedQuotation {
     id: string;
     quote_number: string;
-    total_amount: number;
-    status: string;
-    created_at: string;
+    total_amount: number | null;
+    status: string | null;
+    created_at: string | null;
 }
 
 interface CustomerDetailProps {
@@ -156,7 +157,7 @@ export function CustomerDetail({ customer, open, onClose, onUpdate, onDelete }: 
                                 <Button variant="secondary" onClick={() => setIsEditing(true)}>
                                     <Edit3 className="w-3.5 h-3.5" /> Edit
                                 </Button>
-                                <button onClick={() => setShowDelete(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                                <RoleGuard minRole="admin"><button onClick={() => setShowDelete(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button></RoleGuard>
                                 <Button variant="secondary">
                                     <FileText className="w-3.5 h-3.5" /> New Quote
                                 </Button>
@@ -170,9 +171,9 @@ export function CustomerDetail({ customer, open, onClose, onUpdate, onDelete }: 
             }
         >
             {/* Pinned Header */}
-            <div className="flex items-center gap-4 mb-5">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
-                    {getInitials(isEditing ? editData.name : customer.name)}
+            <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white flex-shrink-0 shadow-md">
+                    <Building2 className="w-8 h-8" />
                 </div>
                 <div className="flex-1">
                     {isEditing ? (
@@ -192,60 +193,65 @@ export function CustomerDetail({ customer, open, onClose, onUpdate, onDelete }: 
                         </div>
                     ) : (
                         <>
-                            <h3 className="text-lg font-bold" style={{ color: "var(--foreground)" }}>{customer.name}</h3>
-                            <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-full mt-1 ${typeColors[customer.type] || "bg-zinc-100 text-zinc-600"}`}>
+                            <h3 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>{customer.name}</h3>
+                            <span className={`inline-flex items-center text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full mt-1.5 ${typeColors[customer.type] || "bg-zinc-100 text-zinc-600"}`}>
                                 {getTypeLabel(customer.type)}
                             </span>
                         </>
                     )}
                 </div>
-                {!isEditing && <StatusBadge status={customer.status} />}
-                {isEditing && (
-                    <select
-                        value={editData.status}
-                        onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                        className="h-8 px-3 rounded-lg border text-xs font-medium"
-                        style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
-                    >
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                )}
+                <div className="flex flex-col items-end gap-2">
+                    {!isEditing && <StatusBadge status={customer.status} />}
+                    {isEditing && (
+                        <select
+                            value={editData.status}
+                            onChange={(e) => setEditData({ ...editData, status: e.target.value })}
+                            className="h-8 px-3 rounded-lg border text-xs font-medium"
+                            style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+                        >
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    )}
+                </div>
             </div>
 
             {/* Contact Info */}
-            <div className="rounded-xl border p-4 mb-5" style={{ background: "var(--secondary)", borderColor: "var(--border)" }}>
-                {isEditing ? (
-                    <div className="grid grid-cols-2 gap-3">
-                        <Input label="Email" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} />
-                        <Input label="Phone" value={editData.phone} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} />
-                        <Input label="City" value={editData.city} onChange={(e) => setEditData({ ...editData, city: e.target.value })} />
-                        <Input label="Country" value={editData.country} onChange={(e) => setEditData({ ...editData, country: e.target.value })} />
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="flex items-center gap-2 text-sm" style={{ color: "var(--foreground)" }}>
-                            <Mail className="w-3.5 h-3.5" style={{ color: "var(--muted-foreground)" }} />
-                            {customer.email}
+            <DrawerSection label="Contact Information">
+                <div className="rounded-xl border p-4" style={{ background: "var(--secondary)", borderColor: "var(--border)" }}>
+                    {isEditing ? (
+                        <div className="grid grid-cols-2 gap-3">
+                            <Input label="Email" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} />
+                            <Input label="Phone" value={editData.phone} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} />
+                            <Input label="City" value={editData.city} onChange={(e) => setEditData({ ...editData, city: e.target.value })} />
+                            <Input label="Country" value={editData.country} onChange={(e) => setEditData({ ...editData, country: e.target.value })} />
                         </div>
-                        <div className="flex items-center gap-2 text-sm" style={{ color: "var(--foreground)" }}>
-                            <Phone className="w-3.5 h-3.5" style={{ color: "var(--muted-foreground)" }} />
-                            {customer.phone}
+                    ) : (
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="flex items-center gap-2 text-sm" style={{ color: "var(--foreground)" }}>
+                                <Mail className="w-3.5 h-3.5" style={{ color: "var(--muted-foreground)" }} />
+                                {customer.email}
+                            </div>
+                            <div className="flex items-center gap-2 text-sm" style={{ color: "var(--foreground)" }}>
+                                <Phone className="w-3.5 h-3.5" style={{ color: "var(--muted-foreground)" }} />
+                                {customer.phone}
+                            </div>
+                            <div className="flex items-center gap-2 text-sm col-span-2" style={{ color: "var(--foreground)" }}>
+                                <MapPin className="w-3.5 h-3.5" style={{ color: "var(--muted-foreground)" }} />
+                                {customer.city}, {customer.country}
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2 text-sm col-span-2" style={{ color: "var(--foreground)" }}>
-                            <MapPin className="w-3.5 h-3.5" style={{ color: "var(--muted-foreground)" }} />
-                            {customer.city}, {customer.country}
-                        </div>
-                    </div>
-                )}
-            </div>
+                    )}
+                </div>
+            </DrawerSection>
 
             {/* AR Balance */}
-            <div className="rounded-xl border p-4 mb-5" style={{ borderColor: "var(--border)" }}>
-                <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--muted-foreground)" }}>AR Balance</p>
-                <p className="text-2xl font-bold" style={{ color: "var(--foreground)" }}>{formatCurrency(customer.ar_balance)}</p>
-                <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>Customer since {formatDate(customer.created_at)}</p>
-            </div>
+            <DrawerSection label="Financial">
+                <div className="grid grid-cols-2 gap-3">
+                    <DrawerStatCard label="AR Balance" value={formatCurrency(customer.ar_balance)} accent="emerald" />
+                    <DrawerStatCard label="Customer Since" value={formatDate(customer.created_at)} accent="blue" />
+                </div>
+            </DrawerSection>
 
             {/* Tabs (hidden during edit) */}
             {!isEditing && (
@@ -260,14 +266,14 @@ export function CustomerDetail({ customer, open, onClose, onUpdate, onDelete }: 
                                 <div className="py-8 text-center text-sm" style={{ color: "var(--muted-foreground)" }}>No sales orders found</div>
                             ) : (
                                 relatedOrders.map((order) => (
-                                    <div key={order.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: "var(--border)" }}>
+                                    <div key={order.id} className="flex items-center justify-between p-3 rounded-xl border transition-all duration-200 hover:shadow-soft-md hover:border-blue-300 dark:hover:border-blue-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer group" style={{ borderColor: "var(--border)" }}>
                                         <div>
-                                            <p className="text-sm font-medium" style={{ color: "var(--primary)" }}>{order.order_number}</p>
-                                            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{formatDate(order.created_at)}</p>
+                                            <p className="text-sm font-bold group-hover:text-blue-600 transition-colors" style={{ color: "var(--primary)" }}>{order.order_number}</p>
+                                            <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{formatDate(order.created_at || "")}</p>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{formatCurrency(order.total_amount)}</span>
-                                            <StatusBadge status={order.status} />
+                                            <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{formatCurrency(order.total_amount ?? 0)}</span>
+                                            <StatusBadge status={order.status || "unknown"} />
                                         </div>
                                     </div>
                                 ))
@@ -283,14 +289,14 @@ export function CustomerDetail({ customer, open, onClose, onUpdate, onDelete }: 
                                 <div className="py-8 text-center text-sm" style={{ color: "var(--muted-foreground)" }}>No quotations found</div>
                             ) : (
                                 relatedQuotations.map((qt) => (
-                                    <div key={qt.id} className="flex items-center justify-between p-3 rounded-lg border" style={{ borderColor: "var(--border)" }}>
+                                    <div key={qt.id} className="flex items-center justify-between p-3 rounded-xl border transition-all duration-200 hover:shadow-soft-md hover:border-blue-300 dark:hover:border-blue-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer group" style={{ borderColor: "var(--border)" }}>
                                         <div>
-                                            <p className="text-sm font-medium" style={{ color: "var(--primary)" }}>{qt.quote_number}</p>
-                                            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{formatDate(qt.created_at)}</p>
+                                            <p className="text-sm font-bold group-hover:text-blue-600 transition-colors" style={{ color: "var(--primary)" }}>{qt.quote_number}</p>
+                                            <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{formatDate(qt.created_at || "")}</p>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{formatCurrency(qt.total_amount)}</span>
-                                            <StatusBadge status={qt.status} />
+                                            <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{formatCurrency(qt.total_amount ?? 0)}</span>
+                                            <StatusBadge status={qt.status || "unknown"} />
                                         </div>
                                     </div>
                                 ))

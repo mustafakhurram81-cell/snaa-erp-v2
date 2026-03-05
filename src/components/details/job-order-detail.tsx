@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
+import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard } from "@/components/ui/shared";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { MANUFACTURING_STAGES, type JobStage, type StageStatus, type StageType, getProgress } from "@/lib/stages";
 import { useToast } from "@/components/ui/toast";
@@ -212,47 +212,42 @@ export function JobOrderDetail({ jobOrder, open, onClose, onDelete, onStageUpdat
                 }
             >
                 {/* Header */}
-                <div className="flex items-center justify-between mb-5">
-                    <div>
+                <div className="flex items-center gap-4 mb-6">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white flex-shrink-0 shadow-md">
+                        <Hammer className="w-8 h-8" />
+                    </div>
+                    <div className="flex-1">
                         <h3 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>{jobOrder.jo_number}</h3>
                         <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>{jobOrder.product}</p>
                     </div>
                     <StatusBadge status={jobOrder.status} />
                 </div>
 
-                {/* Meta */}
-                <div className="grid grid-cols-4 gap-3 mb-5">
-                    <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Sales Order</p>
-                        <p className="text-sm font-semibold mt-1" style={{ color: "var(--primary)" }}>{jobOrder.so_number}</p>
+                {/* Meta Stats */}
+                <DrawerSection label="Order Overview">
+                    <div className="grid grid-cols-4 gap-3">
+                        <DrawerStatCard label="Sales Order" value={jobOrder.so_number} accent="blue" />
+                        <DrawerStatCard label="Customer" value={jobOrder.customer} accent="violet" />
+                        <DrawerStatCard label="Quantity" value={`${jobOrder.quantity} pcs`} accent="emerald" />
+                        <DrawerStatCard label="Due Date" value={formatDate(jobOrder.due_date)} accent="rose" />
                     </div>
-                    <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Customer</p>
-                        <p className="text-sm font-medium mt-1" style={{ color: "var(--foreground)" }}>{jobOrder.customer}</p>
-                    </div>
-                    <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Quantity</p>
-                        <p className="text-sm font-medium mt-1" style={{ color: "var(--foreground)" }}>{jobOrder.quantity} pcs</p>
-                    </div>
-                    <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Due Date</p>
-                        <p className="text-sm font-medium mt-1" style={{ color: "var(--foreground)" }}>{formatDate(jobOrder.due_date)}</p>
-                    </div>
-                </div>
+                </DrawerSection>
 
                 {/* Progress bar */}
-                <div className="mb-5">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>Overall Progress</p>
-                        <p className="text-xs font-bold" style={{ color: "var(--primary)" }}>{progress}%</p>
+                <DrawerSection label="Production Status">
+                    <div className="mb-2">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>Overall Completion</p>
+                            <p className="text-xs font-bold" style={{ color: "var(--primary)" }}>{progress}%</p>
+                        </div>
+                        <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--secondary)" }}>
+                            <div
+                                className="h-full rounded-full transition-all duration-500"
+                                style={{ width: `${progress}%`, background: progress === 100 ? "#10b981" : "var(--primary)" }}
+                            />
+                        </div>
                     </div>
-                    <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--secondary)" }}>
-                        <div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{ width: `${progress}%`, background: progress === 100 ? "#10b981" : "var(--primary)" }}
-                        />
-                    </div>
-                </div>
+                </DrawerSection>
 
                 {/* Tabs */}
                 <DrawerTabs

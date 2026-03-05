@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Drawer, Button, StatusBadge, DrawerTabs, Input } from "@/components/ui/shared";
+import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard } from "@/components/ui/shared";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
-import { ArrowRight, Download, Copy, Send, Edit3, Trash2, Save, X } from "lucide-react";
+import { RoleGuard } from "@/components/shared/role-guard";
+import { FileText, ArrowRight, Download, Copy, Send, Edit3, Trash2, Save, X } from "lucide-react";
 import { generatePDF } from "@/lib/pdf";
 import { useToast } from "@/components/ui/toast";
 import { LiveActivityLog } from "@/components/shared/activity-log";
@@ -122,9 +123,9 @@ export function QuotationDetail({ quotation, open, onClose, onConvertToSO, onDel
                                 <Button variant="secondary" onClick={() => setIsEditing(true)}>
                                     <Edit3 className="w-3.5 h-3.5" /> Edit
                                 </Button>
-                                <button onClick={() => setShowDelete(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                <RoleGuard minRole="admin"><button onClick={() => setShowDelete(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                                     <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                </button></RoleGuard>
                             </>
                         )}
                     </div>
@@ -157,7 +158,10 @@ export function QuotationDetail({ quotation, open, onClose, onConvertToSO, onDel
             }
         >
             {/* Header */}
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-4 mb-5">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white flex-shrink-0 shadow-md">
+                    <FileText className="w-8 h-8" />
+                </div>
                 <div className="flex-1">
                     <h3 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>{quotation.quote_number}</h3>
                     {isEditing ? (
@@ -179,34 +183,14 @@ export function QuotationDetail({ quotation, open, onClose, onConvertToSO, onDel
                 )}
             </div>
 
-            {/* Meta Cards */}
-            <div className="grid grid-cols-3 gap-4 mb-5">
-                {isEditing ? (
-                    <>
-                        <Input label="Date" type="date" value={editData.date} onChange={(e) => setEditData({ ...editData, date: e.target.value })} />
-                        <Input label="Valid Until" type="date" value={editData.valid_until} onChange={(e) => setEditData({ ...editData, valid_until: e.target.value })} />
-                        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Total</p>
-                            <p className="text-lg font-bold mt-0.5" style={{ color: "var(--foreground)" }}>{formatCurrency(quotation.total)}</p>
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Date</p>
-                            <p className="text-sm font-medium mt-1" style={{ color: "var(--foreground)" }}>{formatDate(quotation.date)}</p>
-                        </div>
-                        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Valid Until</p>
-                            <p className="text-sm font-medium mt-1" style={{ color: "var(--foreground)" }}>{formatDate(quotation.valid_until)}</p>
-                        </div>
-                        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Total</p>
-                            <p className="text-lg font-bold mt-0.5" style={{ color: "var(--foreground)" }}>{formatCurrency(quotation.total)}</p>
-                        </div>
-                    </>
-                )}
-            </div>
+            {/* Meta Stats */}
+            <DrawerSection label="Quotation Summary">
+                <div className="grid grid-cols-3 gap-3">
+                    <DrawerStatCard label="Total Amount" value={formatCurrency(quotation.total)} accent="emerald" />
+                    <DrawerStatCard label="Quoted On" value={formatDate(quotation.date)} accent="blue" />
+                    <DrawerStatCard label="Valid Until" value={formatDate(quotation.valid_until)} accent="amber" />
+                </div>
+            </DrawerSection>
 
             {/* Tabs (hidden during edit) */}
             {!isEditing && (
@@ -227,7 +211,7 @@ export function QuotationDetail({ quotation, open, onClose, onConvertToSO, onDel
                                     </thead>
                                     <tbody>
                                         {lineItems.map((item, idx) => (
-                                            <tr key={idx} className="border-t" style={{ borderColor: "var(--border)" }}>
+                                            <tr key={idx} className="border-t hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors" style={{ borderColor: "var(--border)" }}>
                                                 <td className="px-4 py-3 text-sm" style={{ color: "var(--foreground)" }}>{item.description}</td>
                                                 <td className="px-4 py-3 text-sm text-right" style={{ color: "var(--muted-foreground)" }}>{item.qty}</td>
                                                 <td className="px-4 py-3 text-sm text-right" style={{ color: "var(--muted-foreground)" }}>{formatCurrency(item.unitPrice)}</td>

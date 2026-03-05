@@ -13,45 +13,16 @@ import {
 import { Card, Button, StatusBadge } from "@/components/ui/shared";
 import { formatCurrency } from "@/lib/utils";
 
-// --- Default chart data (fallback) ---
+// --- Types ---
 export type RevenueDataPoint = { month: string; revenue: number; orders: number };
 export type OrderCategoryPoint = { name: string; value: number; color: string };
 export type ProductionDataPoint = { name: string; planned: number; completed: number };
-
-const defaultRevenueData: RevenueDataPoint[] = [
-    { month: "Jul", revenue: 42000, orders: 18 },
-    { month: "Aug", revenue: 55000, orders: 23 },
-    { month: "Sep", revenue: 48000, orders: 20 },
-    { month: "Oct", revenue: 61000, orders: 25 },
-    { month: "Nov", revenue: 52000, orders: 22 },
-    { month: "Dec", revenue: 72000, orders: 30 },
-    { month: "Jan", revenue: 68000, orders: 28 },
-    { month: "Feb", revenue: 78000, orders: 32 },
-];
-
-const defaultOrdersByCategory: OrderCategoryPoint[] = [
-    { name: "Hospital", value: 35, color: "#2563eb" },
-    { name: "Clinic", value: 25, color: "#7c3aed" },
-    { name: "Dental", value: 20, color: "#0891b2" },
-    { name: "Veterinary", value: 12, color: "#059669" },
-    { name: "Other", value: 8, color: "#64748b" },
-];
-
-const defaultProductionData: ProductionDataPoint[] = [
-    { name: "Mon", planned: 12, completed: 11 },
-    { name: "Tue", planned: 15, completed: 14 },
-    { name: "Wed", planned: 10, completed: 10 },
-    { name: "Thu", planned: 18, completed: 15 },
-    { name: "Fri", planned: 14, completed: 12 },
-    { name: "Sat", planned: 8, completed: 7 },
-];
 
 
 // --- Chart Widgets ---
 
 export function RevenueChart({ data }: { data?: RevenueDataPoint[] }) {
-    const revenueData = data && data.length > 0 ? data : defaultRevenueData;
-    const isLive = data && data.length > 0;
+    const revenueData = data && data.length > 0 ? data : [];
     return (
         <Card className="lg:col-span-2">
             <div className="flex items-center justify-between mb-4">
@@ -59,76 +30,102 @@ export function RevenueChart({ data }: { data?: RevenueDataPoint[] }) {
                     <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Revenue Overview</h3>
                     <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>Monthly revenue trend</p>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
-                    <TrendingUp className="w-3.5 h-3.5" /> {isLive ? "Live" : "+18.2%"}
-                </div>
+                {revenueData.length > 0 && (
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+                        <TrendingUp className="w-3.5 h-3.5" /> Live
+                    </div>
+                )}
             </div>
-            <ResponsiveContainer width="100%" height={260}>
-                <AreaChart data={revenueData}>
-                    <defs>
-                        <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#2563eb" stopOpacity={0.2} />
-                            <stop offset="100%" stopColor="#2563eb" stopOpacity={0} />
-                        </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} tickFormatter={(v) => `$${v / 1000}k`} />
-                    <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} formatter={(value: number | undefined) => [formatCurrency(value ?? 0), "Revenue"]} />
-                    <Area type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} fill="url(#revenueGradient)" />
-                </AreaChart>
-            </ResponsiveContainer>
+            {revenueData.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-[260px]">
+                    <TrendingUp className="w-8 h-8 mb-2" style={{ color: "var(--muted-foreground)" }} />
+                    <p className="text-sm font-medium" style={{ color: "var(--muted-foreground)" }}>No revenue data yet</p>
+                    <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>Create invoices to see revenue trends</p>
+                </div>
+            ) : (
+                <ResponsiveContainer width="100%" height={260}>
+                    <AreaChart data={revenueData}>
+                        <defs>
+                            <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#2563eb" stopOpacity={0.2} />
+                                <stop offset="100%" stopColor="#2563eb" stopOpacity={0} />
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                        <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} tickFormatter={(v) => `$${v / 1000}k`} />
+                        <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} formatter={(value: number | undefined) => [formatCurrency(value ?? 0), "Revenue"]} />
+                        <Area type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} fill="url(#revenueGradient)" />
+                    </AreaChart>
+                </ResponsiveContainer>
+            )}
         </Card>
     );
 }
 
 export function OrdersChart({ data }: { data?: OrderCategoryPoint[] }) {
-    const ordersByCategory = data && data.length > 0 ? data : defaultOrdersByCategory;
+    const ordersByCategory = data && data.length > 0 ? data : [];
     return (
         <Card>
-            <h3 className="text-sm font-semibold mb-1" style={{ color: "var(--foreground)" }}>Orders by Category</h3>
-            <p className="text-xs mb-4" style={{ color: "var(--muted-foreground)" }}>Distribution this month</p>
-            <div className="flex items-center justify-center">
-                <ResponsiveContainer width="100%" height={180}>
-                    <PieChart>
-                        <Pie data={ordersByCategory} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
-                            {ordersByCategory.map((entry, index) => (<Cell key={index} fill={entry.color} />))}
-                        </Pie>
-                        <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} />
-                    </PieChart>
-                </ResponsiveContainer>
-            </div>
-            <div className="space-y-2 mt-2">
-                {ordersByCategory.map((cat) => (
-                    <div key={cat.name} className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 rounded-full" style={{ background: cat.color }} />
-                            <span style={{ color: "var(--foreground)" }}>{cat.name}</span>
-                        </div>
-                        <span className="font-medium" style={{ color: "var(--muted-foreground)" }}>{cat.value}%</span>
+            <h3 className="text-sm font-semibold mb-1" style={{ color: "var(--foreground)" }}>Orders by Customer</h3>
+            <p className="text-xs mb-4" style={{ color: "var(--muted-foreground)" }}>Distribution this period</p>
+            {ordersByCategory.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10">
+                    <Package className="w-8 h-8 mb-2" style={{ color: "var(--muted-foreground)" }} />
+                    <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>No orders yet</p>
+                </div>
+            ) : (
+                <>
+                    <div className="flex items-center justify-center">
+                        <ResponsiveContainer width="100%" height={180}>
+                            <PieChart>
+                                <Pie data={ordersByCategory} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
+                                    {ordersByCategory.map((entry, index) => (<Cell key={index} fill={entry.color} />))}
+                                </Pie>
+                                <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} />
+                            </PieChart>
+                        </ResponsiveContainer>
                     </div>
-                ))}
-            </div>
+                    <div className="space-y-2 mt-2">
+                        {ordersByCategory.map((cat) => (
+                            <div key={cat.name} className="flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: cat.color }} />
+                                    <span style={{ color: "var(--foreground)" }}>{cat.name}</span>
+                                </div>
+                                <span className="font-medium" style={{ color: "var(--muted-foreground)" }}>{cat.value}%</span>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
         </Card>
     );
 }
 
 export function ProductionChart({ data }: { data?: ProductionDataPoint[] }) {
-    const productionData = data && data.length > 0 ? data : defaultProductionData;
+    const productionData = data && data.length > 0 ? data : [];
     return (
         <Card>
             <h3 className="text-sm font-semibold mb-1" style={{ color: "var(--foreground)" }}>Production This Week</h3>
             <p className="text-xs mb-4" style={{ color: "var(--muted-foreground)" }}>Planned vs Completed</p>
-            <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={productionData} barGap={4}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
-                    <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} />
-                    <Bar dataKey="planned" fill="#93c5fd" radius={[4, 4, 0, 0]} barSize={16} />
-                    <Bar dataKey="completed" fill="#2563eb" radius={[4, 4, 0, 0]} barSize={16} />
-                </BarChart>
-            </ResponsiveContainer>
+            {productionData.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10">
+                    <Package className="w-8 h-8 mb-2" style={{ color: "var(--muted-foreground)" }} />
+                    <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>No production data this week</p>
+                </div>
+            ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={productionData} barGap={4}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
+                        <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} />
+                        <Bar dataKey="planned" fill="#93c5fd" radius={[4, 4, 0, 0]} barSize={16} />
+                        <Bar dataKey="completed" fill="#2563eb" radius={[4, 4, 0, 0]} barSize={16} />
+                    </BarChart>
+                </ResponsiveContainer>
+            )}
         </Card>
     );
 }

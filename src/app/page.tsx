@@ -51,10 +51,20 @@ import {
   ARAPSummary, InventoryAlerts, InvoicePipeline,
   RecentOrdersTable, JOPipeline, AttentionNeeded,
   type LowStockProduct, type InvoicePipelineItem, type RecentOrder,
-  type RevenueDataPoint, type OrderCategoryPoint,
+  type RevenueDataPoint, type OrderCategoryPoint, type ProductionDataPoint,
 } from "@/components/dashboard/widgets";
 
 // --- Types ---
+interface DashboardSummaryRPC {
+  total_revenue: number;
+  open_orders: number;
+  active_production: number;
+  pending_invoices: number;
+  overdue_count: number;
+  ar_total: number;
+  ap_total: number;
+}
+
 interface DashboardStats {
   totalRevenue: number;
   openOrders: number;
@@ -92,6 +102,7 @@ export default function DashboardPage() {
   const [apTotal, setAPTotal] = useState(0);
   const [revenueChartData, setRevenueChartData] = useState<RevenueDataPoint[]>([]);
   const [orderCategoryData, setOrderCategoryData] = useState<OrderCategoryPoint[]>([]);
+  const [productionChartData, setProductionChartData] = useState<ProductionDataPoint[]>([]);
   const [dateRange, setDateRange] = useState<DateRange>("all");
 
   const { from: dateFrom } = useMemo(() => getDateRange(dateRange), [dateRange]);
@@ -110,7 +121,7 @@ export default function DashboardPage() {
         ]);
 
         // KPI stats from single RPC
-        const summary = summaryRes.data || {};
+        const summary = (summaryRes.data || {}) as unknown as DashboardSummaryRPC;
         setStats({
           totalRevenue: Number(summary.total_revenue) || 0,
           openOrders: Number(summary.open_orders) || 0,
@@ -150,6 +161,31 @@ export default function DashboardPage() {
         // Low stock (direct query – only 5 rows)
         const lowStock = (lowStockRes.data || []).filter(p => (p.stock || 0) < (p.reorder_point || 10));
         setLowStockProducts(lowStock as LowStockProduct[]);
+
+        // Production chart - query production_orders for current week
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        const weekStartStr = weekStart.toISOString().split("T")[0];
+        const { data: prodOrders } = await supabase
+          .from("production_orders")
+          .select("start_date, status, quantity, completed")
+          .gte("start_date", weekStartStr);
+        if (prodOrders && prodOrders.length > 0) {
+          const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+          const dayMap: Record<string, { planned: number; completed: number }> = {};
+          dayNames.forEach(d => { dayMap[d] = { planned: 0, completed: 0 }; });
+          prodOrders.forEach((po: any) => {
+            const day = dayNames[new Date(po.start_date).getDay()];
+            if (dayMap[day]) {
+              dayMap[day].planned += po.quantity || 0;
+              dayMap[day].completed += po.completed || 0;
+            }
+          });
+          const chartData = dayNames.slice(1, 7).map(name => ({ name, ...dayMap[name] }));
+          if (chartData.some(d => d.planned > 0 || d.completed > 0)) {
+            setProductionChartData(chartData);
+          }
+        }
       } catch (err) {
         console.error("Dashboard fetch error:", err);
       } finally {
@@ -237,7 +273,7 @@ export default function DashboardPage() {
 
       {/* Production + AR/AP + Inventory */}
       <motion.div variants={item} className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        <ProductionChart />
+        <ProductionChart data={productionChartData.length > 0 ? productionChartData : undefined} />
         <ARAPSummary arTotal={arTotal} apTotal={apTotal} />
         <InventoryAlerts products={lowStockProducts} loading={loading} />
       </motion.div>
