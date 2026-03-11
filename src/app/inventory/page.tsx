@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Warehouse, AlertTriangle, ArrowDownUp, Plus, Package, TrendingDown, TrendingUp } from "lucide-react";
-import { PageHeader, Button, Card, StatCard, StatusBadge, Tabs, Drawer, Input, Select, TableSkeleton, EmptyState } from "@/components/ui/shared";
+import { PageHeader, Button, StatCard, StatusBadge, Tabs, Drawer, Input, Select, TableSkeleton, EmptyState } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { formatNumber, formatCurrency } from "@/lib/utils";
 import { useSupabaseTable } from "@/lib/supabase-hooks";

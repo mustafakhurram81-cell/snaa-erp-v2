@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { BarChart3, Download, Calendar, TrendingUp, DollarSign, Package, ShoppingCart, Users, Factory, Clock, AlertTriangle } from "lucide-react";
+import { BarChart3, Download, TrendingUp, DollarSign, Package, ShoppingCart, Users, Factory, Clock, AlertTriangle } from "lucide-react";
 import { PageHeader, Button, Card, Tabs, StatCard } from "@/components/ui/shared";
 import { StatCardSkeleton, ChartSkeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";

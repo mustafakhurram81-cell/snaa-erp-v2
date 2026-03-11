@@ -15,17 +15,17 @@ const ThemeContext = createContext<ThemeContextType>({
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    const [theme, setTheme] = useState<Theme>("light");
-    const [mounted, setMounted] = useState(false);
+    const [theme, setTheme] = useState<Theme>(() => {
+        if (typeof window !== "undefined") {
+            return (localStorage.getItem("erp-theme") as Theme) || "light";
+        }
+        return "light";
+    });
+    const [mounted] = useState(() => typeof window !== "undefined");
 
     useEffect(() => {
-        setMounted(true);
-        const stored = localStorage.getItem("erp-theme") as Theme;
-        if (stored) {
-            setTheme(stored);
-            document.documentElement.classList.toggle("dark", stored === "dark");
-        }
-    }, []);
+        document.documentElement.classList.toggle("dark", theme === "dark");
+    }, [theme]);
 
     const toggleTheme = () => {
         const next = theme === "light" ? "dark" : "light";

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Plus, Upload, Trash2, ImageIcon, Download } from "lucide-react";
-import { PageHeader, Button, Drawer, Input, Card, StatusBadge, InlineStatusSelect, Tabs, Select } from "@/components/ui/shared";
+import { PageHeader, Button, Drawer, Input, Card, InlineStatusSelect, Tabs, Select } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { SalesOrderDetail } from "@/components/details/sales-order-detail";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -131,14 +131,7 @@ function SalesOrdersContent() {
     },
   ], [update, toast, fetchAll]);
 
-  // Keyboard shortcut: N to create new
-  useEffect(() => {
-    const handleNew = () => { resetForm(); setShowDialog(true); };
-    const handleEsc = () => { setShowDialog(false); };
-    window.addEventListener("keyboard-new", handleNew);
-    window.addEventListener("keyboard-escape", handleEsc);
-    return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
-  }, []);
+
 
   const searchParams = useSearchParams();
 
@@ -157,7 +150,9 @@ function SalesOrdersContent() {
     const openId = searchParams.get("open");
     if (openId) {
       const found = orders.find((o) => o.order_number === openId);
-      if (found) setSelectedOrder(found);
+      if (found) {
+        queueMicrotask(() => setSelectedOrder(found));
+      }
     }
   }, [searchParams, orders]);
 
@@ -175,6 +170,15 @@ function SalesOrdersContent() {
     setFormLineItems([emptyLineItem()]);
     setFormErrors({});
   };
+
+  // Keyboard shortcut: N to create new
+  useEffect(() => {
+    const handleNew = () => { resetForm(); setShowDialog(true); };
+    const handleEsc = () => { setShowDialog(false); };
+    window.addEventListener("keyboard-new", handleNew);
+    window.addEventListener("keyboard-escape", handleEsc);
+    return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
+  }, []);
 
   const addLineItem = () => setFormLineItems([...formLineItems, emptyLineItem()]);
   const removeLineItem = (id: string) => {

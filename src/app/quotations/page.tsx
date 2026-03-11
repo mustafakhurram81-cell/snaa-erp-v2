@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Plus, Upload, ArrowRight, Copy, Send, Trash2, ImageIcon } from "lucide-react";
+import { Plus, Send, Trash2, ImageIcon } from "lucide-react";
 import { PageHeader, Button, Drawer, Input, Card, StatusBadge, Tabs, Select } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { QuotationDetail } from "@/components/details/quotation-detail";
@@ -15,7 +15,7 @@ import { TableSkeleton, EmptyState } from "@/components/ui/shared";
 import { CSVImportDialog } from "@/components/shared/csv-import";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 import { logActivity } from "@/lib/activity-logger";
-import { validateRequired, validateForm, hasErrors } from "@/lib/form-validation";
+
 
 interface DBCustomer { id: string; name: string; }
 
@@ -113,14 +113,7 @@ function QuotationsContent() {
   const [showImport, setShowImport] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
   const { toast } = useToast();
-  // Keyboard shortcut: N to create new
-  useEffect(() => {
-    const handleNew = () => { resetForm(); setShowDialog(true); };
-    const handleEsc = () => { setShowDialog(false); };
-    window.addEventListener("keyboard-new", handleNew);
-    window.addEventListener("keyboard-escape", handleEsc);
-    return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
-  }, []);
+
 
   const searchParams = useSearchParams();
 
@@ -153,6 +146,15 @@ function QuotationsContent() {
     setFormLineItems([emptyLineItem()]);
     setFormErrors({});
   };
+
+  // Keyboard shortcut: N to create new
+  useEffect(() => {
+    const handleNew = () => { resetForm(); setShowDialog(true); };
+    const handleEsc = () => { setShowDialog(false); };
+    window.addEventListener("keyboard-new", handleNew);
+    window.addEventListener("keyboard-escape", handleEsc);
+    return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
+  }, []);
 
   const addLineItem = () => setFormLineItems([...formLineItems, emptyLineItem()]);
   const removeLineItem = (id: string) => {

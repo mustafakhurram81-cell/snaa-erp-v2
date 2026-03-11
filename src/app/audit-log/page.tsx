@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
-    ScrollText, Search, Filter, Calendar, ChevronLeft, ChevronRight,
-    ShoppingCart, Receipt, Factory, ClipboardList, Package, Users, UserCog, Clock, AlertTriangle,
+    ScrollText, Search, ChevronLeft, ChevronRight,
+    ShoppingCart, Receipt, Factory, ClipboardList, Package, Users, UserCog, Clock,
 } from "lucide-react";
 import { PageHeader, Button, Card, Tabs } from "@/components/ui/shared";
 import { formatDate } from "@/lib/utils";

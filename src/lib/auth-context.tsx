@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Fetch profile role when user changes
     useEffect(() => {
-        if (!user) { setRole("user"); return; }
+        if (!user) { queueMicrotask(() => setRole("user")); return; }
         supabase.from("profiles").select("role").eq("id", user.id).maybeSingle()
             .then(({ data }) => { if (data?.role) setRole(data.role); });
     }, [user]);

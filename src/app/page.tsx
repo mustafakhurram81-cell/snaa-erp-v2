@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   DollarSign, ShoppingCart, Factory, Receipt, Clock,
-  AlertTriangle, ClipboardList, Calendar,
+  ClipboardList, Calendar,
 } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/ui/shared";
 import { StatCardSkeleton, CardSkeleton } from "@/components/ui/skeleton";
@@ -37,12 +37,7 @@ function getDateRange(range: DateRange): { from: string; label: string } {
 }
 import { supabase } from "@/lib/supabase";
 import {
-  INVOICE_STATUS,
-  SALES_ORDER_STATUS,
-  PRODUCTION_STATUS,
-  PURCHASE_ORDER_STATUS,
   getStatusChartColor,
-  statusEquals,
 } from "@/lib/constants";
 // Dashboard widgets
 import { QuickActions } from "@/components/dashboard/quick-actions";

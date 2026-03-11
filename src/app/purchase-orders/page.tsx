@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Upload, Trash2, ImageIcon, Download } from "lucide-react";
-import { PageHeader, Button, Drawer, Input, Card, StatusBadge, Tabs, Select, InlineStatusSelect } from "@/components/ui/shared";
+import { PageHeader, Button, Drawer, Input, Card, Tabs, Select, InlineStatusSelect } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { PurchaseOrderDetail } from "@/components/details/purchase-order-detail";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -118,14 +118,7 @@ export default function PurchaseOrdersPage() {
     setSelectedPO(null);
     setPendingDelete(null);
   };
-  // Keyboard shortcut: N to create new
-  useEffect(() => {
-    const handleNew = () => { resetForm(); setShowDialog(true); };
-    const handleEsc = () => { setShowDialog(false); };
-    window.addEventListener("keyboard-new", handleNew);
-    window.addEventListener("keyboard-escape", handleEsc);
-    return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
-  }, []);
+
 
 
   // Map DB fields
@@ -144,6 +137,15 @@ export default function PurchaseOrdersPage() {
   const [formLineItems, setFormLineItems] = useState<LineItem[]>([emptyLineItem()]);
 
   const resetForm = () => { setFormVendor(""); setFormExpectedDate(""); setFormLineItems([emptyLineItem()]); };
+
+  // Keyboard shortcut: N to create new
+  useEffect(() => {
+    const handleNew = () => { resetForm(); setShowDialog(true); };
+    const handleEsc = () => { setShowDialog(false); };
+    window.addEventListener("keyboard-new", handleNew);
+    window.addEventListener("keyboard-escape", handleEsc);
+    return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
+  }, []);
   const addLineItem = () => setFormLineItems([...formLineItems, emptyLineItem()]);
   const removeLineItem = (id: string) => { if (formLineItems.length <= 1) return; setFormLineItems(formLineItems.filter((li) => li.id !== id)); };
   const updateLineItem = (id: string, field: keyof LineItem, value: string | number) => {

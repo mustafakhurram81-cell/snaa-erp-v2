@@ -64,7 +64,7 @@ export function useSupabaseTable<T extends BaseRecord>(
         async (item: Partial<T>): Promise<T | null> => {
             try {
                 setError(null);
-                const { id, ...rest } = item as Record<string, unknown>;
+                const { id: _unusedId, ...rest } = item as Record<string, unknown>; void _unusedId;
                 const { data: result, error: createError } = await supabase
                     .from(tableName as any)
                     .insert(rest)

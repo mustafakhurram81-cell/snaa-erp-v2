@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Drawer, Button, Input } from "@/components/ui/shared";
-import { Send, Mail, Paperclip, X, Check } from "lucide-react";
+import { Send, Mail, Paperclip, Check } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 
 interface EmailSendProps {

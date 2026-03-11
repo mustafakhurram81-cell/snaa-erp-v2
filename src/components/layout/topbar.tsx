@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
     Bell, Sun, Moon, ChevronRight, ChevronDown, Menu,
-    Settings, LogOut, User, Keyboard, Search, Command
+    Settings, LogOut, Keyboard, Search, Command
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useCurrency, currencies } from "@/lib/currency";

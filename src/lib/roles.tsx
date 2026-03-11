@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
 
 export type Role = "owner" | "manager" | "worker";
 
@@ -85,14 +85,13 @@ const RoleContext = createContext<RoleContextType>({
 });
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
-    const [role, setRoleState] = useState<Role>("owner");
-
-    useEffect(() => {
-        const stored = localStorage.getItem("erp-role") as Role;
-        if (stored && rolePermissions[stored]) {
-            setRoleState(stored);
+    const [role, setRoleState] = useState<Role>(() => {
+        if (typeof window !== "undefined") {
+            const stored = localStorage.getItem("erp-role") as Role;
+            if (stored && rolePermissions[stored]) return stored;
         }
-    }, []);
+        return "owner";
+    });
 
     const setRole = (r: Role) => {
         setRoleState(r);

@@ -71,9 +71,11 @@ export function CommandSearch() {
     useEffect(() => {
         if (open) {
             setTimeout(() => inputRef.current?.focus(), 100);
-            setQuery("");
-            setSelectedIdx(0);
-            setItems([]);
+            queueMicrotask(() => {
+                setQuery("");
+                setSelectedIdx(0);
+                setItems([]);
+            });
         }
     }, [open]);
 

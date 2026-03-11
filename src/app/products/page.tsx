@@ -38,14 +38,6 @@ export default function ProductsPage() {
     const [showImport, setShowImport] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const { toast } = useToast();
-    // Keyboard shortcut: N to create new
-    useEffect(() => {
-        const handleNew = () => { resetForm(); setShowDialog(true); };
-        const handleEsc = () => { setShowDialog(false); };
-        window.addEventListener("keyboard-new", handleNew);
-        window.addEventListener("keyboard-escape", handleEsc);
-        return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
-    }, []);
 
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -55,6 +47,15 @@ export default function ProductsPage() {
     const [formData, setFormData] = useState({ name: "", sku: "", category: "", subcategory: "" });
 
     const resetForm = () => { setFormData({ name: "", sku: "", category: "", subcategory: "" }); setImageFile(null); setImagePreview(null); };
+
+    // Keyboard shortcut: N to create new
+    useEffect(() => {
+        const handleNew = () => { resetForm(); setShowDialog(true); };
+        const handleEsc = () => { setShowDialog(false); };
+        window.addEventListener("keyboard-new", handleNew);
+        window.addEventListener("keyboard-escape", handleEsc);
+        return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
+    }, []);
 
     const handleCreate = async () => {
         if (!formData.name.trim() || !formData.sku.trim()) {

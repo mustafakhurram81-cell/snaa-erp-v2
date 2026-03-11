@@ -14,7 +14,6 @@ import { supabase } from "@/lib/supabase";
 import { exportToCSV } from "@/lib/csv-export";
 import { logActivity } from "@/lib/activity-logger";
 import { TableSkeleton, EmptyState } from "@/components/ui/shared";
-import { validateRequired, validateForm, hasErrors } from "@/lib/form-validation";
 import { CSVImportDialog } from "@/components/shared/csv-import";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 
@@ -121,14 +120,6 @@ function InvoicesContent() {
     },
   ], [update, toast, fetchAll]);
 
-  // Keyboard shortcut: N to create new
-  useEffect(() => {
-    const handleNew = () => { resetForm(); setShowDialog(true); };
-    const handleEsc = () => { setShowDialog(false); };
-    window.addEventListener("keyboard-new", handleNew);
-    window.addEventListener("keyboard-escape", handleEsc);
-    return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
-  }, []);
 
   const [pendingDelete, setPendingDelete] = useState<Invoice | null>(null);
   const confirmDelete = async () => {
@@ -203,7 +194,10 @@ function InvoicesContent() {
     const openId = searchParams.get("open");
     if (openId) {
       const found = invoices.find((i) => i.invoice_number === openId);
-      if (found) setSelectedInvoice(found);
+      if (found) {
+        // Defer setState to avoid synchronous setState-in-effect
+        queueMicrotask(() => setSelectedInvoice(found));
+      }
     }
   }, [searchParams, invoices]);
 
@@ -215,6 +209,15 @@ function InvoicesContent() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const resetForm = () => { setFormCustomer(""); setFormSO(""); setFormDueDate(""); setFormLineItems([emptyLineItem()]); setFormErrors({}); };
+
+  // Keyboard shortcut: N to create new
+  useEffect(() => {
+    const handleNew = () => { resetForm(); setShowDialog(true); };
+    const handleEsc = () => { setShowDialog(false); };
+    window.addEventListener("keyboard-new", handleNew);
+    window.addEventListener("keyboard-escape", handleEsc);
+    return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
+  }, []);
   const addLineItem = () => setFormLineItems([...formLineItems, emptyLineItem()]);
   const removeLineItem = (id: string) => { if (formLineItems.length <= 1) return; setFormLineItems(formLineItems.filter((li) => li.id !== id)); };
   const updateLineItem = (id: string, field: keyof LineItem, value: string | number) => {

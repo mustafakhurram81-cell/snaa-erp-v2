@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, createContext, useContext, useEffect } from "react";
+import React, { useState, createContext, useContext } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,8 +20,6 @@ import {
     UserCog,
     ChevronDown,
     Settings,
-    PanelLeftClose,
-    PanelLeft,
     ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -40,15 +38,13 @@ const SidebarContext = createContext<SidebarContextType>({
 export const useSidebar = () => useContext(SidebarContext);
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
-    const [collapsed, setCollapsed] = useState(false);
-
-    // Load state from localStorage on mount
-    useEffect(() => {
-        const stored = localStorage.getItem("sidebar-collapsed");
-        if (stored) {
-            setCollapsed(stored === "true");
+    const [collapsed, setCollapsed] = useState(() => {
+        if (typeof window !== "undefined") {
+            const stored = localStorage.getItem("sidebar-collapsed");
+            return stored === "true";
         }
-    }, []);
+        return false;
+    });
 
     const handleSetCollapsed = (val: boolean) => {
         setCollapsed(val);

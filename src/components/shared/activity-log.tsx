@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { FileText, Edit2, Trash2, ArrowRight, DollarSign, Truck, CheckCircle2, Clock, User } from "lucide-react";
+import { FileText, Edit2, Trash2, ArrowRight, DollarSign, CheckCircle2, Clock, User } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export interface ActivityEntry {
@@ -138,7 +138,8 @@ export function LiveActivityLog({ entityType, entityId }: { entityType: string; 
 }
 
 // Backward-compatible mock for fallback
-export function getMockActivities(type: string, id: string): ActivityEntry[] {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function getMockActivities(type: string, _id: string): ActivityEntry[] {
     return [
         { id: "1", action: `${type} created`, user: "Mustafa K.", timestamp: "Feb 20, 2026 09:15", type: "create" },
         { id: "2", action: `Status changed to "In Progress"`, user: "Mustafa K.", timestamp: "Feb 21, 2026 14:30", type: "status" },

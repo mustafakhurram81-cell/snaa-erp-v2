@@ -1,7 +1,5 @@
 "use client";
 
-import { formatCurrency, formatDate } from "@/lib/utils";
-
 interface PDFData {
     companyName?: string;
     companyAddress?: string;
@@ -178,7 +176,7 @@ export function generatePDF(data: PDFData) {
             </tr>
         </thead>
         <tbody>
-            ${lineItems.map((item, i) => `
+            ${lineItems.map((item) => `
                 <tr>
                     <td>${item.description}</td>
                     <td style="text-align:right">${item.qty}</td>

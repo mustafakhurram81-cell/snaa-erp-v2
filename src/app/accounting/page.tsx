@@ -220,15 +220,15 @@ export default function AccountingPage() {
   // --- Journal Entry Creation ---
   const [showJournalDialog, setShowJournalDialog] = useState(false);
   interface JELine { id: string; account: string; debit: string; credit: string; }
-  const emptyLine = (): JELine => ({ id: Date.now().toString() + Math.random(), account: "", debit: "", credit: "" });
+  const makeEmptyLine = (): JELine => ({ id: crypto.randomUUID(), account: "", debit: "", credit: "" });
   const [jeDate, setJeDate] = useState("");
   const [jeDesc, setJeDesc] = useState("");
-  const [jeLines, setJeLines] = useState<JELine[]>([emptyLine(), emptyLine()]);
+  const [jeLines, setJeLines] = useState<JELine[]>([makeEmptyLine(), makeEmptyLine()]);
 
   const resetJEForm = () => {
     setJeDate("");
     setJeDesc("");
-    setJeLines([emptyLine(), emptyLine()]);
+    setJeLines([makeEmptyLine(), makeEmptyLine()]);
   };
 
   const handleCreateJE = async () => {
@@ -612,7 +612,7 @@ export default function AccountingPage() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Line Items</h4>
-              <Button variant="ghost" size="sm" onClick={() => setJeLines([...jeLines, emptyLine()])}>
+              <Button variant="ghost" size="sm" onClick={() => setJeLines([...jeLines, makeEmptyLine()])}>
                 <Plus className="w-3.5 h-3.5" /> Add Line
               </Button>
             </div>

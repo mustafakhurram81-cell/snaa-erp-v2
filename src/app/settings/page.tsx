@@ -597,7 +597,7 @@ function UserManagement() {
                 setNewUserPassword("");
                 fetchUsers();
             }
-        } catch (err) {
+        } catch {
             toast("error", "Failed to create user");
         } finally {
             setCreating(false);
@@ -629,7 +629,7 @@ function UserManagement() {
                 toast("success", `User ${email} deleted`);
                 fetchUsers();
             }
-        } catch (err) {
+        } catch {
             toast("error", "Failed to delete user");
         }
     };

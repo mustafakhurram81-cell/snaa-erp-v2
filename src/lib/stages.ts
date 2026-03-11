@@ -1,5 +1,3 @@
-import { Hammer, Flame, CircleDot, FileSliders, Thermometer, Sparkles, Wrench, ShieldCheck, PaintBucket, Package } from "lucide-react";
-
 export interface ManufacturingStage {
     id: number;
     key: string;

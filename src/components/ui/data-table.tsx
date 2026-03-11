@@ -15,12 +15,9 @@ import {
     type RowSelectionState,
 } from "@tanstack/react-table";
 import { cn } from "@/lib/utils";
-import { getStatusColor } from "@/lib/utils";
-import { Input, Button, StatusBadge, Select, Tooltip, TooltipProvider, Checkbox } from "@/components/ui/shared";
-import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Columns3, Search, X, Filter, ChevronsLeft, ChevronsRight, Trash2, Download, Bookmark, Save, Printer } from "lucide-react";
+import { Select, Tooltip, TooltipProvider, Checkbox } from "@/components/ui/shared";
+import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Columns3, Search, X, Filter, ChevronsLeft, ChevronsRight, Printer } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
-// --- DataTable ---
 
 // --- DataTable ---
 
@@ -59,6 +56,7 @@ export function DataTable<TData>({
     onBulkDelete,
     onBulkStatusUpdate,
     bulkStatusOptions,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     tableId,
 }: DataTableProps<TData>) {
     const [sorting, setSorting] = useState<SortingState>([]);
