@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Plus, Upload, DollarSign, Clock, AlertTriangle, Check, Trash2, ImageIcon, Download, CreditCard } from "lucide-react";
 import { PageHeader, Button, Drawer, Input, Card, StatusBadge, Tabs, StatCard, Select, InlineStatusSelect } from "@/components/ui/shared";
+import { ProductSearch } from "@/components/ui/product-search";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { InvoiceDetail } from "@/components/details/invoice-detail";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -449,14 +450,10 @@ function InvoicesContent() {
                     </div>
                   </div>
                   <div className="col-span-4">
-                    <Select
+                    <ProductSearch
+                      products={dbProducts}
                       value={li.product}
-                      onChange={(e: any) => handleProductSelect(li.id, e.target.value)}
-                      options={[
-                        { value: "", label: "Select product..." },
-                        ...dbProducts.map((p) => ({ value: p.name, label: `${p.name} — ${formatCurrency(p.selling_price || 0)}` }))
-                      ]}
-                      className="w-full h-9 px-3 rounded-lg border text-sm bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
+                      onSelect={(p) => handleProductSelect(li.id, p.name)}
                     />
                   </div>
                   <div className="col-span-2">
