@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Plus, Send, Trash2, ImageIcon } from "lucide-react";
 import { PageHeader, Button, Drawer, Input, Card, StatusBadge, Tabs, Select } from "@/components/ui/shared";
-import { ProductSearch } from "@/components/ui/product-search";
+import { LineItemEditor } from "@/components/ui/line-item-editor";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { QuotationDetail } from "@/components/details/quotation-detail";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -396,62 +396,12 @@ function QuotationsContent() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Line Items</h4>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--secondary)", color: "var(--primary)" }}>
-                {formLineItems.length} item{formLineItems.length !== 1 ? "s" : ""}
-              </span>
             </div>
-            <Card className="!p-3 space-y-2">
-              <div className="grid grid-cols-12 gap-2 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
-                <span className="col-span-1"></span>
-                <span className="col-span-4">Product</span>
-                <span className="col-span-2">Qty</span>
-                <span className="col-span-2">Unit Price</span>
-                <span className="col-span-2">Total</span>
-                <span className="col-span-1"></span>
-              </div>
-              {formLineItems.map((li) => (
-                <div key={li.id} className="grid grid-cols-12 gap-2 items-center">
-                  <div className="col-span-1">
-                    <div className="group relative">
-                      <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center cursor-pointer border border-transparent hover:border-blue-300 transition-colors">
-                        <ImageIcon className="w-3.5 h-3.5 text-zinc-400" />
-                      </div>
-                      <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50">
-                        <div className="w-32 h-32 rounded-xl bg-zinc-100 dark:bg-zinc-800 border shadow-lg flex flex-col items-center justify-center gap-1" style={{ borderColor: "var(--border)" }}>
-                          <ImageIcon className="w-8 h-8 text-zinc-300" />
-                          <span className="text-[9px] text-zinc-400">No image yet</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="col-span-4">
-                    <ProductSearch
-                      products={dbProducts}
-                      value={li.product}
-                      onSelect={(p) => handleProductSelect(li.id, p.name)}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Input type="number" placeholder="1" value={String(li.qty)} onChange={(e) => updateLineItem(li.id, "qty", Math.max(1, parseInt(e.target.value) || 1))} />
-                  </div>
-                  <div className="col-span-2">
-                    <Input type="number" placeholder="0.00" value={String(li.unit_price)} onChange={(e) => updateLineItem(li.id, "unit_price", parseFloat(e.target.value) || 0)} />
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{formatCurrency(li.qty * li.unit_price)}</span>
-                  </div>
-                  <div className="col-span-1">
-                    <button onClick={() => removeLineItem(li.id)} disabled={formLineItems.length <= 1} className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-30 transition-colors">
-                      <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </Card>
-            <Button variant="ghost" size="sm" className="mt-2" onClick={addLineItem}>
-              <Plus className="w-3.5 h-3.5" />
-              Add Item
-            </Button>
+            <LineItemEditor
+              products={dbProducts}
+              items={formLineItems}
+              onChange={setFormLineItems}
+            />
           </div>
 
           <div className="flex justify-end pt-3 border-t" style={{ borderColor: "var(--border)" }}>
