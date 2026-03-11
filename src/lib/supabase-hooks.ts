@@ -3,6 +3,20 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "./supabase";
 
+/** Parse Supabase/Postgres error codes into user-friendly messages */
+function parseSupabaseError(err: unknown, fallback: string): string {
+    if (!(err instanceof Error)) return fallback;
+    const msg = err.message || "";
+    // Postgres error codes embedded in message
+    if (msg.includes("23505") || msg.includes("duplicate key")) return "A record with this value already exists";
+    if (msg.includes("23503") || msg.includes("foreign key") || msg.includes("is still referenced")) return "Cannot delete: this record is linked to other data";
+    if (msg.includes("42501") || msg.includes("permission denied")) return "Permission denied";
+    if (msg.includes("PGRST")) return "Database request failed. Please try again.";
+    // Return the original message if it's short enough to be useful
+    if (msg.length < 120) return msg;
+    return fallback;
+}
+
 // Generic type for any table record with an id
 type BaseRecord = {
     id: string;
@@ -26,6 +40,7 @@ export function useSupabaseTable<T extends BaseRecord>(
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const mountedRef = useRef(true);
+    const lastErrorRef = useRef<string | null>(null);
     const enableRealtime = options?.realtime !== false;
 
     const fetchAll = useCallback(async () => {
@@ -63,6 +78,7 @@ export function useSupabaseTable<T extends BaseRecord>(
         async (item: Partial<T>): Promise<T | null> => {
             try {
                 setError(null);
+                lastErrorRef.current = null;
                 const { id: _unusedId, ...rest } = item as Record<string, unknown>; void _unusedId;
                 const { data: result, error: createError } = await supabase
                     .from(tableName as any)
@@ -77,7 +93,8 @@ export function useSupabaseTable<T extends BaseRecord>(
                 }
                 return result as unknown as T;
             } catch (err: unknown) {
-                const message = err instanceof Error ? err.message : "Failed to create record";
+                const message = parseSupabaseError(err, "Failed to create record");
+                lastErrorRef.current = message;
                 if (mountedRef.current) setError(message);
                 return null;
             }
@@ -87,8 +104,17 @@ export function useSupabaseTable<T extends BaseRecord>(
 
     const update = useCallback(
         async (id: string, updates: Partial<T>): Promise<T | null> => {
+            // Optimistic update: apply immediately, rollback on error
+            let previousData: T[] = [];
+            if (mountedRef.current) {
+                setData((prev) => {
+                    previousData = prev;
+                    return prev.map((item) => (item.id === id ? { ...item, ...updates } : item));
+                });
+            }
             try {
                 setError(null);
+                lastErrorRef.current = null;
                 const { data: result, error: updateError } = await supabase
                     .from(tableName as any)
                     .update(updates as Record<string, unknown>)
@@ -97,42 +123,59 @@ export function useSupabaseTable<T extends BaseRecord>(
                     .single();
 
                 if (updateError) throw updateError;
-                if (!enableRealtime && mountedRef.current && result) {
+                // Replace optimistic data with server response
+                if (mountedRef.current && result) {
                     setData((prev) =>
                         prev.map((item) => (item.id === id ? (result as unknown as T) : item))
                     );
                 }
                 return result as unknown as T;
             } catch (err: unknown) {
-                const message = err instanceof Error ? err.message : "Failed to update record";
-                if (mountedRef.current) setError(message);
+                const message = parseSupabaseError(err, "Failed to update record");
+                lastErrorRef.current = message;
+                if (mountedRef.current) {
+                    setError(message);
+                    // Rollback optimistic update
+                    setData(previousData);
+                }
                 return null;
             }
         },
-        [tableName, enableRealtime]
+        [tableName]
     );
 
     const remove = useCallback(
         async (id: string): Promise<boolean> => {
+            // Optimistic delete: remove immediately, rollback on error
+            let previousData: T[] = [];
+            if (mountedRef.current) {
+                setData((prev) => {
+                    previousData = prev;
+                    return prev.filter((item) => item.id !== id);
+                });
+            }
             try {
                 setError(null);
+                lastErrorRef.current = null;
                 const { error: deleteError } = await supabase
                     .from(tableName as any)
                     .delete()
                     .eq("id", id);
 
                 if (deleteError) throw deleteError;
-                if (!enableRealtime && mountedRef.current) {
-                    setData((prev) => prev.filter((item) => item.id !== id));
-                }
                 return true;
             } catch (err: unknown) {
-                const message = err instanceof Error ? err.message : "Failed to delete record";
-                if (mountedRef.current) setError(message);
+                const message = parseSupabaseError(err, "Failed to delete record");
+                lastErrorRef.current = message;
+                if (mountedRef.current) {
+                    setError(message);
+                    // Rollback optimistic delete
+                    setData(previousData);
+                }
                 return false;
             }
         },
-        [tableName, enableRealtime]
+        [tableName]
     );
 
     // Initial fetch
@@ -194,7 +237,7 @@ export function useSupabaseTable<T extends BaseRecord>(
         };
     }, [tableName, enableRealtime]);
 
-    return { data, loading, error, fetchAll, create, update, remove, setData };
+    return { data, loading, error, fetchAll, create, update, remove, setData, lastError: lastErrorRef };
 }
 
 /**

@@ -103,16 +103,17 @@ const columns: ColumnDef<Customer, unknown>[] = [
 ];
 
 export default function CustomersPage() {
-    const { data: customers, loading, create, update, remove, fetchAll } = useSupabaseTable<Customer>("customers");
+    const { data: customers, loading, create, update, remove, fetchAll, lastError } = useSupabaseTable<Customer>("customers");
     const [showDialog, setShowDialog] = useState(false);
     const [showImport, setShowImport] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [formData, setFormData] = useState({ name: "", type: "", email: "", phone: "", city: "", country: "" });
     const { toast } = useToast();
+    const resetForm = () => { setFormData({ name: "", type: "", email: "", phone: "", city: "", country: "" }); };
     // Keyboard shortcut: N to create new
     useEffect(() => {
         const handleNew = () => { setShowDialog(true); };
-        const handleEsc = () => { setShowDialog(false); };
+        const handleEsc = () => { setShowDialog(false); resetForm(); };
         window.addEventListener("keyboard-new", handleNew);
         window.addEventListener("keyboard-escape", handleEsc);
         return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
@@ -143,7 +144,7 @@ export default function CustomersPage() {
             toast("success", "Customer created", `${formData.name} added successfully`);
             logActivity({ entityType: "customer", entityId: result.id, action: "Customer created", details: formData.name });
         } else {
-            toast("error", "Failed to create customer");
+            toast("error", lastError.current || "Failed to create customer");
         }
     };
 
@@ -215,11 +216,11 @@ export default function CustomersPage() {
 
             <Drawer
                 open={showDialog}
-                onClose={() => setShowDialog(false)}
+                onClose={() => { setShowDialog(false); resetForm(); }}
                 title="Add Customer"
                 footer={
                     <div className="flex justify-end gap-2">
-                        <Button variant="secondary" onClick={() => setShowDialog(false)}>Cancel</Button>
+                        <Button variant="secondary" onClick={() => { setShowDialog(false); resetForm(); }}>Cancel</Button>
                         <Button onClick={handleCreate}>Create Customer</Button>
                     </div>
                 }

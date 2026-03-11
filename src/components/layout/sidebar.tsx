@@ -139,6 +139,8 @@ export function Sidebar() {
                 width: collapsed ? "var(--sidebar-collapsed-width)" : "var(--sidebar-width)",
             }}
             transition={sidebarTransition}
+            role="navigation"
+            aria-label="Main navigation"
         >
             {/* Header: Logo + Toggle */}
             <motion.div
@@ -184,6 +186,8 @@ export function Sidebar() {
                     )}
                     style={{ color: "var(--muted-foreground)" }}
                     title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                    aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                    aria-expanded={!collapsed}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                 >

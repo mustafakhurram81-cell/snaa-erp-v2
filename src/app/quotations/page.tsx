@@ -105,7 +105,7 @@ function emptyLineItem(): LineItem {
 
 // --- Page ---
 function QuotationsContent() {
-  const { data: dbQuotations, loading, create, update, remove, fetchAll } = useSupabaseTable<Quotation>("quotations");
+  const { data: dbQuotations, loading, create, update, remove, fetchAll, lastError } = useSupabaseTable<Quotation>("quotations");
   const { data: dbProducts } = useSupabaseTable<DBProduct>("products", { orderBy: "name", ascending: true });
   const { data: dbCustomers } = useSupabaseTable<DBCustomer>("customers", { orderBy: "name", ascending: true });
   const [activeTab, setActiveTab] = useState("all");
@@ -215,7 +215,7 @@ function QuotationsContent() {
       toast("success", `Quotation ${result.quote_number} created with ${items.length} item(s)`);
       logActivity({ entityType: "quotation", entityId: result.id, action: "Quotation created", details: `${result.quote_number} — ${formCustomer}` });
     } else {
-      toast("error", "Failed to create quotation");
+      toast("error", lastError.current || "Failed to create quotation");
     }
   };
 
@@ -345,7 +345,7 @@ function QuotationsContent() {
       {/* --- Create Quotation Drawer --- */}
       <Drawer
         open={showDialog}
-        onClose={() => setShowDialog(false)}
+        onClose={() => { setShowDialog(false); resetForm(); }}
         title="New Quotation"
         width="max-w-2xl"
         footer={

@@ -61,7 +61,7 @@ function emptyLineItem(): LineItem {
 
 
 function InvoicesContent() {
-  const { data: dbInvoices, loading, create, update, remove, fetchAll } = useSupabaseTable<Invoice>("invoices");
+  const { data: dbInvoices, loading, create, update, remove, fetchAll, lastError } = useSupabaseTable<Invoice>("invoices");
   const { data: dbProducts } = useSupabaseTable<DBProduct>("products", { orderBy: "name", ascending: true });
   const { data: dbCustomers } = useSupabaseTable<DBCustomer>("customers", { orderBy: "name", ascending: true });
   const [activeTab, setActiveTab] = useState("all");
@@ -275,7 +275,7 @@ function InvoicesContent() {
       toast("success", `Invoice ${result.invoice_number} created with ${items.length} item(s)`);
       logActivity({ entityType: "invoice", entityId: result.id, action: "Invoice created", details: `${result.invoice_number} — ${formCustomer}` });
     } else {
-      toast("error", "Failed to create invoice");
+      toast("error", lastError.current || "Failed to create invoice");
     }
   };
 
@@ -381,7 +381,7 @@ function InvoicesContent() {
 
       <Drawer
         open={showDialog}
-        onClose={() => setShowDialog(false)}
+        onClose={() => { setShowDialog(false); resetForm(); }}
         title="New Invoice"
         width="max-w-2xl"
         preventCloseOnBackdrop

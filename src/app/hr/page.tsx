@@ -146,7 +146,7 @@ const payrollColumns: ColumnDef<PayrollRun, unknown>[] = [
 ];
 
 export default function HRPage() {
-  const { data: rawEmployees, loading, create, update, remove, fetchAll } = useSupabaseTable<Employee>("employees");
+  const { data: rawEmployees, loading, create, update, remove, fetchAll, lastError } = useSupabaseTable<Employee>("employees");
   const employees = rawEmployees.map(e => ({ ...e, name: `${e.first_name || ''} ${e.last_name || ''}`.trim() || e.email, position: e.role || '' }));
   const { data: payrollRuns } = useSupabaseTable<PayrollRun>("payroll_runs", { orderBy: "created_at", ascending: false });
   const [attendanceData, setAttendanceData] = useState<Record<string, Record<string, string>>>(defaultAttendance);

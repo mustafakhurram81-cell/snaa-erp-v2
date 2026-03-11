@@ -30,7 +30,7 @@ interface Product {
 const categories = ["All", "Scissors", "Forceps", "Retractors", "Clamps", "Needle Holders"];
 
 export default function ProductsPage() {
-    const { data: products, loading, create, update, remove, fetchAll } = useSupabaseTable<Product>("products");
+    const { data: products, loading, create, update, remove, fetchAll, lastError } = useSupabaseTable<Product>("products");
     const [search, setSearch] = useState("");
     const [viewMode, setViewMode] = useState<"grid" | "list">("list");
     const [activeCategory, setActiveCategory] = useState("All");
@@ -45,13 +45,12 @@ export default function ProductsPage() {
 
     // Form state
     const [formData, setFormData] = useState({ name: "", sku: "", category: "", subcategory: "" });
-
     const resetForm = () => { setFormData({ name: "", sku: "", category: "", subcategory: "" }); setImageFile(null); setImagePreview(null); };
 
     // Keyboard shortcut: N to create new
     useEffect(() => {
         const handleNew = () => { resetForm(); setShowDialog(true); };
-        const handleEsc = () => { setShowDialog(false); };
+        const handleEsc = () => { setShowDialog(false); resetForm(); };
         window.addEventListener("keyboard-new", handleNew);
         window.addEventListener("keyboard-escape", handleEsc);
         return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
@@ -93,7 +92,7 @@ export default function ProductsPage() {
             toast("success", `Product ${result.name} created`);
             logActivity({ entityType: "product", entityId: result.id, action: "Product created", details: `${result.sku} — ${result.name}` });
         } else {
-            toast("error", "Failed to create product");
+            toast("error", lastError.current || "Failed to create product");
         }
     };
 
@@ -302,11 +301,11 @@ export default function ProductsPage() {
 
             <Drawer
                 open={showDialog}
-                onClose={() => setShowDialog(false)}
+                onClose={() => { setShowDialog(false); resetForm(); }}
                 title="Add Product"
                 footer={
                     <div className="flex justify-end gap-2">
-                        <Button variant="secondary" onClick={() => setShowDialog(false)}>Cancel</Button>
+                        <Button variant="secondary" onClick={() => { setShowDialog(false); resetForm(); }}>Cancel</Button>
                         <Button onClick={handleCreate}>Create Product</Button>
                     </div>
                 }

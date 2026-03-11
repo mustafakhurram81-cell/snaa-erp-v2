@@ -683,6 +683,7 @@ export function Dialog({ open, onClose, title, children, width = "max-w-lg" }: D
                         onClick={onClose}
                         className="p-1 rounded-md transition-colors hover:bg-[var(--secondary)]"
                         style={{ color: "var(--muted-foreground)" }}
+                        aria-label="Close dialog"
                     >
                         <X className="w-4 h-4" />
                     </button>
@@ -864,6 +865,9 @@ export function Drawer({
                             width
                         )}
                         style={{ borderLeft: "1px solid var(--border)" }}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={title}
                     >
                         {/* Header */}
                         <div
@@ -884,6 +888,7 @@ export function Drawer({
                                 onClick={onClose}
                                 className="p-2 rounded-lg transition-all duration-200 hover:bg-[var(--secondary)] hover:scale-105 active:scale-95"
                                 style={{ color: "var(--muted-foreground)" }}
+                                aria-label="Close drawer"
                             >
                                 <XIcon className="w-4 h-4" />
                             </button>

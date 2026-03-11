@@ -52,16 +52,17 @@ const columns: ColumnDef<Vendor, unknown>[] = [
 ];
 
 export default function VendorsPage() {
-    const { data: vendors, loading, create, update, remove, fetchAll } = useSupabaseTable<Vendor>("vendors");
+    const { data: vendors, loading, create, update, remove, fetchAll, lastError } = useSupabaseTable<Vendor>("vendors");
     const [showDialog, setShowDialog] = useState(false);
     const [showImport, setShowImport] = useState(false);
     const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
     const [formData, setFormData] = useState({ vendor_code: "", name: "", contact_name: "", email: "", phone: "", city: "" });
     const { toast } = useToast();
+    const resetForm = () => { setFormData({ vendor_code: "", name: "", contact_name: "", email: "", phone: "", city: "" }); };
     // Keyboard shortcut: N to create new
     useEffect(() => {
         const handleNew = () => { setShowDialog(true); };
-        const handleEsc = () => { setShowDialog(false); };
+        const handleEsc = () => { setShowDialog(false); resetForm(); };
         window.addEventListener("keyboard-new", handleNew);
         window.addEventListener("keyboard-escape", handleEsc);
         return () => { window.removeEventListener("keyboard-new", handleNew); window.removeEventListener("keyboard-escape", handleEsc); };
@@ -93,7 +94,7 @@ export default function VendorsPage() {
             toast("success", "Vendor created", `${formData.name} added successfully`);
             logActivity({ entityType: "vendor", entityId: result.id, action: "Vendor created", details: `${result.vendor_code} — ${formData.name}` });
         } else {
-            toast("error", "Failed to create vendor");
+            toast("error", lastError.current || "Failed to create vendor");
         }
     };
 
@@ -163,11 +164,11 @@ export default function VendorsPage() {
 
             <Drawer
                 open={showDialog}
-                onClose={() => setShowDialog(false)}
+                onClose={() => { setShowDialog(false); resetForm(); }}
                 title="Add Vendor"
                 footer={
                     <div className="flex justify-end gap-2">
-                        <Button variant="secondary" onClick={() => setShowDialog(false)}>Cancel</Button>
+                        <Button variant="secondary" onClick={() => { setShowDialog(false); resetForm(); }}>Cancel</Button>
                         <Button onClick={handleCreate}>Create Vendor</Button>
                     </div>
                 }

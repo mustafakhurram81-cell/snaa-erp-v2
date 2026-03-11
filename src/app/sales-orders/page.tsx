@@ -62,7 +62,7 @@ function emptyLineItem(): LineItem {
 
 
 function SalesOrdersContent() {
-  const { data: dbOrders, loading, create, update, remove, fetchAll } = useSupabaseTable<SalesOrder>("sales_orders");
+  const { data: dbOrders, loading, create, update, remove, fetchAll, lastError } = useSupabaseTable<SalesOrder>("sales_orders");
   const { data: dbProducts } = useSupabaseTable<DBProduct>("products", { orderBy: "name", ascending: true });
   const { data: dbCustomers } = useSupabaseTable<DBCustomer>("customers", { orderBy: "name", ascending: true });
   const [activeTab, setActiveTab] = useState("all");
@@ -239,7 +239,7 @@ function SalesOrdersContent() {
       toast("success", `Sales Order ${result.order_number} created with ${items.length} item(s)`);
       logActivity({ entityType: "sales_order", entityId: result.id, action: "Sales Order created", details: `${result.order_number} — ${formCustomer} ` });
     } else {
-      toast("error", "Failed to create sales order");
+      toast("error", lastError.current || "Failed to create sales order");
     }
   };
 
@@ -440,7 +440,7 @@ function SalesOrdersContent() {
 
       <Drawer
         open={showDialog}
-        onClose={() => setShowDialog(false)}
+        onClose={() => { setShowDialog(false); resetForm(); }}
         title="New Sales Order"
         width="max-w-2xl"
         preventCloseOnBackdrop

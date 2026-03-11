@@ -57,7 +57,7 @@ function emptyLineItem(): LineItem {
 
 
 export default function PurchaseOrdersPage() {
-  const { data: dbOrders, loading, create, update, remove, fetchAll } = useSupabaseTable<PurchaseOrder>("purchase_orders");
+  const { data: dbOrders, loading, create, update, remove, fetchAll, lastError } = useSupabaseTable<PurchaseOrder>("purchase_orders");
   const { data: dbVendors } = useSupabaseTable<DBVendor>("vendors", { orderBy: "name", ascending: true });
   const [activeTab, setActiveTab] = useState("all");
   const [showDialog, setShowDialog] = useState(false);
@@ -191,7 +191,7 @@ export default function PurchaseOrdersPage() {
       toast("success", `Purchase Order ${result.po_number} created`);
       logActivity({ entityType: "purchase_order", entityId: result.id, action: "Purchase Order created", details: `${result.po_number} — ${formVendor}` });
     } else {
-      toast("error", "Failed to create purchase order");
+      toast("error", lastError.current || "Failed to create purchase order");
     }
   };
 
@@ -271,7 +271,7 @@ export default function PurchaseOrdersPage() {
 
       <Drawer
         open={showDialog}
-        onClose={() => setShowDialog(false)}
+        onClose={() => { setShowDialog(false); resetForm(); }}
         title="New Purchase Order"
         width="max-w-2xl"
         preventCloseOnBackdrop
