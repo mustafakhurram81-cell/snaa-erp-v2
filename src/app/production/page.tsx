@@ -430,6 +430,14 @@ export default function ProductionPage() {
                   searchPlaceholder="Search job orders..."
                   onRowClick={(item) => setSelectedJO(item)}
                   enableSelection
+                  onBulkStatusUpdate={async (items, status) => {
+                    for (const item of items) {
+                      await supabase.from("production_orders").update({ status }).eq("id", (item as any).id);
+                    }
+                    toast("success", "Status updated", `${items.length} job order(s) set to ${status}`);
+                    fetchJobOrders();
+                  }}
+                  bulkStatusOptions={["planned", "in_progress", "completed"]}
                 />
               )}
             </motion.div>

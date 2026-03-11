@@ -326,10 +326,19 @@ function QuotationsContent() {
           columns={columns}
           data={filtered}
           enableColumnFilters
+          enableSelection
           filterableColumns={["status"]}
           emptyMessage="No quotations found"
           searchPlaceholder="Search quotations..."
           onRowClick={(item) => setSelectedQuotation(item)}
+          onBulkStatusUpdate={async (items, status) => {
+            for (const item of items) {
+              await update((item as any).id, { status });
+            }
+            toast("success", "Status updated", `${items.length} quotation(s) set to ${status}`);
+            fetchAll();
+          }}
+          bulkStatusOptions={["draft", "sent", "accepted", "rejected"]}
         />
       )}
 
