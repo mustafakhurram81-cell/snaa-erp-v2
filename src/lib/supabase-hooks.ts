@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "./supabase";
-import { logActivity } from "./activity-logger";
 
 // Generic type for any table record with an id
 type BaseRecord = {
@@ -72,12 +71,9 @@ export function useSupabaseTable<T extends BaseRecord>(
                     .single();
 
                 if (createError) throw createError;
-                // Log activity
-                if (result) {
-                    logActivity({ entityType: tableName, entityId: (result as any).id, action: "created", details: `Created ${tableName} record` });
-                }
                 // If realtime is off, update local state manually
                 if (!enableRealtime && mountedRef.current && result) {
+                    setData((prev) => [result as unknown as T, ...prev]);
                 }
                 return result as unknown as T;
             } catch (err: unknown) {
@@ -101,10 +97,6 @@ export function useSupabaseTable<T extends BaseRecord>(
                     .single();
 
                 if (updateError) throw updateError;
-                // Log activity
-                if (result) {
-                    logActivity({ entityType: tableName, entityId: id, action: "updated", details: `Updated ${tableName} record` });
-                }
                 if (!enableRealtime && mountedRef.current && result) {
                     setData((prev) =>
                         prev.map((item) => (item.id === id ? (result as unknown as T) : item))
@@ -130,8 +122,6 @@ export function useSupabaseTable<T extends BaseRecord>(
                     .eq("id", id);
 
                 if (deleteError) throw deleteError;
-                // Log activity
-                logActivity({ entityType: tableName, entityId: id, action: "deleted", details: `Deleted ${tableName} record` });
                 if (!enableRealtime && mountedRef.current) {
                     setData((prev) => prev.filter((item) => item.id !== id));
                 }
