@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard, Select } from "@/components/ui/shared";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Mail, Phone, MapPin, ShoppingCart, FileText, Edit3, Save, X, Trash2, Building2 } from "lucide-react";
@@ -62,6 +63,7 @@ interface CustomerDetailProps {
 
 export function CustomerDetail({ customer, open, onClose, onUpdate, onDelete }: CustomerDetailProps) {
     const { toast } = useToast();
+    const router = useRouter();
     const [showDelete, setShowDelete] = useState(false);
     const [activeTab, setActiveTab] = useState("orders");
     const [isEditing, setIsEditing] = useState(false);
@@ -159,10 +161,16 @@ export function CustomerDetail({ customer, open, onClose, onUpdate, onDelete }: 
                                     <Edit3 className="w-3.5 h-3.5" /> Edit
                                 </Button>
                                 <RoleGuard minRole="admin"><button onClick={() => setShowDelete(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button></RoleGuard>
-                                <Button variant="secondary">
+                                <Button variant="secondary" onClick={() => {
+                                    onClose();
+                                    router.push(`/quotations?newFor=${encodeURIComponent(customer.name)}`);
+                                }}>
                                     <FileText className="w-3.5 h-3.5" /> New Quote
                                 </Button>
-                                <Button>
+                                <Button onClick={() => {
+                                    onClose();
+                                    router.push(`/sales-orders?newFor=${encodeURIComponent(customer.name)}`);
+                                }}>
                                     <ShoppingCart className="w-3.5 h-3.5" /> New Order
                                 </Button>
                             </>

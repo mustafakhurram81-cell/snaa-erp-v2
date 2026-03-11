@@ -134,6 +134,15 @@ function QuotationsContent() {
     }
   }, [searchParams, quotations]);
 
+  // Auto-open create drawer from ?newFor= param (from customer detail)
+  useEffect(() => {
+    const newFor = searchParams.get("newFor");
+    if (newFor) {
+      setFormCustomer(newFor);
+      setShowDialog(true);
+    }
+  }, [searchParams]);
+
   // --- Create form state ---
   const [formCustomer, setFormCustomer] = useState("");
   const [formValidUntil, setFormValidUntil] = useState("");

@@ -156,6 +156,15 @@ function SalesOrdersContent() {
     }
   }, [searchParams, orders]);
 
+  // Auto-open create drawer from ?newFor= param (from customer detail)
+  useEffect(() => {
+    const newFor = searchParams.get("newFor");
+    if (newFor) {
+      setFormCustomer(newFor);
+      setShowDialog(true);
+    }
+  }, [searchParams]);
+
   // --- Form state ---
   const [formCustomer, setFormCustomer] = useState("");
   const [formQuotation, setFormQuotation] = useState("");
