@@ -440,6 +440,12 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export function Select({ label, options, className, error, ...props }: SelectProps) {
+    // Filter out empty-value options (Radix Select.Item crashes on value="")
+    // Use the empty option's label as placeholder instead
+    const emptyOpt = options.find((opt) => opt.value === "");
+    const validOptions = options.filter((opt) => opt.value !== "");
+    const placeholder = emptyOpt?.label || props.placeholder || "Select an option...";
+
     return (
         <div className="space-y-1.5 relative pb-0">
             {label && (
@@ -447,7 +453,7 @@ export function Select({ label, options, className, error, ...props }: SelectPro
                     {label}
                 </label>
             )}
-            <SelectPrimitive.Root value={props.value as string} onValueChange={(val) => {
+            <SelectPrimitive.Root value={props.value as string || undefined} onValueChange={(val) => {
                 if (props.onChange) {
                     const e = { target: { value: val } } as any;
                     props.onChange(e);
@@ -460,8 +466,8 @@ export function Select({ label, options, className, error, ...props }: SelectPro
                         className
                     )}
                 >
-                    <SelectPrimitive.Value placeholder={props.placeholder || "Select an option..."}>
-                        {options.find((opt) => opt.value === props.value)?.label || props.placeholder}
+                    <SelectPrimitive.Value placeholder={placeholder}>
+                        {validOptions.find((opt) => opt.value === props.value)?.label || placeholder}
                     </SelectPrimitive.Value>
                     <SelectPrimitive.Icon asChild>
                         <ChevronDown className="h-4 w-4 opacity-50" />
@@ -476,7 +482,7 @@ export function Select({ label, options, className, error, ...props }: SelectPro
                         )}
                     >
                         <SelectPrimitive.Viewport className="p-1">
-                            {options.map((opt) => (
+                            {validOptions.map((opt) => (
                                 <SelectPrimitive.Item
                                     key={opt.value}
                                     value={opt.value}
