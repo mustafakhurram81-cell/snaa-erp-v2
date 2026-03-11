@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Drawer, Button, Input } from "@/components/ui/shared";
+import { Drawer, Button, Input, Select } from "@/components/ui/shared";
 import { DollarSign, Check, CreditCard } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { formatCurrency } from "@/lib/utils";
@@ -131,16 +131,12 @@ export function RecordPayment({ open, onClose, invoiceNumber, invoiceTotal, invo
 
                 <div>
                     <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--foreground)" }}>Payment Method</label>
-                    <select
+                    <Select
                         value={method}
-                        onChange={(e) => setMethod(e.target.value)}
-                        className="w-full h-9 px-3 rounded-lg border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-                        style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
-                    >
-                        {paymentMethods.map((m) => (
-                            <option key={m} value={m}>{m}</option>
-                        ))}
-                    </select>
+                        onChange={(e: any) => setMethod(e.target.value)}
+                        options={paymentMethods.map((m) => ({ value: m, label: m }))}
+                        className="w-full h-9 px-3 rounded-lg border text-sm bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
+                    />
                 </div>
 
                 <Input

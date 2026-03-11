@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, createContext, useContext } from "react";
+import React, { useState, createContext, useContext, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,6 +25,7 @@ import {
     ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip } from "@/components/ui/shared";
 
 interface SidebarContextType {
     collapsed: boolean;
@@ -40,8 +41,22 @@ export const useSidebar = () => useContext(SidebarContext);
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
     const [collapsed, setCollapsed] = useState(false);
+
+    // Load state from localStorage on mount
+    useEffect(() => {
+        const stored = localStorage.getItem("sidebar-collapsed");
+        if (stored) {
+            setCollapsed(stored === "true");
+        }
+    }, []);
+
+    const handleSetCollapsed = (val: boolean) => {
+        setCollapsed(val);
+        localStorage.setItem("sidebar-collapsed", String(val));
+    };
+
     return (
-        <SidebarContext.Provider value={{ collapsed, setCollapsed }}>
+        <SidebarContext.Provider value={{ collapsed, setCollapsed: handleSetCollapsed }}>
             {children}
         </SidebarContext.Provider>
     );
@@ -120,10 +135,9 @@ export function Sidebar() {
 
     return (
         <motion.aside
-            className="fixed left-0 top-0 z-40 h-screen flex flex-col border-r overflow-hidden"
+            className="fixed left-0 top-0 z-40 h-screen flex flex-col overflow-hidden shadow-[2px_0_8px_-2px_rgba(0,0,0,0.05),_4px_0_16px_rgba(0,0,0,0.02)] dark:shadow-[2px_0_8px_-2px_rgba(0,0,0,0.5)]"
             style={{
                 background: "var(--sidebar-bg)",
-                borderColor: "var(--sidebar-border)",
             }}
             animate={{
                 width: collapsed ? "var(--sidebar-collapsed-width)" : "var(--sidebar-width)",
@@ -132,8 +146,7 @@ export function Sidebar() {
         >
             {/* Header: Logo + Toggle */}
             <motion.div
-                className="flex border-b flex-shrink-0 h-14"
-                style={{ borderColor: "var(--sidebar-border)" }}
+                className="flex flex-shrink-0 h-14 relative"
                 animate={{
                     flexDirection: collapsed ? "column" : "row",
                     alignItems: "center",
@@ -145,15 +158,8 @@ export function Sidebar() {
             >
                 <Link href="/" className={cn(
                     "flex items-center overflow-hidden",
-                    collapsed ? "justify-center" : "gap-3 flex-1 min-w-0"
+                    collapsed ? "justify-center" : "flex-1 min-w-0"
                 )}>
-                    <motion.div
-                        className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center flex-shrink-0"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                    >
-                        <span className="text-white font-bold text-sm">SI</span>
-                    </motion.div>
                     <AnimatePresence mode="wait">
                         {!collapsed && (
                             <motion.div
@@ -189,7 +195,12 @@ export function Sidebar() {
                         animate={{ rotate: collapsed ? 180 : 0 }}
                         transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                     >
-                        {collapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+                        {/* Custom minimalist 3-line icon */}
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="4" y1="12" x2="20" y2="12"></line>
+                            <line x1="4" y1="6" x2="20" y2="6"></line>
+                            <line x1="4" y1="18" x2="20" y2="18"></line>
+                        </svg>
                     </motion.div>
                 </motion.button>
             </motion.div>
@@ -201,9 +212,9 @@ export function Sidebar() {
             )}>
                 {navGroups.map((group, groupIdx) => (
                     <div key={group.label}>
-                        {/* Collapsed divider between groups */}
                         <AnimatePresence>
-                            {collapsed && groupIdx > 0 && (
+                            {/* Dividers removed in collapsed state for an uninterrupted flow */}
+                            {!collapsed && groupIdx > 0 && (
                                 <motion.div
                                     initial={{ opacity: 0, scaleX: 0 }}
                                     animate={{ opacity: 1, scaleX: 1 }}
@@ -247,6 +258,48 @@ export function Sidebar() {
                                     {group.items.map((item, itemIdx) => {
                                         const Icon = item.icon;
                                         const active = isActive(item.href);
+                                        const linkContent = (
+                                            <Link
+                                                href={item.href}
+                                                className={cn(
+                                                    "relative w-full text-left transition-all duration-200 group flex items-center overflow-hidden",
+                                                    collapsed ? "h-11 justify-center rounded-xl mx-auto w-11" : "h-[38px] px-3 gap-3 rounded-lg w-full",
+                                                    active
+                                                        ? "bg-[var(--sidebar-active-bg)] text-[var(--sidebar-active)] font-medium shadow-sm"
+                                                        : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--sidebar-active)]"
+                                                )}
+                                                style={{
+                                                    color: active ? "var(--sidebar-active)" : "var(--sidebar-foreground)",
+                                                    backgroundColor: active ? "var(--sidebar-active-bg)" : undefined,
+                                                }}
+                                            >
+                                                {/* Active indicator line only visible when expanded */}
+                                                {active && !collapsed && (
+                                                    <motion.div
+                                                        layoutId="sidebar-indicator"
+                                                        className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
+                                                        style={{ background: "var(--sidebar-active)" }}
+                                                        transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                                                    />
+                                                )}
+                                                <Icon className={cn("w-[18px] h-[18px] flex-shrink-0 transition-transform duration-200", active && "text-[var(--sidebar-active)]")} />
+                                                <AnimatePresence mode="wait">
+                                                    {!collapsed && (
+                                                        <motion.span
+                                                            key="label"
+                                                            className="truncate"
+                                                            variants={labelVariants}
+                                                            initial="collapsed"
+                                                            animate="expanded"
+                                                            exit="collapsed"
+                                                        >
+                                                            {item.label}
+                                                        </motion.span>
+                                                    )}
+                                                </AnimatePresence>
+                                            </Link>
+                                        );
+
                                         return (
                                             <motion.div
                                                 key={item.href}
@@ -254,47 +307,11 @@ export function Sidebar() {
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ duration: 0.15, delay: itemIdx * 0.03 }}
                                             >
-                                                <Link
-                                                    href={item.href}
-                                                    className={cn(
-                                                        "flex items-center rounded-lg text-[13px] font-medium transition-all duration-150 group relative my-0.5",
-                                                        collapsed
-                                                            ? "justify-center w-10 h-10 p-0"
-                                                            : "gap-3 px-3 py-2",
-                                                        active
-                                                            ? "text-[var(--sidebar-active)]"
-                                                            : "hover:bg-[var(--sidebar-hover-bg)]"
-                                                    )}
-                                                    style={{
-                                                        color: active ? "var(--sidebar-active)" : "var(--sidebar-foreground)",
-                                                        backgroundColor: active ? "var(--sidebar-active-bg)" : undefined,
-                                                    }}
-                                                    title={collapsed ? item.label : undefined}
-                                                >
-                                                    {active && (
-                                                        <motion.div
-                                                            layoutId="sidebar-indicator"
-                                                            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
-                                                            style={{ background: "var(--sidebar-active)" }}
-                                                            transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                                                        />
-                                                    )}
-                                                    <Icon className={cn("w-[18px] h-[18px] flex-shrink-0 transition-transform duration-200", active && "text-[var(--sidebar-active)]")} />
-                                                    <AnimatePresence mode="wait">
-                                                        {!collapsed && (
-                                                            <motion.span
-                                                                key="label"
-                                                                className="truncate"
-                                                                variants={labelVariants}
-                                                                initial="collapsed"
-                                                                animate="expanded"
-                                                                exit="collapsed"
-                                                            >
-                                                                {item.label}
-                                                            </motion.span>
-                                                        )}
-                                                    </AnimatePresence>
-                                                </Link>
+                                                {collapsed ? (
+                                                    <Tooltip content={item.label} side="right" sideOffset={12}>
+                                                        {linkContent}
+                                                    </Tooltip>
+                                                ) : linkContent}
                                             </motion.div>
                                         );
                                     })}
@@ -310,34 +327,51 @@ export function Sidebar() {
                 "border-t flex-shrink-0",
                 collapsed ? "px-1.5 py-2" : "p-3"
             )} style={{ borderColor: "var(--sidebar-border)" }}>
-                <Link
-                    href="/settings"
-                    className={cn(
-                        "flex items-center rounded-lg text-[13px] font-medium transition-all duration-150 group relative",
-                        collapsed
-                            ? "justify-center w-10 h-10 p-0 mx-auto"
-                            : "gap-3 px-3 py-2",
-                        isActive("/settings")
-                            ? "text-[var(--sidebar-active)]"
-                            : "hover:bg-[var(--sidebar-hover-bg)]"
-                    )}
-                    style={{
-                        color: isActive("/settings") ? "var(--sidebar-active)" : "var(--sidebar-foreground)",
-                        backgroundColor: isActive("/settings") ? "var(--sidebar-active-bg)" : undefined,
-                    }}
-                    title={collapsed ? "Settings" : undefined}
-                >
-                    {isActive("/settings") && (
-                        <motion.div
-                            layoutId="sidebar-indicator"
-                            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
-                            style={{ background: "var(--sidebar-active)" }}
-                            transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                        />
-                    )}
-                    <Settings className={cn("w-[18px] h-[18px] flex-shrink-0", isActive("/settings") && "text-[var(--sidebar-active)]")} />
-                    <AnimatePresence mode="wait">
-                        {!collapsed && (
+                {collapsed ? (
+                    <Tooltip content="Settings" side="right" sideOffset={12}>
+                        <Link
+                            href="/settings"
+                            className={cn(
+                                "flex items-center rounded-lg text-[13px] font-medium transition-all duration-150 group relative",
+                                "justify-center w-10 h-10 p-0 mx-auto",
+                                isActive("/settings")
+                                    ? "text-[var(--sidebar-active)]"
+                                    : "hover:bg-[var(--sidebar-hover-bg)]"
+                            )}
+                            style={{
+                                color: isActive("/settings") ? "var(--sidebar-active)" : "var(--sidebar-foreground)",
+                                backgroundColor: isActive("/settings") ? "var(--sidebar-active-bg)" : undefined,
+                            }}
+                        >
+                            <Settings className={cn("w-[18px] h-[18px] flex-shrink-0", isActive("/settings") && "text-[var(--sidebar-active)]")} />
+                        </Link>
+                    </Tooltip>
+                ) : (
+                    <Link
+                        href="/settings"
+                        className={cn(
+                            "flex items-center rounded-lg text-[13px] font-medium transition-all duration-150 group relative",
+                            "gap-3 px-3 py-2",
+                            isActive("/settings")
+                                ? "text-[var(--sidebar-active)]"
+                                : "hover:bg-[var(--sidebar-hover-bg)]"
+                        )}
+                        style={{
+                            color: isActive("/settings") ? "var(--sidebar-active)" : "var(--sidebar-foreground)",
+                            backgroundColor: isActive("/settings") ? "var(--sidebar-active-bg)" : undefined,
+                        }}
+                    >
+                        {/* Active indicator line only visible when expanded */}
+                        {isActive("/settings") && (
+                            <motion.div
+                                layoutId="sidebar-indicator-settings"
+                                className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
+                                style={{ background: "var(--sidebar-active)" }}
+                                transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                            />
+                        )}
+                        <Settings className={cn("w-[18px] h-[18px] flex-shrink-0", isActive("/settings") && "text-[var(--sidebar-active)]")} />
+                        <AnimatePresence mode="wait">
                             <motion.span
                                 key="settings-label"
                                 className="truncate"
@@ -348,9 +382,9 @@ export function Sidebar() {
                             >
                                 Settings
                             </motion.span>
-                        )}
-                    </AnimatePresence>
-                </Link>
+                        </AnimatePresence>
+                    </Link>
+                )}
             </div>
         </motion.aside>
     );

@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard } from "@/components/ui/shared";
+import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard, Select } from "@/components/ui/shared";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { Download, Receipt, Truck, ClipboardList, Edit3, Trash2, Save, X, Send, ShoppingCart } from "lucide-react";
 import { generatePDF } from "@/lib/pdf";
 import { useToast } from "@/components/ui/toast";
-import { LiveActivityLog } from "@/components/shared/activity-log";
+import { ActivityTimeline } from "@/components/ui/activity-timeline";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 import { EmailSend } from "@/components/shared/email-send";
 import { adjustStockForSO } from "@/lib/inventory-adjustment";
@@ -99,7 +99,7 @@ export function SalesOrderDetail({ order, open, onClose, onCreateInvoice, onCrea
     const tabs = [
         { key: "details", label: "Details" },
         { key: "items", label: "Line Items", count: order.items_count },
-        { key: "activity", label: "Activity" },
+        { key: "timeline", label: "Timeline" },
     ];
 
     return (
@@ -168,14 +168,18 @@ export function SalesOrderDetail({ order, open, onClose, onCreateInvoice, onCrea
                     )}
                 </div>
                 {isEditing ? (
-                    <select value={editData.status} onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                        className="h-8 px-3 rounded-lg border text-xs font-medium" style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="shipped">Shipped</option>
-                        <option value="delivered">Delivered</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
+                    <Select
+                        value={editData.status}
+                        onChange={(e: any) => setEditData({ ...editData, status: e.target.value })}
+                        options={[
+                            { value: "confirmed", label: "Confirmed" },
+                            { value: "in_progress", label: "In Progress" },
+                            { value: "shipped", label: "Shipped" },
+                            { value: "delivered", label: "Delivered" },
+                            { value: "cancelled", label: "Cancelled" },
+                        ]}
+                        className="h-8 px-3 rounded-lg border text-xs font-medium bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
+                    />
                 ) : (
                     <StatusBadge status={order.status} />
                 )}
@@ -279,7 +283,11 @@ export function SalesOrderDetail({ order, open, onClose, onCreateInvoice, onCrea
                         </div>
                     )}
 
-                    {activeTab === "activity" && (<LiveActivityLog entityType="sales_order" entityId={order.id} />)}
+                    {activeTab === "timeline" && (
+                        <div className="py-2">
+                            <ActivityTimeline entityId={order.id} />
+                        </div>
+                    )}
                 </>
             )}
 

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Plus, Upload, DollarSign, Clock, AlertTriangle, Check, Trash2, ImageIcon, Download, CreditCard } from "lucide-react";
-import { PageHeader, Button, Drawer, Input, Card, StatusBadge, Tabs, StatCard } from "@/components/ui/shared";
+import { PageHeader, Button, Drawer, Input, Card, StatusBadge, Tabs, StatCard, Select, InlineStatusSelect } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { InvoiceDetail } from "@/components/details/invoice-detail";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -13,7 +13,7 @@ import { useSupabaseTable } from "@/lib/supabase-hooks";
 import { supabase } from "@/lib/supabase";
 import { exportToCSV } from "@/lib/csv-export";
 import { logActivity } from "@/lib/activity-logger";
-import { TableSkeleton } from "@/components/ui/skeleton";
+import { TableSkeleton, EmptyState } from "@/components/ui/shared";
 import { validateRequired, validateForm, hasErrors } from "@/lib/form-validation";
 import { CSVImportDialog } from "@/components/shared/csv-import";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
@@ -59,43 +59,7 @@ function emptyLineItem(): LineItem {
   return { id: Date.now().toString() + Math.random(), product: "", qty: 1, unit_price: 0 };
 }
 
-const columns: ColumnDef<Invoice, unknown>[] = [
-  {
-    accessorKey: "invoice_number",
-    header: "Invoice #",
-    cell: ({ row }) => <span className="font-medium text-sm" style={{ color: "var(--primary)" }}>{row.original.invoice_number}</span>,
-  },
-  {
-    accessorKey: "customer_name",
-    header: "Customer",
-    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.customer_name || row.original.customer}</span>,
-  },
-  {
-    accessorKey: "invoice_date",
-    header: "Date",
-    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>{formatDate(row.original.invoice_date || row.original.date)}</span>,
-  },
-  {
-    accessorKey: "due_date",
-    header: "Due Date",
-    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{formatDate(row.original.due_date)}</span>,
-  },
-  {
-    accessorKey: "total_amount",
-    header: "Total",
-    cell: ({ row }) => <span className="font-semibold text-sm" style={{ color: "var(--foreground)" }}>{formatCurrency(row.original.total_amount || row.original.total || 0)}</span>,
-  },
-  {
-    accessorKey: "amount_paid",
-    header: "Paid",
-    cell: ({ row }) => <span className="text-sm text-emerald-600 font-medium">{formatCurrency(row.original.amount_paid || row.original.paid || 0)}</span>,
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => <StatusBadge status={row.original.status} />,
-  },
-];
+
 
 function InvoicesContent() {
   const { data: dbInvoices, loading, create, update, remove, fetchAll } = useSupabaseTable<Invoice>("invoices");
@@ -106,6 +70,57 @@ function InvoicesContent() {
   const [showImport, setShowImport] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const { toast } = useToast();
+
+  const columns = React.useMemo<ColumnDef<Invoice, unknown>[]>(() => [
+    {
+      accessorKey: "invoice_number",
+      header: "Invoice #",
+      cell: ({ row }) => <span className="font-medium text-sm" style={{ color: "var(--primary)" }}>{row.original.invoice_number}</span>,
+    },
+    {
+      accessorKey: "customer_name",
+      header: "Customer",
+      cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.customer_name || row.original.customer}</span>,
+    },
+    {
+      accessorKey: "invoice_date",
+      header: "Date",
+      cell: ({ row }) => <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>{formatDate(row.original.invoice_date || row.original.date)}</span>,
+    },
+    {
+      accessorKey: "due_date",
+      header: "Due Date",
+      cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{formatDate(row.original.due_date)}</span>,
+    },
+    {
+      accessorKey: "total_amount",
+      header: "Total",
+      cell: ({ row }) => <span className="font-semibold text-sm" style={{ color: "var(--foreground)" }}>{formatCurrency(row.original.total_amount || row.original.total || 0)}</span>,
+    },
+    {
+      accessorKey: "amount_paid",
+      header: "Paid",
+      cell: ({ row }) => <span className="text-sm text-emerald-600 font-medium">{formatCurrency(row.original.amount_paid || row.original.paid || 0)}</span>,
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => (
+        <InlineStatusSelect
+          status={row.original.status}
+          options={["draft", "pending", "partial", "paid", "overdue", "cancelled"]}
+          onChange={async (newStatus) => {
+            const result = await update(row.original.id, { status: newStatus } as Partial<Invoice>);
+            if (result) {
+              toast("success", "Status updated", `Invoice ${row.original.invoice_number} is now ${newStatus}`);
+              fetchAll();
+            }
+          }}
+        />
+      ),
+    },
+  ], [update, toast, fetchAll]);
+
   // Keyboard shortcut: N to create new
   useEffect(() => {
     const handleNew = () => { resetForm(); setShowDialog(true); };
@@ -130,7 +145,16 @@ function InvoicesContent() {
   const handleRecordPayment = async () => {
     if (!paymentInvoice) return;
     const amount = parseFloat(paymentAmount);
-    if (!amount || amount <= 0) { toast("error", "Enter a valid payment amount"); return; }
+    const errors: Record<string, string> = {};
+    if (!amount || amount <= 0) errors.paymentAmount = "Enter a valid payment amount";
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast("error", "Please fix errors in the form");
+      return;
+    }
+    setFormErrors({});
+
     const prevPaid = paymentInvoice.amount_paid || paymentInvoice.paid || 0;
     const totalAmt = paymentInvoice.total_amount || paymentInvoice.total || 0;
     const newPaid = Math.min(prevPaid + amount, totalAmt);
@@ -204,16 +228,21 @@ function InvoicesContent() {
   const formTotal = formLineItems.reduce((sum, li) => sum + li.qty * li.unit_price, 0);
 
   const handleCreate = async (asDraft: boolean) => {
-    const errors = validateForm({
-      customer: [validateRequired(formCustomer, "Customer name")],
-      due_date: [validateRequired(formDueDate, "Due date")],
-    });
+    const errors: Record<string, string> = {};
+    if (!formCustomer.trim()) errors.formCustomer = "Please select a customer";
+    if (!formDueDate.trim()) errors.formDueDate = "Due date is required";
+
     // Check line items
     if (formLineItems.some((li) => !li.product.trim())) {
       errors.line_items = "Please fill in all line item products";
     }
-    setFormErrors(errors);
-    if (hasErrors(errors)) return;
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast("error", "Please fix the errors in the form");
+      return;
+    }
+    setFormErrors({});
 
     const invNumber = await getNextINVNumber();
     const result = await create({
@@ -303,9 +332,23 @@ function InvoicesContent() {
       </div>
 
       {loading ? (
-        <TableSkeleton rows={5} columns={7} />
+        <TableSkeleton rows={8} columns={7} />
+      ) : filtered.length === 0 ? (
+        <div className="py-8">
+          <EmptyState
+            icon={<DollarSign className="w-8 h-8" />}
+            title="No Invoices Found"
+            description="You haven't created any invoices yet."
+            action={
+              <Button onClick={() => { resetForm(); setShowDialog(true); }}>
+                <Plus className="w-4 h-4" /> Create First Invoice
+              </Button>
+            }
+          />
+        </div>
       ) : (
         <DataTable
+          tableId="invoices"
           columns={columns}
           data={filtered}
           emptyMessage="No invoices found"
@@ -338,6 +381,7 @@ function InvoicesContent() {
         onClose={() => setShowDialog(false)}
         title="New Invoice"
         width="max-w-2xl"
+        preventCloseOnBackdrop
         footer={
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setShowDialog(false)}>Cancel</Button>
@@ -351,22 +395,21 @@ function InvoicesContent() {
             <div>
               <div>
                 <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--foreground)" }}>Customer *</label>
-                <select
+                <Select
+                  error={formErrors.formCustomer}
                   value={formCustomer}
-                  onChange={(e) => { setFormCustomer(e.target.value); setFormErrors(prev => { const n = { ...prev }; delete n.customer; return n; }); }}
-                  className="w-full h-9 px-3 rounded-lg border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-                  style={{ background: "var(--background)", borderColor: "var(--border)", color: formCustomer ? "var(--foreground)" : "var(--muted-foreground)" }}
-                >
-                  <option value="">Select customer...</option>
-                  {dbCustomers.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                </select>
-                {formErrors.customer && <p className="text-xs text-red-500 mt-1">{formErrors.customer}</p>}
+                  onChange={(e: any) => { setFormCustomer(e.target.value); if (formErrors.formCustomer) setFormErrors({ ...formErrors, formCustomer: "" }); }}
+                  options={[
+                    { value: "", label: "Select customer..." },
+                    ...dbCustomers.map(c => ({ value: c.name, label: c.name }))
+                  ]}
+                  className="w-full h-9 px-3 rounded-lg border text-sm bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
+                />
               </div>
             </div>
             <Input label="Sales Order" placeholder="SO-2026-XXX" value={formSO} onChange={(e) => setFormSO(e.target.value)} />
             <div>
-              <Input label="Due Date *" type="date" value={formDueDate} onChange={(e) => { setFormDueDate(e.target.value); setFormErrors(prev => { const n = { ...prev }; delete n.due_date; return n; }); }} />
-              {formErrors.due_date && <p className="text-xs text-red-500 mt-1">{formErrors.due_date}</p>}
+              <Input label="Due Date *" type="date" error={formErrors.formDueDate} value={formDueDate} onChange={(e) => { setFormDueDate(e.target.value); if (formErrors.formDueDate) setFormErrors({ ...formErrors, formDueDate: "" }); }} />
             </div>
           </div>
           {formErrors.line_items && <p className="text-xs text-red-500">{formErrors.line_items}</p>}
@@ -403,15 +446,15 @@ function InvoicesContent() {
                     </div>
                   </div>
                   <div className="col-span-4">
-                    <select
+                    <Select
                       value={li.product}
-                      onChange={(e) => handleProductSelect(li.id, e.target.value)}
-                      className="w-full h-9 px-3 rounded-lg border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-                      style={{ background: "var(--background)", borderColor: "var(--border)", color: li.product ? "var(--foreground)" : "var(--muted-foreground)" }}
-                    >
-                      <option value="">Select product...</option>
-                      {dbProducts.map((p) => (<option key={p.id} value={p.name}>{p.name} — {formatCurrency(p.selling_price || 0)}</option>))}
-                    </select>
+                      onChange={(e: any) => handleProductSelect(li.id, e.target.value)}
+                      options={[
+                        { value: "", label: "Select product..." },
+                        ...dbProducts.map((p) => ({ value: p.name, label: `${p.name} — ${formatCurrency(p.selling_price || 0)}` }))
+                      ]}
+                      className="w-full h-9 px-3 rounded-lg border text-sm bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
+                    />
                   </div>
                   <div className="col-span-2">
                     <Input type="number" placeholder="1" value={String(li.qty)} onChange={(e) => updateLineItem(li.id, "qty", Math.max(1, parseInt(e.target.value) || 1))} />
@@ -500,15 +543,20 @@ function InvoicesContent() {
                 </div>
               </div>
             </div>
-            <Input label="Payment Amount *" type="number" placeholder="0.00" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} />
+            <Input label="Payment Amount *" type="number" placeholder="0.00" error={formErrors.paymentAmount} value={paymentAmount} onChange={(e) => { setPaymentAmount(e.target.value); if (formErrors.paymentAmount) setFormErrors({ ...formErrors, paymentAmount: "" }); }} />
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--foreground)" }}>Payment Method</label>
-              <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="w-full h-9 px-3 rounded-lg border text-sm" style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}>
-                <option value="bank_transfer">Bank Transfer</option>
-                <option value="cash">Cash</option>
-                <option value="cheque">Cheque</option>
-                <option value="online">Online Payment</option>
-              </select>
+              <Select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                options={[
+                  { value: "bank_transfer", label: "Bank Transfer" },
+                  { value: "cash", label: "Cash" },
+                  { value: "cheque", label: "Cheque" },
+                  { value: "online", label: "Online Payment" }
+                ]}
+                className="w-full h-9 px-3 rounded-lg border text-sm bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
+              />
             </div>
             <Button variant="ghost" size="sm" onClick={() => setPaymentAmount(String((paymentInvoice.total_amount || paymentInvoice.total || 0) - (paymentInvoice.amount_paid || paymentInvoice.paid || 0)))}>
               Pay Full Balance

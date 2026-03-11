@@ -3,12 +3,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Calculator, ChevronRight, ChevronDown, Plus, BookOpen, DollarSign, TrendingUp, ArrowDownRight, ArrowUpRight, Pencil, Trash2 } from "lucide-react";
-import { PageHeader, Button, Card, Tabs, StatCard, Drawer, Input } from "@/components/ui/shared";
+import { PageHeader, Button, Card, Tabs, StatCard, Drawer, Input, Select } from "@/components/ui/shared";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { useSupabaseTable } from "@/lib/supabase-hooks";
 import { supabase } from "@/lib/supabase";
-import { TableSkeleton } from "@/components/ui/skeleton";
+import { TableSkeleton, EmptyState } from "@/components/ui/shared";
 
 interface Account {
   id: string;
@@ -431,8 +431,19 @@ export default function AccountingPage() {
             </div>
           </div>
           {loading ? (
-            <div className="flex items-center justify-center py-10">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
+            <TableSkeleton rows={5} columns={2} />
+          ) : chartOfAccounts.length === 0 ? (
+            <div className="py-8">
+              <EmptyState
+                icon={<BookOpen className="w-8 h-8" />}
+                title="No Accounts Found"
+                description="Your Chart of Accounts is currently empty. Get started by adding your first account."
+                action={
+                  <Button onClick={() => { resetAcctForm(); setShowAccountDialog(true); }}>
+                    <Plus className="w-4 h-4" /> Add First Account
+                  </Button>
+                }
+              />
             </div>
           ) : (
             chartOfAccounts.map((account) => (
@@ -465,32 +476,49 @@ export default function AccountingPage() {
                 </tr>
               </thead>
               <tbody>
-                {displayJournals.map((entry) => {
-                  const entryLines = journalLines.filter((l) => l.journal_entry_id === entry.id);
-                  const totalDebit = entryLines.length > 0 ? entryLines.reduce((s, l) => s + (l.debit || 0), 0) : (entry as any).debit || 0;
-                  const totalCredit = entryLines.length > 0 ? entryLines.reduce((s, l) => s + (l.credit || 0), 0) : (entry as any).credit || 0;
-                  return (
-                    <React.Fragment key={entry.id}>
-                      <tr className="border-b hover:bg-[var(--secondary)] transition-colors cursor-pointer" style={{ borderColor: "var(--border)" }}>
-                        <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--primary)" }}>{entry.entry_number}</td>
-                        <td className="px-4 py-3 text-sm" style={{ color: "var(--muted-foreground)" }}>{entry.date}</td>
-                        <td className="px-4 py-3 text-sm" style={{ color: "var(--foreground)" }}>{entry.description}</td>
-                        <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>
-                          {formatCurrency(totalDebit)}
-                        </td>
-                        <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>
-                          {formatCurrency(totalCredit)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${entry.status === "Posted"
-                            ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400"
-                            : "text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400"
-                            }`}>{entry.status}</span>
-                        </td>
-                      </tr>
-                    </React.Fragment>
-                  );
-                })}
+                {displayJournals.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8">
+                      <EmptyState
+                        icon={<Calculator className="w-8 h-8" />}
+                        title="No Journal Entries"
+                        description="Record manual journal entries to adjust account balances."
+                        action={
+                          <Button onClick={() => { resetJEForm(); setShowJournalDialog(true); }}>
+                            <Plus className="w-4 h-4" /> Create Journal Entry
+                          </Button>
+                        }
+                      />
+                    </td>
+                  </tr>
+                ) : (
+                  displayJournals.map((entry) => {
+                    const entryLines = journalLines.filter((l) => l.journal_entry_id === entry.id);
+                    const totalDebit = entryLines.length > 0 ? entryLines.reduce((s, l) => s + (l.debit || 0), 0) : (entry as any).debit || 0;
+                    const totalCredit = entryLines.length > 0 ? entryLines.reduce((s, l) => s + (l.credit || 0), 0) : (entry as any).credit || 0;
+                    return (
+                      <React.Fragment key={entry.id}>
+                        <tr className="border-b hover:bg-[var(--secondary)] transition-colors cursor-pointer" style={{ borderColor: "var(--border)" }}>
+                          <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--primary)" }}>{entry.entry_number}</td>
+                          <td className="px-4 py-3 text-sm" style={{ color: "var(--muted-foreground)" }}>{entry.date}</td>
+                          <td className="px-4 py-3 text-sm" style={{ color: "var(--foreground)" }}>{entry.description}</td>
+                          <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                            {formatCurrency(totalDebit)}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                            {formatCurrency(totalCredit)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${entry.status === "Posted"
+                              ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400"
+                              : "text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400"
+                              }`}>{entry.status}</span>
+                          </td>
+                        </tr>
+                      </React.Fragment>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -598,14 +626,15 @@ export default function AccountingPage() {
               {jeLines.map((line) => (
                 <div key={line.id} className="grid grid-cols-12 gap-2 px-3 py-1.5 items-center border-t" style={{ borderColor: "var(--border)" }}>
                   <div className="col-span-5">
-                    <select
+                    <Select
                       value={line.account}
                       onChange={(e) => setJeLines(jeLines.map(l => l.id === line.id ? { ...l, account: e.target.value } : l))}
-                      className="w-full h-8 px-2 rounded border text-xs" style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
-                    >
-                      <option value="">Select account...</option>
-                      {(dbAccounts as DBAccount[]).map(a => <option key={a.id} value={`${a.code} – ${a.name}`}>{a.code} – {a.name}</option>)}
-                    </select>
+                      options={[
+                        { value: "", label: "Select account..." },
+                        ...((dbAccounts as DBAccount[]).map(a => ({ value: `${a.code} – ${a.name}`, label: `${a.code} – ${a.name}` })))
+                      ]}
+                      className="w-full h-8 px-2 rounded border text-xs bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
+                    />
                   </div>
                   <input className="col-span-3 h-8 px-2 rounded border text-xs text-right" style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }} type="number" placeholder="0" value={line.debit} onChange={(e) => setJeLines(jeLines.map(l => l.id === line.id ? { ...l, debit: e.target.value, credit: e.target.value ? "" : l.credit } : l))} />
                   <input className="col-span-3 h-8 px-2 rounded border text-xs text-right" style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }} type="number" placeholder="0" value={line.credit} onChange={(e) => setJeLines(jeLines.map(l => l.id === line.id ? { ...l, credit: e.target.value, debit: e.target.value ? "" : l.debit } : l))} />
@@ -643,13 +672,18 @@ export default function AccountingPage() {
             <Input label="Account Code *" placeholder="e.g. 1020" value={acctCode} onChange={(e) => setAcctCode(e.target.value)} />
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--foreground)" }}>Category *</label>
-              <select value={acctCategory} onChange={(e) => setAcctCategory(e.target.value)} className="w-full h-9 px-3 rounded-lg border text-sm" style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}>
-                <option value="Assets">Assets</option>
-                <option value="Liabilities">Liabilities</option>
-                <option value="Equity">Equity</option>
-                <option value="Revenue">Revenue</option>
-                <option value="Expenses">Expenses</option>
-              </select>
+              <Select
+                value={acctCategory}
+                onChange={(e) => setAcctCategory(e.target.value)}
+                options={[
+                  { value: "Assets", label: "Assets" },
+                  { value: "Liabilities", label: "Liabilities" },
+                  { value: "Equity", label: "Equity" },
+                  { value: "Revenue", label: "Revenue" },
+                  { value: "Expenses", label: "Expenses" }
+                ]}
+                className="w-full h-9 px-3 rounded-lg border text-sm bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
+              />
             </div>
           </div>
           <Input label="Account Name *" placeholder="e.g. Petty Cash" value={acctName} onChange={(e) => setAcctName(e.target.value)} />

@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard } from "@/components/ui/shared";
+import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard, Select } from "@/components/ui/shared";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { RoleGuard } from "@/components/shared/role-guard";
 import { Download, DollarSign, Send, Edit3, Trash2, Save, X } from "lucide-react";
 import { generatePDF } from "@/lib/pdf";
 import { useToast } from "@/components/ui/toast";
-import { LiveActivityLog } from "@/components/shared/activity-log";
+import { ActivityTimeline } from "@/components/ui/activity-timeline";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 import { EmailSend } from "@/components/shared/email-send";
 import { RecordPayment, type PaymentRecord } from "@/components/shared/record-payment";
@@ -90,7 +90,7 @@ export function InvoiceDetail({ invoice, open, onClose, onUpdate, onDelete }: In
         { key: "details", label: "Details" },
         { key: "items", label: "Line Items", count: lineItems.length },
         { key: "payments", label: "Payments", count: invoice.paid > 0 ? 1 : 0 },
-        { key: "activity", label: "Activity" },
+        { key: "timeline", label: "Timeline" },
     ];
 
     return (
@@ -150,14 +150,18 @@ export function InvoiceDetail({ invoice, open, onClose, onUpdate, onDelete }: In
                     )}
                 </div>
                 {isEditing ? (
-                    <select value={editData.status} onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                        className="h-8 px-3 rounded-lg border text-xs font-medium" style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}>
-                        <option value="draft">Draft</option>
-                        <option value="sent">Sent</option>
-                        <option value="partial">Partial</option>
-                        <option value="paid">Paid</option>
-                        <option value="overdue">Overdue</option>
-                    </select>
+                    <Select
+                        value={editData.status}
+                        onChange={(e) => setEditData({ ...editData, status: e.target.value })}
+                        options={[
+                            { value: "draft", label: "Draft" },
+                            { value: "sent", label: "Sent" },
+                            { value: "partial", label: "Partial" },
+                            { value: "paid", label: "Paid" },
+                            { value: "overdue", label: "Overdue" },
+                        ]}
+                        className="h-8 px-3 rounded-lg border text-xs font-medium bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
+                    />
                 ) : (
                     <StatusBadge status={invoice.status} />
                 )}
@@ -266,8 +270,11 @@ export function InvoiceDetail({ invoice, open, onClose, onUpdate, onDelete }: In
                             ) : (<p className="text-sm py-4 text-center" style={{ color: "var(--muted-foreground)" }}>No payments recorded yet</p>)}
                         </div>
                     )}
-
-                    {activeTab === "activity" && (<LiveActivityLog entityType="invoice" entityId={invoice.id} />)}
+                    {activeTab === "timeline" && (
+                        <div className="py-2">
+                            <ActivityTimeline entityId={invoice.id} />
+                        </div>
+                    )}
                 </>
             )}
 

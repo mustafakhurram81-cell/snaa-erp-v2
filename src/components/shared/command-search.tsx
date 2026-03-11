@@ -86,7 +86,7 @@ export function CommandSearch() {
             searchConfig.map(async (cfg) => {
                 try {
                     const { data } = await supabase
-                        .from(cfg.table)
+                        .from(cfg.table as any)
                         .select("*")
                         .ilike(cfg.nameField, `%${q}%`)
                         .limit(3);

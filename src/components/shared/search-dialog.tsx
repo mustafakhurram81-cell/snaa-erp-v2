@@ -57,7 +57,7 @@ export function SearchDialog() {
                     : `${cfg.searchCol}, status`;
 
                 const { data } = await supabase
-                    .from(cfg.table)
+                    .from(cfg.table as any)
                     .select(cols)
                     .or(`${cfg.searchCol}.ilike.%${q}%${cfg.table === "invoices" || cfg.table === "sales_orders" || cfg.table === "quotations" ? `,customer_name.ilike.%${q}%` : ""}`)
                     .limit(3);

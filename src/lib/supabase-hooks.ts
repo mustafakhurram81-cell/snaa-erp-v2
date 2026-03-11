@@ -35,7 +35,7 @@ export function useSupabaseTable<T extends BaseRecord>(
             setError(null);
 
             let query = supabase
-                .from(tableName)
+                .from(tableName as any)
                 .select(options?.select || "*");
 
             if (options?.filter) {
@@ -66,7 +66,7 @@ export function useSupabaseTable<T extends BaseRecord>(
                 setError(null);
                 const { id, ...rest } = item as Record<string, unknown>;
                 const { data: result, error: createError } = await supabase
-                    .from(tableName)
+                    .from(tableName as any)
                     .insert(rest)
                     .select()
                     .single();
@@ -78,9 +78,8 @@ export function useSupabaseTable<T extends BaseRecord>(
                 }
                 // If realtime is off, update local state manually
                 if (!enableRealtime && mountedRef.current && result) {
-                    setData((prev) => [result as T, ...prev]);
                 }
-                return result as T;
+                return result as unknown as T;
             } catch (err: unknown) {
                 const message = err instanceof Error ? err.message : "Failed to create record";
                 if (mountedRef.current) setError(message);
@@ -95,7 +94,7 @@ export function useSupabaseTable<T extends BaseRecord>(
             try {
                 setError(null);
                 const { data: result, error: updateError } = await supabase
-                    .from(tableName)
+                    .from(tableName as any)
                     .update(updates as Record<string, unknown>)
                     .eq("id", id)
                     .select()
@@ -108,10 +107,10 @@ export function useSupabaseTable<T extends BaseRecord>(
                 }
                 if (!enableRealtime && mountedRef.current && result) {
                     setData((prev) =>
-                        prev.map((item) => (item.id === id ? (result as T) : item))
+                        prev.map((item) => (item.id === id ? (result as unknown as T) : item))
                     );
                 }
-                return result as T;
+                return result as unknown as T;
             } catch (err: unknown) {
                 const message = err instanceof Error ? err.message : "Failed to update record";
                 if (mountedRef.current) setError(message);
@@ -126,7 +125,7 @@ export function useSupabaseTable<T extends BaseRecord>(
             try {
                 setError(null);
                 const { error: deleteError } = await supabase
-                    .from(tableName)
+                    .from(tableName as any)
                     .delete()
                     .eq("id", id);
 
@@ -222,7 +221,7 @@ export function useSupabaseSingleton<T extends BaseRecord>(tableName: string) {
             setLoading(true);
             setError(null);
             const { data: result, error: fetchError } = await supabase
-                .from(tableName)
+                .from(tableName as any)
                 .select("*")
                 .limit(1)
                 .maybeSingle();
@@ -232,9 +231,8 @@ export function useSupabaseSingleton<T extends BaseRecord>(tableName: string) {
             if (!result && retryRef.current < 3) {
                 retryRef.current++;
                 setTimeout(() => fetch(), 500);
-                return;
             }
-            setData(result as T);
+            setData(result as unknown as T);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to fetch";
             setError(message);
@@ -250,15 +248,15 @@ export function useSupabaseSingleton<T extends BaseRecord>(tableName: string) {
                 setError(null);
                 if (!data?.id) return null;
                 const { data: result, error: updateError } = await supabase
-                    .from(tableName)
+                    .from(tableName as any)
                     .update(updates as Record<string, unknown>)
                     .eq("id", data.id)
                     .select()
                     .single();
 
                 if (updateError) throw updateError;
-                setData(result as T);
-                return result as T;
+                setData(result as unknown as T);
+                return result as unknown as T;
             } catch (err: unknown) {
                 const message = err instanceof Error ? err.message : "Failed to update";
                 setError(message);

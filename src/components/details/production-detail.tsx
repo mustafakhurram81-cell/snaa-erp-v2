@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard } from "@/components/ui/shared";
+import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard, Select } from "@/components/ui/shared";
 import { formatDate } from "@/lib/utils";
 import { Play, CheckCircle2, Factory, Edit3, Save, X, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
@@ -167,13 +167,17 @@ export function ProductionDetail({ order, open, onClose, onUpdate, onDelete }: P
                 <div className="flex flex-col items-end gap-2">
                     <StatusBadge status={order.priority} />
                     {isEditing ? (
-                        <select value={editData.status} onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                            className="h-8 px-3 rounded-lg border text-xs font-medium" style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}>
-                            <option value="planned">Planned</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="completed">Completed</option>
-                            <option value="cancelled">Cancelled</option>
-                        </select>
+                        <Select
+                            value={editData.status}
+                            onChange={(e: any) => setEditData({ ...editData, status: e.target.value })}
+                            options={[
+                                { value: "planned", label: "Planned" },
+                                { value: "in_progress", label: "In Progress" },
+                                { value: "completed", label: "Completed" },
+                                { value: "cancelled", label: "Cancelled" },
+                            ]}
+                            className="h-8 px-3 rounded-lg border text-xs font-medium bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
+                        />
                     ) : (
                         <StatusBadge status={order.status} />
                     )}

@@ -4,13 +4,13 @@ import React, { useState, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
     Bell, Sun, Moon, ChevronRight, ChevronDown, Menu,
-    Settings, LogOut, User, Keyboard,
+    Settings, LogOut, User, Keyboard, Search, Command
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useCurrency, currencies } from "@/lib/currency";
 import { NotificationPanel } from "@/components/layout/notifications";
 import { useSidebar } from "@/components/layout/sidebar";
-import { CommandSearch } from "@/components/shared/command-search";
+import { CommandPalette } from "@/components/layout/command-palette";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +41,7 @@ export function Topbar() {
     const [showNotifications, setShowNotifications] = useState(false);
     const [showCurrency, setShowCurrency] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const [showPalette, setShowPalette] = useState(false);
     const currencyRef = useRef<HTMLDivElement>(null);
     const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -73,34 +74,33 @@ export function Topbar() {
     return (
         <header
             className={cn(
-                "fixed top-0 right-0 z-30 h-14 flex items-center justify-between px-4 md:px-6 border-b transition-all duration-300 backdrop-blur-xl",
+                "fixed top-0 right-0 z-30 h-14 flex items-center justify-between px-4 md:px-6 transition-all duration-300 backdrop-blur-2xl border-b border-black/5 dark:border-white/5",
                 collapsed
                     ? "left-[var(--sidebar-collapsed-width)]"
                     : "left-[var(--sidebar-width)]"
             )}
             style={{
-                backgroundColor: theme === "dark" ? "rgba(9,9,11,0.85)" : "rgba(255,255,255,0.85)",
-                borderColor: "var(--border)",
+                backgroundColor: theme === "dark" ? "rgba(9,9,11,0.65)" : "rgba(255,255,255,0.65)",
             }}
         >
-            {/* Left: Hamburger + Breadcrumbs */}
-            <div className="flex items-center gap-2">
+            {/* Left: Hamburger + Breadcrumbs (flex-1) */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
                 <button
-                    className="md:hidden p-1.5 rounded-lg hover:bg-[var(--secondary)] transition-colors"
+                    className="md:hidden p-1.5 rounded-lg hover:bg-[var(--secondary)] transition-colors flex-shrink-0"
                     onClick={() => window.dispatchEvent(new Event("toggle-mobile-sidebar"))}
                 >
                     <Menu className="w-5 h-5" style={{ color: "var(--foreground)" }} />
                 </button>
 
-                <nav className="flex items-center gap-1.5 text-sm">
+                <nav className="flex items-center gap-1.5 text-sm overflow-hidden whitespace-nowrap">
                     {crumbs.map((crumb, idx) => (
                         <React.Fragment key={crumb.href}>
                             {idx > 0 && (
-                                <ChevronRight className="w-3.5 h-3.5" style={{ color: "var(--muted-foreground)" }} />
+                                <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--muted-foreground)" }} />
                             )}
                             <span
                                 className={cn(
-                                    "font-medium",
+                                    "font-medium truncate",
                                     idx === crumbs.length - 1
                                         ? "text-[var(--foreground)]"
                                         : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
@@ -114,9 +114,34 @@ export function Topbar() {
                 </nav>
             </div>
 
-            {/* Right: Search → Notifications → Currency → Theme → User */}
-            <div className="flex items-center gap-1">
-                <CommandSearch />
+            {/* Center: Search (flex-1) */}
+            <div className="flex-1 flex justify-center max-w-md w-full px-4 hidden sm:flex">
+                <button
+                    onClick={() => setShowPalette(true)}
+                    className="flex w-full items-center justify-between px-3 py-1.5 rounded-lg border text-xs transition-colors hover:bg-[var(--secondary)]"
+                    style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
+                >
+                    <div className="flex items-center gap-2">
+                        <Search className="w-3.5 h-3.5" />
+                        <span>Search...</span>
+                    </div>
+                    <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold border" style={{ borderColor: "var(--border)", background: "var(--secondary)" }}>
+                        <Command className="w-2.5 h-2.5" />K
+                    </kbd>
+                </button>
+                <CommandPalette open={showPalette} onOpenChange={setShowPalette} />
+            </div>
+
+            {/* Right: Notifications → Currency → Theme → User (flex-1) */}
+            <div className="flex items-center justify-end gap-1 flex-1">
+                {/* Mobile search button */}
+                <button
+                    onClick={() => setShowPalette(true)}
+                    className="flex sm:hidden p-2 rounded-lg transition-colors hover:bg-[var(--secondary)]"
+                    style={{ color: "var(--muted-foreground)" }}
+                >
+                    <Search className="w-4 h-4" />
+                </button>
 
                 {/* Notifications */}
                 <div className="relative">
@@ -143,8 +168,8 @@ export function Topbar() {
                     </button>
                     {showCurrency && (
                         <div
-                            className="absolute right-0 top-full mt-1 w-44 rounded-xl border shadow-lg py-1 z-50"
-                            style={{ background: "var(--card)", borderColor: "var(--border)" }}
+                            className="absolute right-0 top-full mt-1 w-44 rounded-xl border shadow-xl py-1 z-50 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl"
+                            style={{ borderColor: "var(--border)" }}
                         >
                             {currencies.map((c) => (
                                 <button
@@ -185,8 +210,8 @@ export function Topbar() {
                     </button>
                     {showUserMenu && (
                         <div
-                            className="absolute right-0 top-full mt-2 w-56 rounded-xl border shadow-xl z-50 overflow-hidden"
-                            style={{ background: "var(--card)", borderColor: "var(--border)" }}
+                            className="absolute right-0 top-full mt-2 w-56 rounded-xl border shadow-xl z-50 overflow-hidden bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl"
+                            style={{ borderColor: "var(--border)" }}
                         >
                             {/* User info */}
                             <div className="px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>

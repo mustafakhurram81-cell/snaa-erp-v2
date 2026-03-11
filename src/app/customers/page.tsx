@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Mail, Phone, Download, Upload } from "lucide-react";
-import { PageHeader, Button, Drawer, Input, StatusBadge } from "@/components/ui/shared";
+import { PageHeader, Button, Drawer, Input, StatusBadge, Select } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { CustomerDetail } from "@/components/details/customer-detail";
 import { formatCurrency } from "@/lib/utils";
@@ -192,6 +192,7 @@ export default function CustomersPage() {
                 <TableSkeleton rows={5} columns={5} />
             ) : (
                 <DataTable
+                    tableId="customers"
                     columns={columns}
                     data={customers}
                     enableSelection
@@ -228,15 +229,15 @@ export default function CustomersPage() {
                         <Input label="Full Name *" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Dr. John Doe" />
                         <div>
                             <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--foreground)" }}>Customer Type *</label>
-                            <select
+                            <Select
                                 value={formData.type}
                                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                className="w-full h-9 px-3 rounded-lg border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-                                style={{ background: "var(--background)", borderColor: "var(--border)", color: formData.type ? "var(--foreground)" : "var(--muted-foreground)" }}
-                            >
-                                <option value="">Select type...</option>
-                                {CUSTOMER_TYPES.map((t) => (<option key={t.value} value={t.value}>{t.label}</option>))}
-                            </select>
+                                options={[
+                                    { value: "", label: "Select type..." },
+                                    ...CUSTOMER_TYPES.map(t => ({ value: t.value, label: t.label }))
+                                ]}
+                                className="w-full h-9 px-3 rounded-lg border text-sm bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
+                            />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">

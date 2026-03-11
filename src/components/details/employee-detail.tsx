@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard } from "@/components/ui/shared";
+import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard, Select } from "@/components/ui/shared";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Edit3, Save, X, Trash2, Users } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
@@ -140,12 +140,16 @@ export function EmployeeDetail({ employee, open, onClose, onUpdate, onDelete }: 
                 </div>
                 {!isEditing && <StatusBadge status={employee.status} />}
                 {isEditing && (
-                    <select value={editData.status} onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                        className="h-8 px-3 rounded-lg border text-xs font-medium" style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="on_leave">On Leave</option>
-                    </select>
+                    <Select
+                        value={editData.status}
+                        onChange={(e: any) => setEditData({ ...editData, status: e.target.value })}
+                        options={[
+                            { value: "active", label: "Active" },
+                            { value: "inactive", label: "Inactive" },
+                            { value: "on_leave", label: "On Leave" },
+                        ]}
+                        className="h-8 px-3 rounded-lg border text-xs font-medium bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
+                    />
                 )}
             </div>
 

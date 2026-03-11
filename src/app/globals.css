@@ -15,66 +15,78 @@
   --brand-800: #1e40af;
   --brand-900: #1e3a8a;
 
-  /* Light theme */
-  --background: #f8fafc;
-  --foreground: #09090b;
+  /* Premium Black & White Theme */
+  --background: #ffffff;
+  --foreground: #000000;
   --card: #ffffff;
-  --card-foreground: #09090b;
+  --card-foreground: #000000;
   --popover: #ffffff;
-  --popover-foreground: #09090b;
-  --primary: #2563eb;
+  --popover-foreground: #000000;
+  --primary: #000000;
+  /* Pure black for a sleek, Vercel-like feel */
   --primary-foreground: #ffffff;
   --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
+  /* Zinc 100 */
+  --secondary-foreground: #000000;
   --muted: #f4f4f5;
   --muted-foreground: #71717a;
+  /* Zinc 500 */
   --accent: #f4f4f5;
-  --accent-foreground: #18181b;
+  --accent-foreground: #000000;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   --border: #e4e4e7;
+  /* Zinc 200 */
   --input: #e4e4e7;
-  --ring: #2563eb;
-  --radius: 0.625rem;
+  --ring: #000000;
+  --radius: 0.5rem;
+  /* Slightly sharper, modern radius */
 
   /* Sidebar */
-  --sidebar-bg: #fafafa;
-  --sidebar-foreground: #3f3f46;
+  --sidebar-bg: #ffffff;
+  --sidebar-foreground: #52525b;
+  /* Zinc 600 */
   --sidebar-border: #e4e4e7;
-  --sidebar-active: #2563eb;
-  --sidebar-active-bg: #eff6ff;
-  --sidebar-hover-bg: #f4f4f5;
+  --sidebar-active: #000000;
+  --sidebar-active-bg: #f4f4f5;
+  --sidebar-hover-bg: #fafafa;
   --sidebar-width: 260px;
   --sidebar-collapsed-width: 72px;
 }
 
 .dark {
-  --background: #09090b;
-  --foreground: #fafafa;
-  --card: #111113;
-  --card-foreground: #fafafa;
-  --popover: #111113;
-  --popover-foreground: #fafafa;
-  --primary: #3b82f6;
-  --primary-foreground: #ffffff;
-  --secondary: #1c1c1f;
-  --secondary-foreground: #fafafa;
-  --muted: #1c1c1f;
+  /* Premium Dark Theme */
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #09090b;
+  /* Zinc 950 */
+  --card-foreground: #ffffff;
+  --popover: #09090b;
+  --popover-foreground: #ffffff;
+  --primary: #ffffff;
+  /* Pure white */
+  --primary-foreground: #000000;
+  --secondary: #18181b;
+  /* Zinc 900 */
+  --secondary-foreground: #ffffff;
+  --muted: #18181b;
   --muted-foreground: #a1a1aa;
-  --accent: #1c1c1f;
-  --accent-foreground: #fafafa;
-  --destructive: #dc2626;
+  /* Zinc 400 */
+  --accent: #18181b;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   --border: #27272a;
+  /* Zinc 800 */
   --input: #27272a;
-  --ring: #3b82f6;
+  --ring: #d4d4d8;
 
-  --sidebar-bg: #0a0a0c;
+  --sidebar-bg: #000000;
   --sidebar-foreground: #a1a1aa;
   --sidebar-border: #27272a;
-  --sidebar-active: #3b82f6;
-  --sidebar-active-bg: rgba(59, 130, 246, 0.1);
-  --sidebar-hover-bg: #18181b;
+  --sidebar-active: #ffffff;
+  --sidebar-active-bg: #18181b;
+  --sidebar-hover-bg: #09090b;
 }
 
 * {
@@ -84,15 +96,17 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-jakarta), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: -0.01em;
+  /* Premium tight tracking base */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar styling */
+/* Custom Clean Scrollbar Styling */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -100,13 +114,21 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--muted-foreground);
-  border-radius: 3px;
-  opacity: 0.3;
+  background: rgba(150, 150, 150, 0.3);
+  border-radius: 6px;
+  border: 2px solid var(--background); /* Adds breathing room */
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  opacity: 0.5;
+  background: rgba(150, 150, 150, 0.5);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(100, 100, 100, 0.4);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 100, 100, 0.6);
 }
 
 /* Smooth transitions for theme switching */
@@ -311,7 +333,8 @@ body {
   }
 
   /* Smaller text on mobile */
-  h1, h2 {
+  h1,
+  h2 {
     font-size: 1.125rem !important;
   }
 
@@ -358,4 +381,70 @@ body {
 .mobile-sidebar-backdrop.visible {
   opacity: 1;
   pointer-events: all;
+}
+
+/* --- Print View Overrides --- */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Hide navigation, sidebars, headers, and UI controls */
+  aside,
+  header,
+  .no-print,
+  button,
+  .mobile-sidebar-backdrop {
+    display: none !important;
+  }
+
+  /* Reset container constraints */
+  main,
+  main>div {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Table container - remove scroll limits to flow across pages */
+  .overflow-x-auto,
+  .max-h-\[600px\],
+  .overflow-y-auto {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  /* Table specific overrides */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  th,
+  td {
+    border: 1px solid #e5e5e5 !important;
+    padding: 8px !important;
+    color: black !important;
+    background: white !important;
+    font-size: 10px !important;
+  }
+
+  th {
+    background: #f4f4f5 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Remove rounded corners and shadows for cleaner print */
+  * {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  /* Force page breaks to avoid splitting rows */
+  tr {
+    page-break-inside: avoid;
+  }
 }

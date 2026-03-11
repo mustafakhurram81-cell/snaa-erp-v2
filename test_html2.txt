@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<link rel="profile" href="http://gmpg.org/xfn/11" />
+	<link rel="pingback" href="https://smithsurgical.uk/xmlrpc.php" />
+	<title>Search Results for &#8220;02-544-17&#8221; &#8211; Smith Surgical</title>
+<meta name='robots' content='noindex, follow, max-image-preview:large' />
+<link rel="alternate" type="application/rss+xml" title="Smith Surgical &raquo; Feed" href="https://smithsurgical.uk/feed/" />
+<link rel="alternate" type="application/rss+xml" title="Smith Surgical &raquo; Comments Feed" href="https://smithsurgical.uk/comments/feed/" />
+<link rel="alternate" type="application/rss+xml" title="Smith Surgical &raquo; Products Feed" href="https://smithsurgical.uk/products/feed/" />
+<style id='wp-img-auto-sizes-contain-inline-css'>
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link rel='stylesheet' id='hfe-widgets-style-css' href='https://smithsurgical.uk/wp-content/plugins/header-footer-elementor/inc/widgets-css/frontend.css?ver=2.7.0' media='all' />
+<link rel='stylesheet' id='hfe-woo-product-grid-css' href='https://smithsurgical.uk/wp-content/plugins/header-footer-elementor/inc/widgets-css/woo-products.css?ver=2.7.0' media='all' />
+<style id='wp-emoji-styles-inline-css'>
+
+	img.wp-smiley, img.emoji {
+		display: inline !important;
+		border: none !important;
+		box-shadow: none !important;
+		height: 1em !important;
+		width: 1em !important;
+		margin: 0 0.07em !important;
+		vertical-align: -0.1em !important;
+		background: none !important;
+		padding: 0 !important;
+	}
+/*# sourceURL=wp-emoji-styles-inline-css */
+</style>
+<link rel='stylesheet' id='wp-block-library-css' href='https://smithsurgical.uk/wp-includes/css/dist/block-library/style.min.css?ver=6.9.1' media='all' />
+
+<link rel='stylesheet' id='wc-blocks-style-css' href='https://smithsurgical.uk/wp-content/plugins/woocommerce/assets/client/blocks/wc-blocks.css?ver=wc-10.3.5' media='all' />
+<style id='global-styles-inline-css'>
+:root{--wp--preset--aspect-ratio--square: 1;--wp--preset--aspect-ratio--4-3: 4/3;--wp--preset--aspect-ratio--3-4: 3/4;--wp--preset--aspect-ratio--3-2: 3/2;--wp--preset--aspect-ratio--2-3: 2/3;--wp--preset--aspect-ratio--16-9: 16/9;--wp--preset--aspect-ratio--9-16: 9/16;--wp--preset--color--black: #000000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #ffffff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgb(6,147,227) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgb(252,185,0) 0%,rgb(255,105,0) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgb(255,105,0) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--font-size--small: 13px;--wp--preset--font-size--medium: 20px;--wp--preset--font-size--large: 36px;--wp--preset--font-size--x-large: 42px;--wp--preset--spacing--20: 0.44rem;--wp--preset--spacing--30: 0.67rem;--wp--preset--spacing--40: 1rem;--wp--preset--spacing--50: 1.5rem;--wp--preset--spacing--60: 2.25rem;--wp--preset--spacing--70: 3.38rem;--wp--preset--spacing--80: 5.06rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);--wp--preset--shadow--outlined: 6px 6px 0px -3px rgb(255, 255, 255), 6px 6px rgb(0, 0, 0);--wp--preset--shadow--crisp: 6px 6px 0px rgb(0, 0, 0);}:root { --wp--style--global--content-size: 800px;--wp--style--global--wide-size: 1200px; }:where(body) { margin: 0; }.wp-site-blocks > .alignleft { float: left; margin-right: 2em; }.wp-site-blocks > .alignright { float: right; margin-left: 2em; }.wp-site-blocks > .aligncenter { justify-content: center; margin-left: auto; margin-right: auto; }:where(.wp-site-blocks) > * { margin-block-start: 24px; margin-block-end: 0; }:where(.wp-site-blocks) > :first-child { margin-block-start: 0; }:where(.wp-site-blocks) > :last-child { margin-block-end: 0; }:root { --wp--style--block-gap: 24px; }:root :where(.is-layout-flow) > :first-child{margin-block-start: 0;}:root :where(.is-layout-flow) > :last-child{margin-block-end: 0;}:root :where(.is-layout-flow) > *{margin-block-start: 24px;margin-block-end: 0;}:root :where(.is-layout-constrained) > :first-child{margin-block-start: 0;}:root :where(.is-layout-constrained) > :last-child{margin-block-end: 0;}:root :where(.is-layout-constrained) > *{margin-block-start: 24px;margin-block-end: 0;}:root :where(.is-layout-flex){gap: 24px;}:root :where(.is-layout-grid){gap: 24px;}.is-layout-flow > .alignleft{float: left;margin-inline-start: 0;margin-inline-end: 2em;}.is-layout-flow > .alignright{float: right;margin-inline-start: 2em;margin-inline-end: 0;}.is-layout-flow > .aligncenter{margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > .alignleft{float: left;margin-inline-start: 0;margin-inline-end: 2em;}.is-layout-constrained > .alignright{float: right;margin-inline-start: 2em;margin-inline-end: 0;}.is-layout-constrained > .aligncenter{margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > :where(:not(.alignleft):not(.alignright):not(.alignfull)){max-width: var(--wp--style--global--content-size);margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > .alignwide{max-width: var(--wp--style--global--wide-size);}body .is-layout-flex{display: flex;}.is-layout-flex{flex-wrap: wrap;align-items: center;}.is-layout-flex > :is(*, div){margin: 0;}body .is-layout-grid{display: grid;}.is-layout-grid > :is(*, div){margin: 0;}body{padding-top: 0px;padding-right: 0px;padding-bottom: 0px;padding-left: 0px;}a:where(:not(.wp-element-button)){text-decoration: underline;}:root :where(.wp-element-button, .wp-block-button__link){background-color: #32373c;border-width: 0;color: #fff;font-family: inherit;font-size: inherit;font-style: inherit;font-weight: inherit;letter-spacing: inherit;line-height: inherit;padding-top: calc(0.667em + 2px);padding-right: calc(1.333em + 2px);padding-bottom: calc(0.667em + 2px);padding-left: calc(1.333em + 2px);text-decoration: none;text-transform: inherit;}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}
+/*# sourceURL=global-styles-inline-css */
+</style>
+
+<link rel='stylesheet' id='woocommerce-layout-css' href='https://smithsurgical.uk/wp-content/plugins/woocommerce/assets/css/woocommerce-layout.css?ver=10.3.5' media='all' />
+<link rel='stylesheet' id='woocommerce-smallscreen-css' href='https://smithsurgical.uk/wp-content/plugins/woocommerce/assets/css/woocommerce-smallscreen.css?ver=10.3.5' media='only screen and (max-width: 768px)' />
+<link rel='stylesheet' id='woocommerce-general-css' href='https://smithsurgical.uk/wp-content/plugins/woocommerce/assets/css/woocommerce.css?ver=10.3.5' media='all' />
+<style id='woocommerce-inline-inline-css'>
+.woocommerce form .form-row .required { visibility: visible; }
+/*# sourceURL=woocommerce-inline-inline-css */
+</style>
+<link rel='stylesheet' id='hfe-style-css' href='https://smithsurgical.uk/wp-content/plugins/header-footer-elementor/assets/css/header-footer-elementor.css?ver=2.7.0' media='all' />
+<link rel='stylesheet' id='elementor-icons-css' href='https://smithsurgical.uk/wp-content/plugins/elementor/assets/lib/eicons/css/elementor-icons.min.css?ver=5.44.0' media='all' />
+<link rel='stylesheet' id='elementor-frontend-css' href='https://smithsurgical.uk/wp-content/plugins/elementor/assets/css/frontend.min.css?ver=3.32.5' media='all' />
+<link rel='stylesheet' id='elementor-post-17557-css' href='https://smithsurgical.uk/wp-content/uploads/elementor/css/post-17557.css?ver=1765432963' media='all' />
+<link rel='stylesheet' id='elementor-pro-css' href='https://smithsurgical.uk/wp-content/plugins/elementor-pro/assets/css/frontend.min.css?ver=3.6.4' media='all' />
+<link rel='stylesheet' id='eihe-front-style-css' href='https://smithsurgical.uk/wp-content/plugins/image-hover-effects-addon-for-elementor/assets/style.min.css?ver=1.4.4' media='all' />
+<link rel='stylesheet' id='elementor-post-17670-css' href='https://smithsurgical.uk/wp-content/uploads/elementor/css/post-17670.css?ver=1765432964' media='all' />
+<link rel='stylesheet' id='elementor-post-17671-css' href='https://smithsurgical.uk/wp-content/uploads/elementor/css/post-17671.css?ver=1765432964' media='all' />
+<link rel='stylesheet' id='yith_ywraq_frontend-css' href='https://smithsurgical.uk/wp-content/plugins/yith-woocommerce-request-a-quote/assets/css/frontend.css?ver=2.45.0' media='all' />
+<style id='yith_ywraq_frontend-inline-css'>
+.woocommerce .add-request-quote-button.button, .woocommerce .add-request-quote-button-addons.button, .yith-wceop-ywraq-button-wrapper .add-request-quote-button.button, .yith-wceop-ywraq-button-wrapper .add-request-quote-button-addons.button{
+    background-color: #0066b4!important;
+    color: #ffffff!important;
+}
+.woocommerce .add-request-quote-button.button:hover,  .woocommerce .add-request-quote-button-addons.button:hover,.yith-wceop-ywraq-button-wrapper .add-request-quote-button.button:hover,  .yith-wceop-ywraq-button-wrapper .add-request-quote-button-addons.button:hover{
+    background-color: #044a80!important;
+    color: #ffffff!important;
+}
+
+
+/*# sourceURL=yith_ywraq_frontend-inline-css */
+</style>
+<link rel='stylesheet' id='brands-styles-css' href='https://smithsurgical.uk/wp-content/plugins/woocommerce/assets/css/brands.css?ver=10.3.5' media='all' />
+<link rel='stylesheet' id='dgwt-wcas-style-css' href='https://smithsurgical.uk/wp-content/plugins/ajax-search-for-woocommerce/assets/css/style.min.css?ver=1.32.0' media='all' />
+<link rel='stylesheet' id='hello-elementor-css' href='https://smithsurgical.uk/wp-content/themes/hello-elementor/assets/css/reset.css?ver=3.4.5' media='all' />
+<link rel='stylesheet' id='hello-elementor-theme-style-css' href='https://smithsurgical.uk/wp-content/themes/hello-elementor/assets/css/theme.css?ver=3.4.5' media='all' />
+<link rel='stylesheet' id='hello-elementor-header-footer-css' href='https://smithsurgical.uk/wp-content/themes/hello-elementor/assets/css/header-footer.css?ver=3.4.5' media='all' />
+<link rel='stylesheet' id='exad-slick-css' href='https://smithsurgical.uk/wp-content/plugins/exclusive-addons-for-elementor/assets/vendor/css/slick.min.css?ver=6.9.1' media='all' />
+<link rel='stylesheet' id='exad-slick-theme-css' href='https://smithsurgical.uk/wp-content/plugins/exclusive-addons-for-elementor/assets/vendor/css/slick-theme.min.css?ver=6.9.1' media='all' />
+<link rel='stylesheet' id='exad-image-hover-css' href='https://smithsurgical.uk/wp-content/plugins/exclusive-addons-for-elementor/assets/vendor/css/imagehover.css?ver=6.9.1' media='all' />
+<link rel='stylesheet' id='exad-swiperv5-css' href='https://smithsurgical.uk/wp-content/plugins/exclusive-addons-for-elementor/assets/vendor/css/swiper.min.css?ver=2.7.9.8' media='all' />
+<link rel='stylesheet' id='exad-main-style-css' href='https://smithsurgical.uk/wp-content/plugins/exclusive-addons-for-elementor/assets/css/exad-styles.min.css?ver=6.9.1' media='all' />
+<link rel='stylesheet' id='hfe-elementor-icons-css' href='https://smithsurgical.uk/wp-content/plugins/elementor/assets/lib/eicons/css/elementor-icons.min.css?ver=5.34.0' media='all' />
+<link rel='stylesheet' id='hfe-icons-list-css' href='https://smithsurgical.uk/wp-content/plugins/elementor/assets/css/widget-icon-list.min.css?ver=3.24.3' media='all' />
+<link rel='stylesheet' id='hfe-social-icons-css' href='https://smithsurgical.uk/wp-content/plugins/elementor/assets/css/widget-social-icons.min.css?ver=3.24.0' media='all' />
+<link rel='stylesheet' id='hfe-social-share-icons-brands-css' href='https://smithsurgical.uk/wp-content/plugins/elementor/assets/lib/font-awesome/css/brands.css?ver=5.15.3' media='all' />
+<link rel='stylesheet' id='hfe-social-share-icons-fontawesome-css' href='https://smithsurgical.uk/wp-content/plugins/elementor/assets/lib/font-awesome/css/fontawesome.css?ver=5.15.3' media='all' />
+<link rel='stylesheet' id='hfe-nav-menu-icons-css' href='https://smithsurgical.uk/wp-content/plugins/elementor/assets/lib/font-awesome/css/solid.css?ver=5.15.3' media='all' />
+<link rel='stylesheet' id='hfe-widget-blockquote-css' href='https://smithsurgical.uk/wp-content/plugins/elementor-pro/assets/css/widget-blockquote.min.css?ver=3.25.0' media='all' />
+<link rel='stylesheet' id='hfe-mega-menu-css' href='https://smithsurgical.uk/wp-content/plugins/elementor-pro/assets/css/widget-mega-menu.min.css?ver=3.26.2' media='all' />
+<link rel='stylesheet' id='hfe-nav-menu-widget-css' href='https://smithsurgical.uk/wp-content/plugins/elementor-pro/assets/css/widget-nav-menu.min.css?ver=3.26.0' media='all' />
+<link rel='stylesheet' id='ekit-widget-styles-css' href='https://smithsurgical.uk/wp-content/plugins/elementskit-lite/widgets/init/assets/css/widget-styles.css?ver=3.7.5' media='all' />
+<link rel='stylesheet' id='ekit-responsive-css' href='https://smithsurgical.uk/wp-content/plugins/elementskit-lite/widgets/init/assets/css/responsive.css?ver=3.7.5' media='all' />
+<link rel='stylesheet' id='elementor-gf-local-oswald-css' href='https://smithsurgical.uk/wp-content/uploads/elementor/google-fonts/css/oswald.css?ver=1753839556' media='all' />
+<link rel='stylesheet' id='elementor-gf-local-roboto-css' href='https://smithsurgical.uk/wp-content/uploads/elementor/google-fonts/css/roboto.css?ver=1753839563' media='all' />
+<link rel='stylesheet' id='elementor-icons-ekiticons-css' href='https://smithsurgical.uk/wp-content/plugins/elementskit-lite/modules/elementskit-icon-pack/assets/css/ekiticons.css?ver=3.7.5' media='all' />
+<link rel='stylesheet' id='elementor-icons-shared-0-css' href='https://smithsurgical.uk/wp-content/plugins/elementor/assets/lib/font-awesome/css/fontawesome.min.css?ver=5.15.3' media='all' />
+<link rel='stylesheet' id='elementor-icons-fa-brands-css' href='https://smithsurgical.uk/wp-content/plugins/elementor/assets/lib/font-awesome/css/brands.min.css?ver=5.15.3' media='all' />
+<link rel='stylesheet' id='elementor-icons-fa-solid-css' href='https://smithsurgical.uk/wp-content/plugins/elementor/assets/lib/font-awesome/css/solid.min.css?ver=5.15.3' media='all' />
+<script src="https://smithsurgical.uk/wp-includes/js/jquery/jquery.min.js?ver=3.7.1" id="jquery-core-js"></script>
+<script src="https://smithsurgical.uk/wp-includes/js/jquery/jquery-migrate.min.js?ver=3.4.1" id="jquery-migrate-js"></script>
+<script id="jquery-js-after">
+!function($){"use strict";$(document).ready(function(){$(this).scrollTop()>100&&$(".hfe-scroll-to-top-wrap").removeClass("hfe-scroll-to-top-hide"),$(window).scroll(function(){$(this).scrollTop()<100?$(".hfe-scroll-to-top-wrap").fadeOut(300):$(".hfe-scroll-to-top-wrap").fadeIn(300)}),$(".hfe-scroll-to-top-wrap").on("click",function(){$("html, body").animate({scrollTop:0},300);return!1})})}(jQuery);
+!function($){'use strict';$(document).ready(function(){var bar=$('.hfe-reading-progress-bar');if(!bar.length)return;$(window).on('scroll',function(){var s=$(window).scrollTop(),d=$(document).height()-$(window).height(),p=d? s/d*100:0;bar.css('width',p+'%')});});}(jQuery);
+//# sourceURL=jquery-js-after
+</script>
+<script src="https://smithsurgical.uk/wp-content/plugins/woocommerce/assets/js/jquery-blockui/jquery.blockUI.min.js?ver=2.7.0-wc.10.3.5" id="wc-jquery-blockui-js" defer data-wp-strategy="defer"></script>
+<script id="wc-add-to-cart-js-extra">
+var wc_add_to_cart_params = {"ajax_url":"/wp-admin/admin-ajax.php","wc_ajax_url":"/?wc-ajax=%%endpoint%%","i18n_view_cart":"View cart","cart_url":"https://smithsurgical.uk/cart/","is_cart":"","cart_redirect_after_add":"no"};
+//# sourceURL=wc-add-to-cart-js-extra
+</script>
+<script src="https://smithsurgical.uk/wp-content/plugins/woocommerce/assets/js/frontend/add-to-cart.min.js?ver=10.3.5" id="wc-add-to-cart-js" defer data-wp-strategy="defer"></script>
+<script src="https://smithsurgical.uk/wp-content/plugins/woocommerce/assets/js/js-cookie/js.cookie.min.js?ver=2.1.4-wc.10.3.5" id="wc-js-cookie-js" defer data-wp-strategy="defer"></script>
+<script id="woocommerce-js-extra">
+var woocommerce_params = {"ajax_url":"/wp-admin/admin-ajax.php","wc_ajax_url":"/?wc-ajax=%%endpoint%%","i18n_password_show":"Show password","i18n_password_hide":"Hide password"};
+//# sourceURL=woocommerce-js-extra
+</script>
+<script src="https://smithsurgical.uk/wp-content/plugins/woocommerce/assets/js/frontend/woocommerce.min.js?ver=10.3.5" id="woocommerce-js" defer data-wp-strategy="defer"></script>
+<link rel="https://api.w.org/" href="https://smithsurgical.uk/wp-json/" /><link rel="EditURI" type="application/rsd+xml" title="RSD" href="https://smithsurgical.uk/xmlrpc.php?rsd" />
+<meta name="generator" content="WordPress 6.9.1" />
+<meta name="generator" content="WooCommerce 10.3.5" />
+		<style>
+			.dgwt-wcas-ico-magnifier,.dgwt-wcas-ico-magnifier-handler{max-width:20px}.dgwt-wcas-search-wrapp{max-width:600px}		</style>
+			<noscript><style>.woocommerce-product-gallery{ opacity: 1 !important; }</style></noscript>
+	<meta name="generator" content="Elementor 3.32.5; features: additional_custom_breakpoints; settings: css_print_method-external, google_font-enabled, font_display-swap">
+			<style>
+				.e-con.e-parent:nth-of-type(n+4):not(.e-lazyloaded):not(.e-no-lazyload),
+				.e-con.e-parent:nth-of-type(n+4):not(.e-lazyloaded):not(.e-no-lazyload) * {
+					background-image: none !important;
+				}
+				@media screen and (max-height: 1024px) {
+					.e-con.e-parent:nth-of-type(n+3):not(.e-lazyloaded):not(.e-no-lazyload),
+					.e-con.e-parent:nth-of-type(n+3):not(.e-lazyloaded):not(.e-no-lazyload) * {
+						background-image: none !important;
+					}
+				}
+				@media screen and (max-height: 640px) {
+					.e-con.e-parent:nth-of-type(n+2):not(.e-lazyloaded):not(.e-no-lazyload),
+					.e-con.e-parent:nth-of-type(n+2):not(.e-lazyloaded):not(.e-no-lazyload) * {
+						background-image: none !important;
+					}
+				}
+			</style>
+			<meta name="generator" content="Powered by Slider Revolution 6.5.25 - responsive, Mobile-Friendly Slider Plugin for WordPress with comfortable drag and drop interface." />
+<script>function setREVStartSize(e){
+			//window.requestAnimationFrame(function() {
+				window.RSIW = window.RSIW===undefined ? window.innerWidth : window.RSIW;
+				window.RSIH = window.RSIH===undefined ? window.innerHeight : window.RSIH;
+				try {
+					var pw = document.getElementById(e.c).parentNode.offsetWidth,
+						newh;
+					pw = pw===0 || isNaN(pw) || (e.l=="fullwidth" || e.layout=="fullwidth") ? window.RSIW : pw;
+					e.tabw = e.tabw===undefined ? 0 : parseInt(e.tabw);
+					e.thumbw = e.thumbw===undefined ? 0 : parseInt(e.thumbw);
+					e.tabh = e.tabh===undefined ? 0 : parseInt(e.tabh);
+					e.thumbh = e.thumbh===undefined ? 0 : parseInt(e.thumbh);
+					e.tabhide = e.tabhide===undefined ? 0 : parseInt(e.tabhide);
+					e.thumbhide = e.thumbhide===undefined ? 0 : parseInt(e.thumbhide);
+					e.mh = e.mh===undefined || e.mh=="" || e.mh==="auto" ? 0 : parseInt(e.mh,0);
+					if(e.layout==="fullscreen" || e.l==="fullscreen")
+						newh = Math.max(e.mh,window.RSIH);
+					else{
+						e.gw = Array.isArray(e.gw) ? e.gw : [e.gw];
+						for (var i in e.rl) if (e.gw[i]===undefined || e.gw[i]===0) e.gw[i] = e.gw[i-1];
+						e.gh = e.el===undefined || e.el==="" || (Array.isArray(e.el) && e.el.length==0)? e.gh : e.el;
+						e.gh = Array.isArray(e.gh) ? e.gh : [e.gh];
+						for (var i in e.rl) if (e.gh[i]===undefined || e.gh[i]===0) e.gh[i] = e.gh[i-1];
+											
+						var nl = new Array(e.rl.length),
+							ix = 0,
+							sl;
+						e.tabw = e.tabhide>=pw ? 0 : e.tabw;
+						e.thumbw = e.thumbhide>=pw ? 0 : e.thumbw;
+						e.tabh = e.tabhide>=pw ? 0 : e.tabh;
+						e.thumbh = e.thumbhide>=pw ? 0 : e.thumbh;
+						for (var i in e.rl) nl[i] = e.rl[i]<window.RSIW ? 0 : e.rl[i];
+						sl = nl[0];
+						for (var i in nl) if (sl>nl[i] && nl[i]>0) { sl = nl[i]; ix=i;}
+						var m = pw>(e.gw[ix]+e.tabw+e.thumbw) ? 1 : (pw-(e.tabw+e.thumbw)) / (e.gw[ix]);
+						newh =  (e.gh[ix] * m) + (e.tabh + e.thumbh);
+					}
+					var el = document.getElementById(e.c);
+					if (el!==null && el) el.style.height = newh+"px";
+					el = document.getElementById(e.c+"_wrapper");
+					if (el!==null && el) {
+						el.style.height = newh+"px";
+						el.style.display = "block";
+					}
+				} catch(e){
+					console.log("Failure at Presize of Slider:" + e)
+				}
+			//});
+		  };</script>
+		<style id="wp-custom-css">
+			.woocommerce ul.products li.product a img {
+    width: auto;
+    max-height: 400px;
+}
+
+.woocommerce div.product div.images img {
+    width: auto;
+    max-height: 600px;
+}
+
+.woocommerce table.shop_table .product-thumbnail img, .woocommerce-page table.shop_table .product-thumbnail img {
+    width: auto;
+    max-width: 200px;
+    max-height: 200px;
+}		</style>
+		<link rel='stylesheet' id='widget-image-css' href='https://smithsurgical.uk/wp-content/plugins/elementor/assets/css/widget-image.min.css?ver=3.32.5' media='all' />
+<link rel='stylesheet' id='widget-social-icons-css' href='https://smithsurgical.uk/wp-content/plugins/elementor/assets/css/widget-social-icons.min.css?ver=3.32.5' media='all' />
+<link rel='stylesheet' id='e-apple-webkit-css' href='https://smithsurgical.uk/wp-content/plugins/elementor/assets/css/conditionals/apple-webkit.min.css?ver=3.32.5' media='all' />
+<link rel='stylesheet' id='e-animation-float-css' href='https://smithsurgical.uk/wp-content/plugins/elementor/assets/lib/animations/styles/e-animation-float.min.css?ver=3.32.5' media='all' />
+<link rel='stylesheet' id='widget-heading-css' href='https://smithsurgical.uk/wp-content/plugins/elementor/assets/css/widget-heading.min.css?ver=3.32.5' media='all' />
+<link rel='stylesheet' id='widget-icon-list-css' href='https://smithsurgical.uk/wp-content/plugins/elementor/assets/css/widget-icon-list.min.css?ver=3.32.5' media='all' />
+<link rel='stylesheet' id='rs-plugin-settings-css' href='https://smithsurgical.uk/wp-content/plugins/revslider/public/assets/css/rs6.css?ver=6.5.25' media='all' />
+<style id='rs-plugin-settings-inline-css'>
+#rs-demo-id {}
+/*# sourceURL=rs-plugin-settings-inline-css */
+</style>
+
+</head>
+
+<body class="archive search search-no-results post-type-archive post-type-archive-product wp-embed-responsive wp-theme-hello-elementor theme-hello-elementor woocommerce-shop woocommerce woocommerce-page woocommerce-no-js ehf-header ehf-footer ehf-template-hello-elementor ehf-stylesheet-hello-elementor hello-elementor-default exclusive-addons-elementor elementor-default elementor-kit-17557">
+<div id="page" class="hfeed site">
+
+		<header id="masthead" itemscope="itemscope" itemtype="https://schema.org/WPHeader">
+			<p class="main-title bhf-hidden" itemprop="headline"><a href="https://smithsurgical.uk" title="Smith Surgical" rel="home">Smith Surgical</a></p>
+					<div data-elementor-type="wp-post" data-elementor-id="17670" class="elementor elementor-17670">
+						<section class="elementor-section elementor-top-section elementor-element elementor-element-74dab6cd elementor-section-content-middle elementor-section-full_width elementor-section-height-default elementor-section-height-default exad-glass-effect-no exad-sticky-section-no" data-id="74dab6cd" data-element_type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-33 elementor-top-column elementor-element elementor-element-5e416050 exad-glass-effect-no exad-sticky-section-no" data-id="5e416050" data-element_type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-43992722 exad-sticky-section-no exad-glass-effect-no elementor-widget elementor-widget-image" data-id="43992722" data-element_type="widget" data-widget_type="image.default">
+				<div class="elementor-widget-container">
+																<a href="https://smithsurgical.uk">
+							<img width="300" height="99" src="https://smithsurgical.uk/wp-content/uploads/2023/06/Smith-Surgical-Logo-300x99.png" class="attachment-medium size-medium wp-image-17614" alt="" srcset="https://smithsurgical.uk/wp-content/uploads/2023/06/Smith-Surgical-Logo-300x99.png 300w, https://smithsurgical.uk/wp-content/uploads/2023/06/Smith-Surgical-Logo-64x21.png 64w, https://smithsurgical.uk/wp-content/uploads/2023/06/Smith-Surgical-Logo-120x40.png 120w, https://smithsurgical.uk/wp-content/uploads/2023/06/Smith-Surgical-Logo.png 457w" sizes="(max-width: 300px) 100vw, 300px" />								</a>
+															</div>
+				</div>
+					</div>
+		</div>
+				<div class="elementor-column elementor-col-33 elementor-top-column elementor-element elementor-element-5ce2d19b exad-glass-effect-no exad-sticky-section-no" data-id="5ce2d19b" data-element_type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-4614937f exad-sticky-section-no exad-glass-effect-no elementor-widget elementor-widget-ekit-nav-menu" data-id="4614937f" data-element_type="widget" data-widget_type="ekit-nav-menu.default">
+				<div class="elementor-widget-container">
+							<nav class="ekit-wid-con ekit_menu_responsive_tablet" 
+			data-hamburger-icon="" 
+			data-hamburger-icon-type="icon" 
+			data-responsive-breakpoint="1024">
+			            <button class="elementskit-menu-hamburger elementskit-menu-toggler"  type="button" aria-label="hamburger-icon">
+                                    <span class="elementskit-menu-hamburger-icon"></span><span class="elementskit-menu-hamburger-icon"></span><span class="elementskit-menu-hamburger-icon"></span>
+                            </button>
+            <div id="ekit-megamenu-primary-menu" class="elementskit-menu-container elementskit-menu-offcanvas-elements elementskit-navbar-nav-default ekit-nav-menu-one-page-no ekit-nav-dropdown-hover"><ul id="menu-primary-menu" class="elementskit-navbar-nav elementskit-menu-po-left submenu-click-on-icon"><li id="menu-item-17665" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-home menu-item-17665 nav-item elementskit-mobile-builder-content" data-vertical-menu=750px><a href="https://smithsurgical.uk/" class="ekit-menu-nav-link">Home</a></li>
+<li id="menu-item-17701" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-17701 nav-item elementskit-mobile-builder-content" data-vertical-menu=750px><a href="https://smithsurgical.uk/about/" class="ekit-menu-nav-link">About</a></li>
+<li id="menu-item-17664" class="menu-item menu-item-type-post_type menu-item-object-page current-menu-item current_page_item menu-item-17664 nav-item elementskit-mobile-builder-content active" data-vertical-menu=750px><a href="https://smithsurgical.uk/products/" class="ekit-menu-nav-link active">Products</a></li>
+<li id="menu-item-17703" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-17703 nav-item elementskit-mobile-builder-content" data-vertical-menu=750px><a href="https://smithsurgical.uk/certificates/" class="ekit-menu-nav-link">Certificates</a></li>
+<li id="menu-item-17662" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-17662 nav-item elementskit-mobile-builder-content" data-vertical-menu=750px><a href="https://smithsurgical.uk/blog/" class="ekit-menu-nav-link">Blog</a></li>
+<li id="menu-item-17702" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-17702 nav-item elementskit-mobile-builder-content" data-vertical-menu=750px><a href="https://smithsurgical.uk/contact/" class="ekit-menu-nav-link">Contact</a></li>
+</ul><div class="elementskit-nav-identity-panel"><a class="elementskit-nav-logo" href="https://smithsurgical.uk" target="" rel=""><img src="https://smithsurgical.uk/wp-content/uploads/2023/06/placeholder-661-1.png" title="placeholder-661-1.png" alt="placeholder-661-1.png" decoding="async" /></a><button class="elementskit-menu-close elementskit-menu-toggler" type="button">X</button></div></div>			
+			<div class="elementskit-menu-overlay elementskit-menu-offcanvas-elements elementskit-menu-toggler ekit-nav-menu--overlay"></div>        </nav>
+						</div>
+				</div>
+					</div>
+		</div>
+				<div class="elementor-column elementor-col-33 elementor-top-column elementor-element elementor-element-58c2a94d exad-glass-effect-no exad-sticky-section-no" data-id="58c2a94d" data-element_type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-e8e10f7 elementor-widget__width-auto elementor-view-default exad-sticky-section-no exad-glass-effect-no elementor-widget elementor-widget-icon" data-id="e8e10f7" data-element_type="widget" data-widget_type="icon.default">
+				<div class="elementor-widget-container">
+							<div class="elementor-icon-wrapper">
+			<a class="elementor-icon" href="https://smithsurgical.uk/request-quote">
+			<i aria-hidden="true" class="icon icon-cart11"></i>			</a>
+		</div>
+						</div>
+				</div>
+				<div class="elementor-element elementor-element-ab5f791 elementor-widget__width-auto elementor-shape-rounded elementor-grid-0 e-grid-align-center exad-sticky-section-no exad-glass-effect-no elementor-widget elementor-widget-social-icons" data-id="ab5f791" data-element_type="widget" data-widget_type="social-icons.default">
+				<div class="elementor-widget-container">
+							<div class="elementor-social-icons-wrapper elementor-grid" role="list">
+							<span class="elementor-grid-item" role="listitem">
+					<a class="elementor-icon elementor-social-icon elementor-social-icon-facebook elementor-repeater-item-d8a739e" href="https://www.facebook.com/smithsurgicaluk/" target="_blank">
+						<span class="elementor-screen-only">Facebook</span>
+						<i aria-hidden="true" class="fab fa-facebook"></i>					</a>
+				</span>
+							<span class="elementor-grid-item" role="listitem">
+					<a class="elementor-icon elementor-social-icon elementor-social-icon-instagram elementor-repeater-item-9d61ddd" target="_blank">
+						<span class="elementor-screen-only">Instagram</span>
+						<i aria-hidden="true" class="fab fa-instagram"></i>					</a>
+				</span>
+							<span class="elementor-grid-item" role="listitem">
+					<a class="elementor-icon elementor-social-icon elementor-social-icon-linkedin elementor-repeater-item-12fe38a" target="_blank">
+						<span class="elementor-screen-only">Linkedin</span>
+						<i aria-hidden="true" class="fab fa-linkedin"></i>					</a>
+				</span>
+					</div>
+						</div>
+				</div>
+				<div class="elementor-element elementor-element-4b44a4b9 elementor-widget__width-auto exad-sticky-section-no exad-glass-effect-no elementor-widget elementor-widget-shortcode" data-id="4b44a4b9" data-element_type="widget" data-widget_type="shortcode.default">
+				<div class="elementor-widget-container">
+							<div class="elementor-shortcode"><div class="gtranslate_wrapper" id="gt-wrapper-15485482"></div></div>
+						</div>
+				</div>
+					</div>
+		</div>
+					</div>
+		</section>
+				</div>
+				</header>
+
+	<div id="primary" class="content-area"><main id="main" class="site-main" role="main"><nav class="woocommerce-breadcrumb" aria-label="Breadcrumb"><a href="https://smithsurgical.uk">Home</a>&nbsp;&#47;&nbsp;<a href="https://smithsurgical.uk/products/">Products</a>&nbsp;&#47;&nbsp;Search results for &ldquo;02-544-17&rdquo;</nav><header class="woocommerce-products-header">
+			<h1 class="woocommerce-products-header__title page-title">Search results: &ldquo;02-544-17&rdquo;</h1>
+	
+	</header>
+<div class="woocommerce-no-products-found">
+	
+	<div class="woocommerce-info" role="status">
+		No products were found matching your selection.	</div>
+</div>
+</main></div>
+		<footer itemtype="https://schema.org/WPFooter" itemscope="itemscope" id="colophon" role="contentinfo">
+			<div class='footer-width-fixer'>		<div data-elementor-type="wp-post" data-elementor-id="17671" class="elementor elementor-17671">
+						<section class="elementor-section elementor-top-section elementor-element elementor-element-e69dccb elementor-section-boxed elementor-section-height-default elementor-section-height-default exad-glass-effect-no exad-sticky-section-no" data-id="e69dccb" data-element_type="section">
+							<div class="elementor-background-overlay"></div>
+							<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-b8b5bfb exad-glass-effect-no exad-sticky-section-no" data-id="b8b5bfb" data-element_type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-5c3b18f exad-sticky-section-no exad-glass-effect-no elementor-widget elementor-widget-shortcode" data-id="5c3b18f" data-element_type="widget" data-widget_type="shortcode.default">
+				<div class="elementor-widget-container">
+							<div class="elementor-shortcode"><div  class="dgwt-wcas-search-wrapp dgwt-wcas-has-submit woocommerce dgwt-wcas-style-pirx js-dgwt-wcas-layout-classic dgwt-wcas-layout-classic js-dgwt-wcas-mobile-overlay-enabled">
+		<form class="dgwt-wcas-search-form" role="search" action="https://smithsurgical.uk/" method="get">
+		<div class="dgwt-wcas-sf-wrapp">
+						<label class="screen-reader-text"
+				   for="dgwt-wcas-search-input-1">Products search</label>
+
+			<input id="dgwt-wcas-search-input-1"
+				   type="search"
+				   class="dgwt-wcas-search-input"
+				   name="s"
+				   value="02-544-17"
+				   placeholder="Search for products..."
+				   autocomplete="off"
+							/>
+			<div class="dgwt-wcas-preloader"></div>
+
+			<div class="dgwt-wcas-voice-search"></div>
+
+							<button type="submit"
+						aria-label="Search"
+						class="dgwt-wcas-search-submit">				<svg class="dgwt-wcas-ico-magnifier" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
+					<path  d=" M 16.722523,17.901412 C 16.572585,17.825208 15.36088,16.670476 14.029846,15.33534 L 11.609782,12.907819 11.01926,13.29667 C 8.7613237,14.783493 5.6172703,14.768302 3.332423,13.259528 -0.07366363,11.010358 -1.0146502,6.5989684 1.1898146,3.2148776
+						  1.5505179,2.6611594 2.4056498,1.7447266 2.9644271,1.3130497 3.4423015,0.94387379 4.3921825,0.48568469 5.1732652,0.2475835 5.886299,0.03022609 6.1341883,0 7.2037391,0 8.2732897,0 8.521179,0.03022609 9.234213,0.2475835 c 0.781083,0.23810119 1.730962,0.69629029 2.208837,1.0654662
+						  0.532501,0.4113763 1.39922,1.3400096 1.760153,1.8858877 1.520655,2.2998531 1.599025,5.3023778 0.199549,7.6451086 -0.208076,0.348322 -0.393306,0.668209 -0.411622,0.710863 -0.01831,0.04265 1.065556,1.18264 2.408603,2.533307 1.343046,1.350666 2.486621,2.574792 2.541278,2.720279 0.282475,0.7519
+						  -0.503089,1.456506 -1.218488,1.092917 z M 8.4027892,12.475062 C 9.434946,12.25579 10.131043,11.855461 10.99416,10.984753 11.554519,10.419467 11.842507,10.042366 12.062078,9.5863882 12.794223,8.0659672 12.793657,6.2652398 12.060578,4.756293 11.680383,3.9737304 10.453587,2.7178427
+						  9.730569,2.3710306 8.6921295,1.8729196 8.3992147,1.807606 7.2037567,1.807606 6.0082984,1.807606 5.7153841,1.87292 4.6769446,2.3710306 3.9539263,2.7178427 2.7271301,3.9737304 2.3469352,4.756293 1.6138384,6.2652398 1.6132726,8.0659672 2.3454252,9.5863882 c 0.4167354,0.8654208 1.5978784,2.0575608
+						  2.4443766,2.4671358 1.0971012,0.530827 2.3890403,0.681561 3.6130134,0.421538 z
+					"/>
+				</svg>
+				</button>
+			
+			<input type="hidden" name="post_type" value="product"/>
+			<input type="hidden" name="dgwt_wcas" value="1"/>
+
+			
+					</div>
+	</form>
+</div>
+</div>
+						</div>
+				</div>
+					</div>
+		</div>
+					</div>
+		</section>
+				<section class="elementor-section elementor-top-section elementor-element elementor-element-2e5036c7 elementor-section-boxed elementor-section-height-default elementor-section-height-default exad-glass-effect-no exad-sticky-section-no" data-id="2e5036c7" data-element_type="section" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+						<div class="elementor-container elementor-column-gap-no">
+					<div class="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-18564ac5 exad-glass-effect-no exad-sticky-section-no" data-id="18564ac5" data-element_type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<section class="elementor-section elementor-inner-section elementor-element elementor-element-5905c13d elementor-section-full_width elementor-section-height-default elementor-section-height-default exad-glass-effect-no exad-sticky-section-no" data-id="5905c13d" data-element_type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-inner-column elementor-element elementor-element-432f050b exad-glass-effect-no exad-sticky-section-no" data-id="432f050b" data-element_type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-53a4836f elementor-widget__width-initial exad-sticky-section-no exad-glass-effect-no elementor-widget elementor-widget-image" data-id="53a4836f" data-element_type="widget" data-widget_type="image.default">
+				<div class="elementor-widget-container">
+																<a href="https://smithsurgical.uk">
+							<img width="300" height="99" src="https://smithsurgical.uk/wp-content/uploads/2023/06/Smith-Surgical-Logo-White-300x99.png" class="attachment-medium size-medium wp-image-17618" alt="" srcset="https://smithsurgical.uk/wp-content/uploads/2023/06/Smith-Surgical-Logo-White-300x99.png 300w, https://smithsurgical.uk/wp-content/uploads/2023/06/Smith-Surgical-Logo-White-64x21.png 64w, https://smithsurgical.uk/wp-content/uploads/2023/06/Smith-Surgical-Logo-White-120x40.png 120w, https://smithsurgical.uk/wp-content/uploads/2023/06/Smith-Surgical-Logo-White.png 457w" sizes="(max-width: 300px) 100vw, 300px" />								</a>
+															</div>
+				</div>
+					</div>
+		</div>
+					</div>
+		</section>
+				<section class="elementor-section elementor-inner-section elementor-element elementor-element-43547656 elementor-section-full_width elementor-section-height-default elementor-section-height-default exad-glass-effect-no exad-sticky-section-no" data-id="43547656" data-element_type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-25 elementor-inner-column elementor-element elementor-element-275149b4 exad-glass-effect-no exad-sticky-section-no" data-id="275149b4" data-element_type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-1377fe9 exad-sticky-section-no exad-glass-effect-no elementor-widget elementor-widget-text-editor" data-id="1377fe9" data-element_type="widget" data-widget_type="text-editor.default">
+				<div class="elementor-widget-container">
+									<p>We manufacture and Supply a wide range of Surgical, Dental, Endoscopy and Veterinary instruments, Hollowware Products, Orthopedic implants and Diagnostic Sets. </p>								</div>
+				</div>
+				<div class="elementor-element elementor-element-1bcb5ef0 elementor-shape-square e-grid-align-left e-grid-align-tablet-center elementor-grid-0 exad-sticky-section-no exad-glass-effect-no elementor-widget elementor-widget-social-icons" data-id="1bcb5ef0" data-element_type="widget" data-widget_type="social-icons.default">
+				<div class="elementor-widget-container">
+							<div class="elementor-social-icons-wrapper elementor-grid" role="list">
+							<span class="elementor-grid-item" role="listitem">
+					<a class="elementor-icon elementor-social-icon elementor-social-icon-facebook elementor-animation-float elementor-repeater-item-302c783" href="https://www.facebook.com/smithsurgicaluk/" target="_blank">
+						<span class="elementor-screen-only">Facebook</span>
+						<i aria-hidden="true" class="fab fa-facebook"></i>					</a>
+				</span>
+							<span class="elementor-grid-item" role="listitem">
+					<a class="elementor-icon elementor-social-icon elementor-social-icon-instagram elementor-animation-float elementor-repeater-item-5f0871e" target="_blank">
+						<span class="elementor-screen-only">Instagram</span>
+						<i aria-hidden="true" class="fab fa-instagram"></i>					</a>
+				</span>
+							<span class="elementor-grid-item" role="listitem">
+					<a class="elementor-icon elementor-social-icon elementor-social-icon-linkedin elementor-animation-float elementor-repeater-item-1ef19bc" target="_blank">
+						<span class="elementor-screen-only">Linkedin</span>
+						<i aria-hidden="true" class="fab fa-linkedin"></i>					</a>
+				</span>
+					</div>
+						</div>
+				</div>
+					</div>
+		</div>
+				<div class="elementor-column elementor-col-25 elementor-inner-column elementor-element elementor-element-3d9bf016 exad-glass-effect-no exad-sticky-section-no" data-id="3d9bf016" data-element_type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-1f7bdd20 exad-sticky-section-no exad-glass-effect-no elementor-widget elementor-widget-heading" data-id="1f7bdd20" data-element_type="widget" data-widget_type="heading.default">
+				<div class="elementor-widget-container">
+					<h4 class="elementor-heading-title elementor-size-default">Quick Links</h4>				</div>
+				</div>
+				<div class="elementor-element elementor-element-11b9f4ab elementor-nav-menu--dropdown-tablet elementor-nav-menu__text-align-aside elementor-nav-menu--toggle elementor-nav-menu--burger exad-sticky-section-no exad-glass-effect-no elementor-widget elementor-widget-nav-menu" data-id="11b9f4ab" data-element_type="widget" data-settings="{&quot;layout&quot;:&quot;vertical&quot;,&quot;submenu_icon&quot;:{&quot;value&quot;:&quot;&lt;i class=\&quot;fas fa-caret-down\&quot;&gt;&lt;\/i&gt;&quot;,&quot;library&quot;:&quot;fa-solid&quot;},&quot;toggle&quot;:&quot;burger&quot;}" data-widget_type="nav-menu.default">
+				<div class="elementor-widget-container">
+								<nav migration_allowed="1" migrated="0" role="navigation" class="elementor-nav-menu--main elementor-nav-menu__container elementor-nav-menu--layout-vertical e--pointer-none">
+				<ul id="menu-1-11b9f4ab" class="elementor-nav-menu sm-vertical"><li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-home menu-item-17665"><a href="https://smithsurgical.uk/" class="elementor-item">Home</a></li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-17701"><a href="https://smithsurgical.uk/about/" class="elementor-item">About</a></li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page current-menu-item current_page_item menu-item-17664"><a href="https://smithsurgical.uk/products/" aria-current="page" class="elementor-item elementor-item-active">Products</a></li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-17703"><a href="https://smithsurgical.uk/certificates/" class="elementor-item">Certificates</a></li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-17662"><a href="https://smithsurgical.uk/blog/" class="elementor-item">Blog</a></li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-17702"><a href="https://smithsurgical.uk/contact/" class="elementor-item">Contact</a></li>
+</ul>			</nav>
+					<div class="elementor-menu-toggle" role="button" tabindex="0" aria-label="Menu Toggle" aria-expanded="false">
+			<i aria-hidden="true" role="presentation" class="elementor-menu-toggle__icon--open eicon-menu-bar"></i><i aria-hidden="true" role="presentation" class="elementor-menu-toggle__icon--close eicon-close"></i>			<span class="elementor-screen-only">Menu</span>
+		</div>
+			<nav class="elementor-nav-menu--dropdown elementor-nav-menu__container" role="navigation" aria-hidden="true">
+				<ul id="menu-2-11b9f4ab" class="elementor-nav-menu sm-vertical"><li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-home menu-item-17665"><a href="https://smithsurgical.uk/" class="elementor-item" tabindex="-1">Home</a></li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-17701"><a href="https://smithsurgical.uk/about/" class="elementor-item" tabindex="-1">About</a></li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page current-menu-item current_page_item menu-item-17664"><a href="https://smithsurgical.uk/products/" aria-current="page" class="elementor-item elementor-item-active" tabindex="-1">Products</a></li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-17703"><a href="https://smithsurgical.uk/certificates/" class="elementor-item" tabindex="-1">Certificates</a></li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-17662"><a href="https://smithsurgical.uk/blog/" class="elementor-item" tabindex="-1">Blog</a></li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-17702"><a href="https://smithsurgical.uk/contact/" class="elementor-item" tabindex="-1">Contact</a></li>
+</ul>			</nav>
+						</div>
+				</div>
+					</div>
+		</div>
+				<div class="elementor-column elementor-col-25 elementor-inner-column elementor-element elementor-element-7571ab24 exad-glass-effect-no exad-sticky-section-no" data-id="7571ab24" data-element_type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-2524b2d3 exad-sticky-section-no exad-glass-effect-no elementor-widget elementor-widget-heading" data-id="2524b2d3" data-element_type="widget" data-widget_type="heading.default">
+				<div class="elementor-widget-container">
+					<h4 class="elementor-heading-title elementor-size-default">Address</h4>				</div>
+				</div>
+				<div class="elementor-element elementor-element-6fb08de4 exad-sticky-section-no exad-glass-effect-no elementor-widget elementor-widget-text-editor" data-id="6fb08de4" data-element_type="widget" data-widget_type="text-editor.default">
+				<div class="elementor-widget-container">
+									<p>Smith Surgical UK Limited,<br />Kemp House, 160 City Road,<br />London, United Kingdom,<br />EC1V 2NX</p>								</div>
+				</div>
+				<div class="elementor-element elementor-element-5fab5f exad-sticky-section-no exad-glass-effect-no elementor-widget elementor-widget-heading" data-id="5fab5f" data-element_type="widget" data-widget_type="heading.default">
+				<div class="elementor-widget-container">
+					<h4 class="elementor-heading-title elementor-size-default">Email</h4>				</div>
+				</div>
+				<div class="elementor-element elementor-element-0a54bb8 elementor-icon-list--layout-traditional elementor-list-item-link-full_width exad-sticky-section-no exad-glass-effect-no elementor-widget elementor-widget-icon-list" data-id="0a54bb8" data-element_type="widget" data-widget_type="icon-list.default">
+				<div class="elementor-widget-container">
+							<ul class="elementor-icon-list-items">
+							<li class="elementor-icon-list-item">
+											<a href="mailto:info@smithsurgical.uk">
+
+											<span class="elementor-icon-list-text">info@smithsurgical.uk</span>
+											</a>
+									</li>
+								<li class="elementor-icon-list-item">
+											<a href="mailto:smithsurgicaluk@gmail.com">
+
+											<span class="elementor-icon-list-text">smithsurgicaluk@gmail.com</span>
+											</a>
+									</li>
+						</ul>
+						</div>
+				</div>
+					</div>
+		</div>
+				<div class="elementor-column elementor-col-25 elementor-inner-column elementor-element elementor-element-30203da4 exad-glass-effect-no exad-sticky-section-no" data-id="30203da4" data-element_type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-3e6b810d exad-sticky-section-no exad-glass-effect-no elementor-widget elementor-widget-heading" data-id="3e6b810d" data-element_type="widget" data-widget_type="heading.default">
+				<div class="elementor-widget-container">
+					<h4 class="elementor-heading-title elementor-size-default">Catalogue</h4>				</div>
+				</div>
+				<div class="elementor-element elementor-element-1ed94884 exad-sticky-section-no exad-glass-effect-no elementor-widget elementor-widget-image" data-id="1ed94884" data-element_type="widget" data-widget_type="image.default">
+				<div class="elementor-widget-container">
+																<a href="https://smithsurgical.uk/catalog/Smith-Surgical-PDF-Catalogue.pdf" target="_blank">
+							<img fetchpriority="high" width="233" height="300" src="https://smithsurgical.uk/wp-content/uploads/2023/06/Smith-Surgical-PDF-Catalogue-Preview-233x300.jpg" class="attachment-medium size-medium wp-image-17619" alt="" srcset="https://smithsurgical.uk/wp-content/uploads/2023/06/Smith-Surgical-PDF-Catalogue-Preview-233x300.jpg 233w, https://smithsurgical.uk/wp-content/uploads/2023/06/Smith-Surgical-PDF-Catalogue-Preview-300x386.jpg 300w, https://smithsurgical.uk/wp-content/uploads/2023/06/Smith-Surgical-PDF-Catalogue-Preview-600x771.jpg 600w, https://smithsurgical.uk/wp-content/uploads/2023/06/Smith-Surgical-PDF-Catalogue-Preview-64x82.jpg 64w, https://smithsurgical.uk/wp-content/uploads/2023/06/Smith-Surgical-PDF-Catalogue-Preview-93x120.jpg 93w, https://smithsurgical.uk/wp-content/uploads/2023/06/Smith-Surgical-PDF-Catalogue-Preview.jpg 630w" sizes="(max-width: 233px) 100vw, 233px" />								</a>
+															</div>
+				</div>
+					</div>
+		</div>
+					</div>
+		</section>
+				<section class="elementor-section elementor-inner-section elementor-element elementor-element-2473a7d2 elementor-section-full_width elementor-section-height-default elementor-section-height-default exad-glass-effect-no exad-sticky-section-no" data-id="2473a7d2" data-element_type="section">
+						<div class="elementor-container elementor-column-gap-no">
+					<div class="elementor-column elementor-col-100 elementor-inner-column elementor-element elementor-element-3cc063a8 exad-glass-effect-no exad-sticky-section-no" data-id="3cc063a8" data-element_type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-1e7d7a6c exad-sticky-section-no exad-glass-effect-no elementor-widget elementor-widget-heading" data-id="1e7d7a6c" data-element_type="widget" data-widget_type="heading.default">
+				<div class="elementor-widget-container">
+					<span class="elementor-heading-title elementor-size-default">Allright REserved - 2023 smithsurgical.uk</span>				</div>
+				</div>
+					</div>
+		</div>
+					</div>
+		</section>
+					</div>
+		</div>
+					</div>
+		</section>
+				</div>
+		</div>		</footer>
+	</div><!-- #page -->
+
+		<script>
+			window.RS_MODULES = window.RS_MODULES || {};
+			window.RS_MODULES.modules = window.RS_MODULES.modules || {};
+			window.RS_MODULES.waiting = window.RS_MODULES.waiting || [];
+			window.RS_MODULES.defered = true;
+			window.RS_MODULES.moduleWaiting = window.RS_MODULES.moduleWaiting || {};
+			window.RS_MODULES.type = 'compiled';
+		</script>
+		<script type="speculationrules">
+{"prefetch":[{"source":"document","where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":["/wp-*.php","/wp-admin/*","/wp-content/uploads/*","/wp-content/*","/wp-content/plugins/*","/wp-content/themes/hello-elementor/*","/*\\?(.+)"]}},{"not":{"selector_matches":"a[rel~=\"nofollow\"]"}},{"not":{"selector_matches":".no-prefetch, .no-prefetch a"}}]},"eagerness":"conservative"}]}
+</script>
+<script type="application/ld+json">{"@context":"https:\/\/schema.org\/","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"item":{"name":"Home","@id":"https:\/\/smithsurgical.uk"}},{"@type":"ListItem","position":2,"item":{"name":"Products","@id":"https:\/\/smithsurgical.uk\/products\/"}},{"@type":"ListItem","position":3,"item":{"name":"Search results for &amp;ldquo;02-544-17&amp;rdquo;","@id":"\/?s=02-544-17&amp;post_type=product"}}]}</script>			<script>
+				const lazyloadRunObserver = () => {
+					const lazyloadBackgrounds = document.querySelectorAll( `.e-con.e-parent:not(.e-lazyloaded)` );
+					const lazyloadBackgroundObserver = new IntersectionObserver( ( entries ) => {
+						entries.forEach( ( entry ) => {
+							if ( entry.isIntersecting ) {
+								let lazyloadBackground = entry.target;
+								if( lazyloadBackground ) {
+									lazyloadBackground.classList.add( 'e-lazyloaded' );
+								}
+								lazyloadBackgroundObserver.unobserve( entry.target );
+							}
+						});
+					}, { rootMargin: '200px 0px 200px 0px' } );
+					lazyloadBackgrounds.forEach( ( lazyloadBackground ) => {
+						lazyloadBackgroundObserver.observe( lazyloadBackground );
+					} );
+				};
+				const events = [
+					'DOMContentLoaded',
+					'elementor/lazyload/observe',
+				];
+				events.forEach( ( event ) => {
+					document.addEventListener( event, lazyloadRunObserver );
+				} );
+			</script>
+				<script>
+		(function () {
+			var c = document.body.className;
+			c = c.replace(/woocommerce-no-js/, 'woocommerce-js');
+			document.body.className = c;
+		})();
+	</script>
+	<script src="https://smithsurgical.uk/wp-content/plugins/exclusive-addons-for-elementor/assets/vendor/js/jquery.sticky-sidebar.js?ver=2.7.9.8" id="exad-sticky-jquery-js"></script>
+<script src="https://smithsurgical.uk/wp-content/plugins/revslider/public/assets/js/rbtools.min.js?ver=6.5.18" defer async id="tp-tools-js"></script>
+<script src="https://smithsurgical.uk/wp-content/plugins/revslider/public/assets/js/rs6.min.js?ver=6.5.25" defer async id="revmin-js"></script>
+<script id="yith_ywraq_frontend-js-extra">
+var ywraq_frontend = {"ajaxurl":"https://smithsurgical.uk/wp-admin/admin-ajax.php","no_product_in_list":"Your list is empty","yith_ywraq_action_nonce":"26399e2797","go_to_the_list":"no","rqa_url":"https://smithsurgical.uk/request-quote/","raq_table_refresh_check":"1"};
+//# sourceURL=yith_ywraq_frontend-js-extra
+</script>
+<script src="https://smithsurgical.uk/wp-content/plugins/yith-woocommerce-request-a-quote/assets/js/frontend.min.js?ver=2.45.0" id="yith_ywraq_frontend-js"></script>
+<script src="https://smithsurgical.uk/wp-content/themes/hello-elementor/assets/js/hello-frontend.js?ver=3.4.5" id="hello-theme-frontend-js"></script>
+<script src="https://smithsurgical.uk/wp-content/plugins/elementskit-lite/libs/framework/assets/js/frontend-script.js?ver=3.7.5" id="elementskit-framework-js-frontend-js"></script>
+<script id="elementskit-framework-js-frontend-js-after">
+		var elementskit = {
+			resturl: 'https://smithsurgical.uk/wp-json/elementskit/v1/',
+		}
+
+		
+//# sourceURL=elementskit-framework-js-frontend-js-after
+</script>
+<script src="https://smithsurgical.uk/wp-content/plugins/elementskit-lite/widgets/init/assets/js/widget-scripts.js?ver=3.7.5" id="ekit-widget-scripts-js"></script>
+<script id="exad-main-script-js-extra">
+var exad_ajax_object = {"ajax_url":"https://smithsurgical.uk/wp-admin/admin-ajax.php","nonce":"6a09b7665e"};
+//# sourceURL=exad-main-script-js-extra
+</script>
+<script src="https://smithsurgical.uk/wp-content/plugins/exclusive-addons-for-elementor/assets/js/exad-scripts.min.js?ver=2.7.9.8" id="exad-main-script-js"></script>
+<script src="https://smithsurgical.uk/wp-content/plugins/woocommerce/assets/js/sourcebuster/sourcebuster.min.js?ver=10.3.5" id="sourcebuster-js-js"></script>
+<script id="wc-order-attribution-js-extra">
+var wc_order_attribution = {"params":{"lifetime":1.0e-5,"session":30,"base64":false,"ajaxurl":"https://smithsurgical.uk/wp-admin/admin-ajax.php","prefix":"wc_order_attribution_","allowTracking":true},"fields":{"source_type":"current.typ","referrer":"current_add.rf","utm_campaign":"current.cmp","utm_source":"current.src","utm_medium":"current.mdm","utm_content":"current.cnt","utm_id":"current.id","utm_term":"current.trm","utm_source_platform":"current.plt","utm_creative_format":"current.fmt","utm_marketing_tactic":"current.tct","session_entry":"current_add.ep","session_start_time":"current_add.fd","session_pages":"session.pgs","session_count":"udata.vst","user_agent":"udata.uag"}};
+//# sourceURL=wc-order-attribution-js-extra
+</script>
+<script src="https://smithsurgical.uk/wp-content/plugins/woocommerce/assets/js/frontend/order-attribution.min.js?ver=10.3.5" id="wc-order-attribution-js"></script>
+<script src="https://smithsurgical.uk/wp-content/plugins/elementor/assets/js/webpack.runtime.min.js?ver=3.32.5" id="elementor-webpack-runtime-js"></script>
+<script src="https://smithsurgical.uk/wp-content/plugins/elementor/assets/js/frontend-modules.min.js?ver=3.32.5" id="elementor-frontend-modules-js"></script>
+<script src="https://smithsurgical.uk/wp-includes/js/jquery/ui/core.min.js?ver=1.13.3" id="jquery-ui-core-js"></script>
+<script id="elementor-frontend-js-before">
+var elementorFrontendConfig = {"environmentMode":{"edit":false,"wpPreview":false,"isScriptDebug":false},"i18n":{"shareOnFacebook":"Share on Facebook","shareOnTwitter":"Share on Twitter","pinIt":"Pin it","download":"Download","downloadImage":"Download image","fullscreen":"Fullscreen","zoom":"Zoom","share":"Share","playVideo":"Play Video","previous":"Previous","next":"Next","close":"Close","a11yCarouselPrevSlideMessage":"Previous slide","a11yCarouselNextSlideMessage":"Next slide","a11yCarouselFirstSlideMessage":"This is the first slide","a11yCarouselLastSlideMessage":"This is the last slide","a11yCarouselPaginationBulletMessage":"Go to slide"},"is_rtl":false,"breakpoints":{"xs":0,"sm":480,"md":768,"lg":1025,"xl":1440,"xxl":1600},"responsive":{"breakpoints":{"mobile":{"label":"Mobile Portrait","value":767,"default_value":767,"direction":"max","is_enabled":true},"mobile_extra":{"label":"Mobile Landscape","value":880,"default_value":880,"direction":"max","is_enabled":false},"tablet":{"label":"Tablet Portrait","value":1024,"default_value":1024,"direction":"max","is_enabled":true},"tablet_extra":{"label":"Tablet Landscape","value":1200,"default_value":1200,"direction":"max","is_enabled":false},"laptop":{"label":"Laptop","value":1366,"default_value":1366,"direction":"max","is_enabled":false},"widescreen":{"label":"Widescreen","value":2400,"default_value":2400,"direction":"min","is_enabled":false}},"hasCustomBreakpoints":false},"version":"3.32.5","is_static":false,"experimentalFeatures":{"additional_custom_breakpoints":true,"theme_builder_v2":true,"hello-theme-header-footer":true,"home_screen":true,"global_classes_should_enforce_capabilities":true,"e_variables":true,"cloud-library":true,"e_opt_in_v4_page":true,"import-export-customization":true,"page-transitions":true,"form-submissions":true,"e_scroll_snap":true},"urls":{"assets":"https:\/\/smithsurgical.uk\/wp-content\/plugins\/elementor\/assets\/","ajaxurl":"https:\/\/smithsurgical.uk\/wp-admin\/admin-ajax.php","uploadUrl":"https:\/\/smithsurgical.uk\/wp-content\/uploads"},"nonces":{"floatingButtonsClickTracking":"17321749fe"},"swiperClass":"swiper","settings":{"editorPreferences":[]},"kit":{"active_breakpoints":["viewport_mobile","viewport_tablet"],"global_image_lightbox":"yes","lightbox_enable_counter":"yes","lightbox_enable_fullscreen":"yes","lightbox_enable_zoom":"yes","lightbox_enable_share":"yes","lightbox_title_src":"title","lightbox_description_src":"description","woocommerce_notices_elements":[]},"post":{"id":0,"title":"Search Results for &#8220;02-544-17&#8221; &#8211; Smith Surgical","excerpt":"<p>This is where you can browse products in this store.<\/p>\n"}};
+//# sourceURL=elementor-frontend-js-before
+</script>
+<script src="https://smithsurgical.uk/wp-content/plugins/elementor/assets/js/frontend.min.js?ver=3.32.5" id="elementor-frontend-js"></script>
+<script id="gt_widget_script_15485482-js-before">
+window.gtranslateSettings = /* document.write */ window.gtranslateSettings || {};window.gtranslateSettings['15485482'] = {"default_language":"en","languages":["ar","zh-CN","nl","en","fr","de","it","pt","ru","es"],"url_structure":"none","flag_style":"2d","flag_size":24,"wrapper_selector":"#gt-wrapper-15485482","alt_flags":[],"horizontal_position":"inline","flags_location":"\/wp-content\/plugins\/gtranslate\/flags\/"};
+//# sourceURL=gt_widget_script_15485482-js-before
+</script><script src="https://smithsurgical.uk/wp-content/plugins/gtranslate/js/popup.js?ver=6.9.1" data-no-optimize="1" data-no-minify="1" data-gt-orig-url="/" data-gt-orig-domain="smithsurgical.uk" data-gt-widget-id="15485482" defer></script><script src="https://smithsurgical.uk/wp-content/plugins/elementor-pro/assets/lib/smartmenus/jquery.smartmenus.min.js?ver=1.0.1" id="smartmenus-js"></script>
+<script id="jquery-dgwt-wcas-js-extra">
+var dgwt_wcas = {"labels":{"product_plu":"Products","vendor":"Vendor","vendor_plu":"Vendors","sku_label":"SKU:","sale_badge":"Sale","vendor_sold_by":"Sold by:","featured_badge":"Featured","in":"in","read_more":"continue reading","no_results":"\"No results\"","no_results_default":"No results","show_more":"See all products...","show_more_details":"See all products...","search_placeholder":"Search for products...","submit":"","search_hist":"Your search history","search_hist_clear":"Clear","mob_overlay_label":"Open search in the mobile overlay","tax_product_cat_plu":"Categories","tax_product_cat":"Category","tax_product_tag_plu":"Tags","tax_product_tag":"Tag"},"ajax_search_endpoint":"/?wc-ajax=dgwt_wcas_ajax_search","ajax_details_endpoint":"/?wc-ajax=dgwt_wcas_result_details","ajax_prices_endpoint":"/?wc-ajax=dgwt_wcas_get_prices","action_search":"dgwt_wcas_ajax_search","action_result_details":"dgwt_wcas_result_details","action_get_prices":"dgwt_wcas_get_prices","min_chars":"3","width":"auto","show_details_panel":"","show_images":"1","show_price":"","show_desc":"","show_sale_badge":"","show_featured_badge":"","dynamic_prices":"","is_rtl":"","show_preloader":"1","show_headings":"1","preloader_url":"","taxonomy_brands":"","img_url":"https://smithsurgical.uk/wp-content/plugins/ajax-search-for-woocommerce/assets/img/","is_premium":"","layout_breakpoint":"992","mobile_overlay_breakpoint":"992","mobile_overlay_wrapper":"body","mobile_overlay_delay":"0","debounce_wait_ms":"400","send_ga_events":"1","enable_ga_site_search_module":"","magnifier_icon":"\t\t\t\t\u003Csvg class=\"\" xmlns=\"http://www.w3.org/2000/svg\"\n\t\t\t\t\t xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"0px\" y=\"0px\"\n\t\t\t\t\t viewBox=\"0 0 51.539 51.361\" xml:space=\"preserve\"\u003E\n\t\t             \u003Cpath \t\t\t\t\t\t d=\"M51.539,49.356L37.247,35.065c3.273-3.74,5.272-8.623,5.272-13.983c0-11.742-9.518-21.26-21.26-21.26 S0,9.339,0,21.082s9.518,21.26,21.26,21.26c5.361,0,10.244-1.999,13.983-5.272l14.292,14.292L51.539,49.356z M2.835,21.082 c0-10.176,8.249-18.425,18.425-18.425s18.425,8.249,18.425,18.425S31.436,39.507,21.26,39.507S2.835,31.258,2.835,21.082z\"/\u003E\n\t\t\t\t\u003C/svg\u003E\n\t\t\t\t","magnifier_icon_pirx":"\t\t\t\t\u003Csvg class=\"\" xmlns=\"http://www.w3.org/2000/svg\" width=\"18\" height=\"18\" viewBox=\"0 0 18 18\"\u003E\n\t\t\t\t\t\u003Cpath  d=\" M 16.722523,17.901412 C 16.572585,17.825208 15.36088,16.670476 14.029846,15.33534 L 11.609782,12.907819 11.01926,13.29667 C 8.7613237,14.783493 5.6172703,14.768302 3.332423,13.259528 -0.07366363,11.010358 -1.0146502,6.5989684 1.1898146,3.2148776\n\t\t\t\t\t\t  1.5505179,2.6611594 2.4056498,1.7447266 2.9644271,1.3130497 3.4423015,0.94387379 4.3921825,0.48568469 5.1732652,0.2475835 5.886299,0.03022609 6.1341883,0 7.2037391,0 8.2732897,0 8.521179,0.03022609 9.234213,0.2475835 c 0.781083,0.23810119 1.730962,0.69629029 2.208837,1.0654662\n\t\t\t\t\t\t  0.532501,0.4113763 1.39922,1.3400096 1.760153,1.8858877 1.520655,2.2998531 1.599025,5.3023778 0.199549,7.6451086 -0.208076,0.348322 -0.393306,0.668209 -0.411622,0.710863 -0.01831,0.04265 1.065556,1.18264 2.408603,2.533307 1.343046,1.350666 2.486621,2.574792 2.541278,2.720279 0.282475,0.7519\n\t\t\t\t\t\t  -0.503089,1.456506 -1.218488,1.092917 z M 8.4027892,12.475062 C 9.434946,12.25579 10.131043,11.855461 10.99416,10.984753 11.554519,10.419467 11.842507,10.042366 12.062078,9.5863882 12.794223,8.0659672 12.793657,6.2652398 12.060578,4.756293 11.680383,3.9737304 10.453587,2.7178427\n\t\t\t\t\t\t  9.730569,2.3710306 8.6921295,1.8729196 8.3992147,1.807606 7.2037567,1.807606 6.0082984,1.807606 5.7153841,1.87292 4.6769446,2.3710306 3.9539263,2.7178427 2.7271301,3.9737304 2.3469352,4.756293 1.6138384,6.2652398 1.6132726,8.0659672 2.3454252,9.5863882 c 0.4167354,0.8654208 1.5978784,2.0575608\n\t\t\t\t\t\t  2.4443766,2.4671358 1.0971012,0.530827 2.3890403,0.681561 3.6130134,0.421538 z\n\t\t\t\t\t\"/\u003E\n\t\t\t\t\u003C/svg\u003E\n\t\t\t\t","history_icon":"\t\t\t\t\u003Csvg class=\"\" xmlns=\"http://www.w3.org/2000/svg\" width=\"18\" height=\"16\"\u003E\n\t\t\t\t\t\u003Cg transform=\"translate(-17.498822,-36.972165)\"\u003E\n\t\t\t\t\t\t\u003Cpath \t\t\t\t\t\t\td=\"m 26.596964,52.884295 c -0.954693,-0.11124 -2.056421,-0.464654 -2.888623,-0.926617 -0.816472,-0.45323 -1.309173,-0.860824 -1.384955,-1.145723 -0.106631,-0.400877 0.05237,-0.801458 0.401139,-1.010595 0.167198,-0.10026 0.232609,-0.118358 0.427772,-0.118358 0.283376,0 0.386032,0.04186 0.756111,0.308336 1.435559,1.033665 3.156285,1.398904 4.891415,1.038245 2.120335,-0.440728 3.927688,-2.053646 4.610313,-4.114337 0.244166,-0.737081 0.291537,-1.051873 0.293192,-1.948355 0.0013,-0.695797 -0.0093,-0.85228 -0.0806,-1.189552 -0.401426,-1.899416 -1.657702,-3.528366 -3.392535,-4.398932 -2.139097,-1.073431 -4.69701,-0.79194 -6.613131,0.727757 -0.337839,0.267945 -0.920833,0.890857 -1.191956,1.27357 -0.66875,0.944 -1.120577,2.298213 -1.120577,3.35859 v 0.210358 h 0.850434 c 0.82511,0 0.854119,0.0025 0.974178,0.08313 0.163025,0.109516 0.246992,0.333888 0.182877,0.488676 -0.02455,0.05927 -0.62148,0.693577 -1.32651,1.40957 -1.365272,1.3865 -1.427414,1.436994 -1.679504,1.364696 -0.151455,-0.04344 -2.737016,-2.624291 -2.790043,-2.784964 -0.05425,-0.16438 0.02425,-0.373373 0.179483,-0.477834 0.120095,-0.08082 0.148717,-0.08327 0.970779,-0.08327 h 0.847035 l 0.02338,-0.355074 c 0.07924,-1.203664 0.325558,-2.153721 0.819083,-3.159247 1.083047,-2.206642 3.117598,-3.79655 5.501043,-4.298811 0.795412,-0.167616 1.880855,-0.211313 2.672211,-0.107576 3.334659,0.437136 6.147035,3.06081 6.811793,6.354741 0.601713,2.981541 -0.541694,6.025743 -2.967431,7.900475 -1.127277,0.871217 -2.441309,1.407501 -3.893104,1.588856 -0.447309,0.05588 -1.452718,0.06242 -1.883268,0.01225 z m 3.375015,-5.084703 c -0.08608,-0.03206 -2.882291,-1.690237 -3.007703,-1.783586 -0.06187,-0.04605 -0.160194,-0.169835 -0.218507,-0.275078 L 26.639746,45.549577 V 43.70452 41.859464 L 26.749,41.705307 c 0.138408,-0.195294 0.31306,-0.289155 0.538046,-0.289155 0.231638,0 0.438499,0.109551 0.563553,0.298452 l 0.10019,0.151342 0.01053,1.610898 0.01053,1.610898 0.262607,0.154478 c 1.579961,0.929408 2.399444,1.432947 2.462496,1.513106 0.253582,0.322376 0.140877,0.816382 -0.226867,0.994404 -0.148379,0.07183 -0.377546,0.09477 -0.498098,0.04986 z\"/\u003E\n\t\t\t\t\t\u003C/g\u003E\n\t\t\t\t\u003C/svg\u003E\n\t\t\t\t","close_icon":"\t\t\t\t\u003Csvg class=\"\" xmlns=\"http://www.w3.org/2000/svg\" height=\"24\" viewBox=\"0 0 24 24\"\n\t\t\t\t\t width=\"24\"\u003E\n\t\t\t\t\t\u003Cpath \t\t\t\t\t\td=\"M18.3 5.71c-.39-.39-1.02-.39-1.41 0L12 10.59 7.11 5.7c-.39-.39-1.02-.39-1.41 0-.39.39-.39 1.02 0 1.41L10.59 12 5.7 16.89c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0L12 13.41l4.89 4.89c.39.39 1.02.39 1.41 0 .39-.39.39-1.02 0-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z\"/\u003E\n\t\t\t\t\u003C/svg\u003E\n\t\t\t\t","back_icon":"\t\t\t\t\u003Csvg class=\"\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"\u003E\n\t\t\t\t\t\u003Cpath \t\t\t\t\t\td=\"M14 6.125H3.351l4.891-4.891L7 0 0 7l7 7 1.234-1.234L3.35 7.875H14z\" fill-rule=\"evenodd\"/\u003E\n\t\t\t\t\u003C/svg\u003E\n\t\t\t\t","preloader_icon":"\t\t\t\t\u003Csvg class=\"dgwt-wcas-loader-circular \" viewBox=\"25 25 50 50\"\u003E\n\t\t\t\t\t\u003Ccircle class=\"dgwt-wcas-loader-circular-path\" cx=\"50\" cy=\"50\" r=\"20\" fill=\"none\"\n\t\t\t\t\t\t stroke-miterlimit=\"10\"/\u003E\n\t\t\t\t\u003C/svg\u003E\n\t\t\t\t","voice_search_inactive_icon":"\t\t\t\t\u003Csvg class=\"dgwt-wcas-voice-search-mic-inactive\" xmlns=\"http://www.w3.org/2000/svg\" height=\"24\" width=\"24\"\u003E\n\t\t\t\t\t\u003Cpath \t\t\t\t\t\td=\"M12 14q-1.25 0-2.125-.875T9 11V5q0-1.25.875-2.125T12 2q1.25 0 2.125.875T15 5v6q0 1.25-.875 2.125T12 14Zm0-6Zm-1 13v-3.075q-2.6-.35-4.3-2.325Q5 13.625 5 11h2q0 2.075 1.463 3.537Q9.925 16 12 16t3.538-1.463Q17 13.075 17 11h2q0 2.625-1.7 4.6-1.7 1.975-4.3 2.325V21Zm1-9q.425 0 .713-.288Q13 11.425 13 11V5q0-.425-.287-.713Q12.425 4 12 4t-.712.287Q11 4.575 11 5v6q0 .425.288.712.287.288.712.288Z\"/\u003E\n\t\t\t\t\u003C/svg\u003E\n\t\t\t\t","voice_search_active_icon":"\t\t\t\t\u003Csvg class=\"dgwt-wcas-voice-search-mic-active\" xmlns=\"http://www.w3.org/2000/svg\" height=\"24\"\n\t\t\t\t\t width=\"24\"\u003E\n\t\t\t\t\t\u003Cpath \t\t\t\t\t\td=\"M12 14q-1.25 0-2.125-.875T9 11V5q0-1.25.875-2.125T12 2q1.25 0 2.125.875T15 5v6q0 1.25-.875 2.125T12 14Zm-1 7v-3.075q-2.6-.35-4.3-2.325Q5 13.625 5 11h2q0 2.075 1.463 3.537Q9.925 16 12 16t3.538-1.463Q17 13.075 17 11h2q0 2.625-1.7 4.6-1.7 1.975-4.3 2.325V21Z\"/\u003E\n\t\t\t\t\u003C/svg\u003E\n\t\t\t\t","voice_search_disabled_icon":"\t\t\t\t\u003Csvg class=\"dgwt-wcas-voice-search-mic-disabled\" xmlns=\"http://www.w3.org/2000/svg\" height=\"24\" width=\"24\"\u003E\n\t\t\t\t\t\u003Cpath \t\t\t\t\t\td=\"M17.75 14.95 16.3 13.5q.35-.575.525-1.2Q17 11.675 17 11h2q0 1.1-.325 2.087-.325.988-.925 1.863Zm-2.95-3L9 6.15V5q0-1.25.875-2.125T12 2q1.25 0 2.125.875T15 5v6q0 .275-.062.5-.063.225-.138.45ZM11 21v-3.1q-2.6-.35-4.3-2.312Q5 13.625 5 11h2q0 2.075 1.463 3.537Q9.925 16 12 16q.85 0 1.613-.262.762-.263 1.387-.738l1.425 1.425q-.725.575-1.587.962-.863.388-1.838.513V21Zm8.8 1.6L1.4 4.2l1.4-1.4 18.4 18.4Z\"/\u003E\n\t\t\t\t\u003C/svg\u003E\n\t\t\t\t","custom_params":{},"convert_html":"1","suggestions_wrapper":"body","show_product_vendor":"","disable_hits":"","disable_submit":"","fixer":{"broken_search_ui":true,"broken_search_ui_ajax":true,"broken_search_ui_hard":false,"broken_search_elementor_popups":true,"broken_search_jet_mobile_menu":true,"broken_search_browsers_back_arrow":true,"force_refresh_checkout":true},"voice_search_enabled":"","voice_search_lang":"en-US","show_recently_searched_products":"","show_recently_searched_phrases":"","go_to_first_variation_on_submit":"","show_sku":"1"};
+//# sourceURL=jquery-dgwt-wcas-js-extra
+</script>
+<script src="https://smithsurgical.uk/wp-content/plugins/ajax-search-for-woocommerce/assets/js/search.min.js?ver=1.32.0" id="jquery-dgwt-wcas-js"></script>
+<script src="https://smithsurgical.uk/wp-content/plugins/elementor-pro/assets/js/webpack-pro.runtime.min.js?ver=3.6.4" id="elementor-pro-webpack-runtime-js"></script>
+<script src="https://smithsurgical.uk/wp-includes/js/dist/hooks.min.js?ver=dd5603f07f9220ed27f1" id="wp-hooks-js"></script>
+<script src="https://smithsurgical.uk/wp-includes/js/dist/i18n.min.js?ver=c26c3dc7bed366793375" id="wp-i18n-js"></script>
+<script id="wp-i18n-js-after">
+wp.i18n.setLocaleData( { 'text direction\u0004ltr': [ 'ltr' ] } );
+//# sourceURL=wp-i18n-js-after
+</script>
+<script id="elementor-pro-frontend-js-before">
+var ElementorProFrontendConfig = {"ajaxurl":"https:\/\/smithsurgical.uk\/wp-admin\/admin-ajax.php","nonce":"a183c75a46","urls":{"assets":"https:\/\/smithsurgical.uk\/wp-content\/plugins\/elementor-pro\/assets\/","rest":"https:\/\/smithsurgical.uk\/wp-json\/"},"shareButtonsNetworks":{"facebook":{"title":"Facebook","has_counter":true},"twitter":{"title":"Twitter"},"linkedin":{"title":"LinkedIn","has_counter":true},"pinterest":{"title":"Pinterest","has_counter":true},"reddit":{"title":"Reddit","has_counter":true},"vk":{"title":"VK","has_counter":true},"odnoklassniki":{"title":"OK","has_counter":true},"tumblr":{"title":"Tumblr"},"digg":{"title":"Digg"},"skype":{"title":"Skype"},"stumbleupon":{"title":"StumbleUpon","has_counter":true},"mix":{"title":"Mix"},"telegram":{"title":"Telegram"},"pocket":{"title":"Pocket","has_counter":true},"xing":{"title":"XING","has_counter":true},"whatsapp":{"title":"WhatsApp"},"email":{"title":"Email"},"print":{"title":"Print"}},"woocommerce":{"menu_cart":{"cart_page_url":"https:\/\/smithsurgical.uk\/cart\/","checkout_page_url":"https:\/\/smithsurgical.uk\/checkout\/"}},"facebook_sdk":{"lang":"en_US","app_id":""},"lottie":{"defaultAnimationUrl":"https:\/\/smithsurgical.uk\/wp-content\/plugins\/elementor-pro\/modules\/lottie\/assets\/animations\/default.json"}};
+//# sourceURL=elementor-pro-frontend-js-before
+</script>
+<script src="https://smithsurgical.uk/wp-content/plugins/elementor-pro/assets/js/frontend.min.js?ver=3.6.4" id="elementor-pro-frontend-js"></script>
+<script src="https://smithsurgical.uk/wp-content/plugins/elementor-pro/assets/js/preloaded-elements-handlers.min.js?ver=3.6.4" id="pro-preloaded-elements-handlers-js"></script>
+<script src="https://smithsurgical.uk/wp-content/plugins/elementskit-lite/widgets/init/assets/js/animate-circle.min.js?ver=3.7.5" id="animate-circle-js"></script>
+<script id="elementskit-elementor-js-extra">
+var ekit_config = {"ajaxurl":"https://smithsurgical.uk/wp-admin/admin-ajax.php","nonce":"45f2c0b28a"};
+//# sourceURL=elementskit-elementor-js-extra
+</script>
+<script src="https://smithsurgical.uk/wp-content/plugins/elementskit-lite/widgets/init/assets/js/elementor.js?ver=3.7.5" id="elementskit-elementor-js"></script>
+<script id="wp-emoji-settings" type="application/json">
+{"baseUrl":"https://s.w.org/images/core/emoji/17.0.2/72x72/","ext":".png","svgUrl":"https://s.w.org/images/core/emoji/17.0.2/svg/","svgExt":".svg","source":{"concatemoji":"https://smithsurgical.uk/wp-includes/js/wp-emoji-release.min.js?ver=6.9.1"}}
+</script>
+<script type="module">
+/*! This file is auto-generated */
+const a=JSON.parse(document.getElementById("wp-emoji-settings").textContent),o=(window._wpemojiSettings=a,"wpEmojiSettingsSupports"),s=["flag","emoji"];function i(e){try{var t={supportTests:e,timestamp:(new Date).valueOf()};sessionStorage.setItem(o,JSON.stringify(t))}catch(e){}}function c(e,t,n){e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(t,0,0);t=new Uint32Array(e.getImageData(0,0,e.canvas.width,e.canvas.height).data);e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(n,0,0);const a=new Uint32Array(e.getImageData(0,0,e.canvas.width,e.canvas.height).data);return t.every((e,t)=>e===a[t])}function p(e,t){e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(t,0,0);var n=e.getImageData(16,16,1,1);for(let e=0;e<n.data.length;e++)if(0!==n.data[e])return!1;return!0}function u(e,t,n,a){switch(t){case"flag":return n(e,"\ud83c\udff3\ufe0f\u200d\u26a7\ufe0f","\ud83c\udff3\ufe0f\u200b\u26a7\ufe0f")?!1:!n(e,"\ud83c\udde8\ud83c\uddf6","\ud83c\udde8\u200b\ud83c\uddf6")&&!n(e,"\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc65\udb40\udc6e\udb40\udc67\udb40\udc7f","\ud83c\udff4\u200b\udb40\udc67\u200b\udb40\udc62\u200b\udb40\udc65\u200b\udb40\udc6e\u200b\udb40\udc67\u200b\udb40\udc7f");case"emoji":return!a(e,"\ud83e\u1fac8")}return!1}function f(e,t,n,a){let r;const o=(r="undefined"!=typeof WorkerGlobalScope&&self instanceof WorkerGlobalScope?new OffscreenCanvas(300,150):document.createElement("canvas")).getContext("2d",{willReadFrequently:!0}),s=(o.textBaseline="top",o.font="600 32px Arial",{});return e.forEach(e=>{s[e]=t(o,e,n,a)}),s}function r(e){var t=document.createElement("script");t.src=e,t.defer=!0,document.head.appendChild(t)}a.supports={everything:!0,everythingExceptFlag:!0},new Promise(t=>{let n=function(){try{var e=JSON.parse(sessionStorage.getItem(o));if("object"==typeof e&&"number"==typeof e.timestamp&&(new Date).valueOf()<e.timestamp+604800&&"object"==typeof e.supportTests)return e.supportTests}catch(e){}return null}();if(!n){if("undefined"!=typeof Worker&&"undefined"!=typeof OffscreenCanvas&&"undefined"!=typeof URL&&URL.createObjectURL&&"undefined"!=typeof Blob)try{var e="postMessage("+f.toString()+"("+[JSON.stringify(s),u.toString(),c.toString(),p.toString()].join(",")+"));",a=new Blob([e],{type:"text/javascript"});const r=new Worker(URL.createObjectURL(a),{name:"wpTestEmojiSupports"});return void(r.onmessage=e=>{i(n=e.data),r.terminate(),t(n)})}catch(e){}i(n=f(s,u,c,p))}t(n)}).then(e=>{for(const n in e)a.supports[n]=e[n],a.supports.everything=a.supports.everything&&a.supports[n],"flag"!==n&&(a.supports.everythingExceptFlag=a.supports.everythingExceptFlag&&a.supports[n]);var t;a.supports.everythingExceptFlag=a.supports.everythingExceptFlag&&!a.supports.flag,a.supports.everything||((t=a.source||{}).concatemoji?r(t.concatemoji):t.wpemoji&&t.twemoji&&(r(t.twemoji),r(t.wpemoji)))});
+//# sourceURL=https://smithsurgical.uk/wp-includes/js/wp-emoji-loader.min.js
+</script>
+</body>
+</html> 

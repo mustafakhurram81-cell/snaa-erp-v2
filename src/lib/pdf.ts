@@ -18,7 +18,6 @@ interface PDFData {
     recipientPhone?: string;
     lineItems: { description: string; qty: number; unitPrice: number; total: number }[];
     subtotal: number;
-    tax?: number;
     discount?: number;
     total: number;
     amountPaid?: number;
@@ -50,7 +49,6 @@ export function generatePDF(data: PDFData) {
         recipientPhone,
         lineItems,
         subtotal,
-        tax = 0,
         discount = 0,
         total,
         amountPaid = 0,
@@ -195,7 +193,6 @@ export function generatePDF(data: PDFData) {
         <div class="totals-box">
             <div class="totals-row"><span>Subtotal</span><span>${fmtMoney(subtotal, currencySymbol)}</span></div>
             ${discount > 0 ? `<div class="totals-row"><span>Discount</span><span style="color:#dc2626">-${fmtMoney(discount, currencySymbol)}</span></div>` : ""}
-            ${tax > 0 ? `<div class="totals-row"><span>Tax</span><span>${fmtMoney(tax, currencySymbol)}</span></div>` : ""}
             <div class="totals-row total"><span>Total</span><span>${fmtMoney(total, currencySymbol)}</span></div>
             ${amountPaid > 0 ? `<div class="totals-row"><span>Amount Paid</span><span style="color:#16a34a">-${fmtMoney(amountPaid, currencySymbol)}</span></div>` : ""}
             ${amountPaid > 0 ? `<div class="totals-row balance"><span>Balance Due</span><span>${fmtMoney(balance, currencySymbol)}</span></div>` : ""}

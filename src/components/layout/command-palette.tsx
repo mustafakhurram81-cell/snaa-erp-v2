@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
 import { motion, AnimatePresence } from "framer-motion";
@@ -146,7 +147,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         [onOpenChange]
     );
 
-    return (
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+
+    if (!mounted) return null;
+
+    return createPortal(
         <AnimatePresence>
             {open && (
                 <>
@@ -155,7 +161,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+                        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md"
                         onClick={() => onOpenChange(false)}
                     />
 
@@ -168,24 +174,20 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         className="fixed left-1/2 top-[20%] z-50 -translate-x-1/2 w-full max-w-[560px]"
                     >
                         <Command
-                            className="rounded-xl border shadow-2xl overflow-hidden"
-                            style={{
-                                background: "var(--card)",
-                                borderColor: "var(--border)",
-                            }}
+                            className="rounded-2xl shadow-2xl overflow-hidden bg-white/80 dark:bg-zinc-950/80 backdrop-blur-3xl ring-1 ring-black/5 dark:ring-white/10"
                         >
-                            <div className="flex items-center px-4 border-b" style={{ borderColor: "var(--border)" }}>
-                                <Search className="w-4 h-4 mr-2" style={{ color: "var(--muted-foreground)" }} />
+                            <div className="flex items-center px-4 py-2 border-b border-black/5 dark:border-white/10">
+                                <Search className="w-5 h-5 mr-3 text-zinc-500" />
                                 <Command.Input
                                     value={search}
                                     onValueChange={setSearch}
                                     placeholder="Type a command or search records…"
-                                    className="flex h-12 w-full bg-transparent text-sm outline-none placeholder:text-[var(--muted-foreground)]"
+                                    className="flex h-14 w-full bg-transparent text-base outline-none placeholder:text-zinc-500 font-medium"
                                     style={{ color: "var(--foreground)" }}
                                 />
-                                {searching && <Loader2 className="w-4 h-4 animate-spin" style={{ color: "var(--muted-foreground)" }} />}
+                                {searching && <Loader2 className="w-4 h-4 animate-spin text-zinc-500" />}
                             </div>
-                            <Command.List className="max-h-[340px] overflow-y-auto p-2">
+                            <Command.List className="max-h-[400px] overflow-y-auto p-2 scrollbar-thin">
                                 <Command.Empty className="py-8 text-center text-sm" style={{ color: "var(--muted-foreground)" }}>
                                     No results found.
                                 </Command.Empty>
@@ -294,6 +296,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                     </motion.div>
                 </>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 }

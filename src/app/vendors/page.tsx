@@ -142,8 +142,11 @@ export default function VendorsPage() {
                 <TableSkeleton rows={5} columns={5} />
             ) : (
                 <DataTable
+                    tableId="vendors"
                     columns={columns}
                     data={vendors}
+                    enableColumnFilters
+                    filterableColumns={["status"]}
                     searchPlaceholder="Search vendors..."
                     emptyMessage="No vendors found"
                     onRowClick={(item) => setSelectedVendor(item)}

@@ -47,15 +47,29 @@ export function RevenueChart({ data }: { data?: RevenueDataPoint[] }) {
                     <AreaChart data={revenueData}>
                         <defs>
                             <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#2563eb" stopOpacity={0.2} />
-                                <stop offset="100%" stopColor="#2563eb" stopOpacity={0} />
+                                <stop offset="0%" stopColor="#71717a" stopOpacity={0.15} />
+                                <stop offset="100%" stopColor="#71717a" stopOpacity={0} />
                             </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
                         <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} tickFormatter={(v) => `$${v / 1000}k`} />
-                        <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} formatter={(value: number | undefined) => [formatCurrency(value ?? 0), "Revenue"]} />
-                        <Area type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} fill="url(#revenueGradient)" />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} tickFormatter={(v) => `$${v / 1000}k`} dx={-10} />
+                        <Tooltip
+                            contentStyle={{
+                                background: "rgba(24, 24, 27, 0.95)", // zinc-950
+                                border: "1px solid rgba(255,255,255,0.05)",
+                                borderRadius: "8px",
+                                fontSize: "12px",
+                                boxShadow: "0 10px 40px -10px rgba(0,0,0,0.3)",
+                                backdropFilter: "blur(12px)",
+                                WebkitBackdropFilter: "blur(12px)",
+                                color: "#f4f4f5", // zinc-50
+                            }}
+                            itemStyle={{ color: "#f4f4f5", fontWeight: 600 }}
+                            formatter={(value: number | undefined) => [formatCurrency(value ?? 0), "Revenue"]}
+                            cursor={{ stroke: '#52525b', strokeWidth: 1, strokeDasharray: '3 3' }}
+                        />
+                        <Area type="monotone" dataKey="revenue" stroke="#3f3f46" strokeWidth={2} fill="url(#revenueGradient)" activeDot={{ r: 4, strokeWidth: 0, fill: "#18181b" }} />
                     </AreaChart>
                 </ResponsiveContainer>
             )}
@@ -79,23 +93,45 @@ export function OrdersChart({ data }: { data?: OrderCategoryPoint[] }) {
                     <div className="flex items-center justify-center">
                         <ResponsiveContainer width="100%" height={180}>
                             <PieChart>
-                                <Pie data={ordersByCategory} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
-                                    {ordersByCategory.map((entry, index) => (<Cell key={index} fill={entry.color} />))}
+                                <Pie data={ordersByCategory.map((o, i) => {
+                                    const zincShades = ["#18181b", "#3f3f46", "#71717a", "#a1a1aa", "#d4d4d8", "#e4e4e7"];
+                                    return { ...o, color: zincShades[i % zincShades.length] };
+                                })} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={2} dataKey="value" stroke="none">
+                                    {ordersByCategory.map((entry, index) => {
+                                        const zincShades = ["#18181b", "#3f3f46", "#71717a", "#a1a1aa", "#d4d4d8", "#e4e4e7"];
+                                        return <Cell key={index} fill={zincShades[index % zincShades.length]} />;
+                                    })}
                                 </Pie>
-                                <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} />
+                                <Tooltip
+                                    contentStyle={{
+                                        background: "rgba(24, 24, 27, 0.95)",
+                                        border: "1px solid rgba(255,255,255,0.05)",
+                                        borderRadius: "8px",
+                                        fontSize: "12px",
+                                        boxShadow: "0 10px 40px -10px rgba(0,0,0,0.3)",
+                                        backdropFilter: "blur(12px)",
+                                        WebkitBackdropFilter: "blur(12px)",
+                                        color: "#f4f4f5",
+                                    }}
+                                    itemStyle={{ color: "#f4f4f5", fontWeight: 600 }}
+                                />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
                     <div className="space-y-2 mt-2">
-                        {ordersByCategory.map((cat) => (
-                            <div key={cat.name} className="flex items-center justify-between text-xs">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: cat.color }} />
-                                    <span style={{ color: "var(--foreground)" }}>{cat.name}</span>
+                        {ordersByCategory.map((cat, i) => {
+                            const zincShades = ["#18181b", "#3f3f46", "#71717a", "#a1a1aa", "#d4d4d8", "#e4e4e7"];
+                            const color = zincShades[i % zincShades.length];
+                            return (
+                                <div key={cat.name} className="flex items-center justify-between text-xs">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
+                                        <span style={{ color: "var(--foreground)" }}>{cat.name}</span>
+                                    </div>
+                                    <span className="font-medium" style={{ color: "var(--muted-foreground)" }}>{cat.value}%</span>
                                 </div>
-                                <span className="font-medium" style={{ color: "var(--muted-foreground)" }}>{cat.value}%</span>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </>
             )}
@@ -117,12 +153,25 @@ export function ProductionChart({ data }: { data?: ProductionDataPoint[] }) {
             ) : (
                 <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={productionData} barGap={4}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
-                        <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} />
-                        <Bar dataKey="planned" fill="#93c5fd" radius={[4, 4, 0, 0]} barSize={16} />
-                        <Bar dataKey="completed" fill="#2563eb" radius={[4, 4, 0, 0]} barSize={16} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} dx={-10} />
+                        <Tooltip
+                            contentStyle={{
+                                background: "rgba(24, 24, 27, 0.95)",
+                                border: "1px solid rgba(255,255,255,0.05)",
+                                borderRadius: "8px",
+                                fontSize: "12px",
+                                boxShadow: "0 10px 40px -10px rgba(0,0,0,0.3)",
+                                backdropFilter: "blur(12px)",
+                                WebkitBackdropFilter: "blur(12px)",
+                                color: "#f4f4f5",
+                            }}
+                            itemStyle={{ color: "#f4f4f5", fontWeight: 600 }}
+                            cursor={{ fill: '#3f3f46', opacity: 0.1 }}
+                        />
+                        <Bar dataKey="planned" fill="#e4e4e7" radius={[4, 4, 0, 0]} barSize={12} />
+                        <Bar dataKey="completed" fill="#18181b" radius={[4, 4, 0, 0]} barSize={12} />
                     </BarChart>
                 </ResponsiveContainer>
             )}

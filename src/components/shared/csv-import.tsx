@@ -95,7 +95,7 @@ export function CSVImportDialog({ open, onClose, tableName, displayName, require
         // Insert in chunks of 50
         for (let i = 0; i < records.length; i += 50) {
             const chunk = records.slice(i, i + 50);
-            const { error } = await supabase.from(tableName).insert(chunk);
+            const { error } = await supabase.from(tableName as any).insert(chunk as any);
             if (error) {
                 failed += chunk.length;
                 errList.push(`Rows ${i + 1}-${i + chunk.length}: ${error.message}`);

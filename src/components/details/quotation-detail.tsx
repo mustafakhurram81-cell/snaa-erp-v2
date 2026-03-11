@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard } from "@/components/ui/shared";
+import { Drawer, Button, StatusBadge, DrawerTabs, Input, DrawerSection, DrawerStatCard, Select } from "@/components/ui/shared";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { RoleGuard } from "@/components/shared/role-guard";
@@ -172,13 +172,17 @@ export function QuotationDetail({ quotation, open, onClose, onConvertToSO, onDel
                     )}
                 </div>
                 {isEditing ? (
-                    <select value={editData.status} onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                        className="h-8 px-3 rounded-lg border text-xs font-medium" style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}>
-                        <option value="draft">Draft</option>
-                        <option value="sent">Sent</option>
-                        <option value="accepted">Accepted</option>
-                        <option value="rejected">Rejected</option>
-                    </select>
+                    <Select
+                        value={editData.status}
+                        onChange={(e: any) => setEditData({ ...editData, status: e.target.value })}
+                        options={[
+                            { value: "draft", label: "Draft" },
+                            { value: "sent", label: "Sent" },
+                            { value: "accepted", label: "Accepted" },
+                            { value: "rejected", label: "Rejected" },
+                        ]}
+                        className="h-8 px-3 rounded-lg border text-xs font-medium bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
+                    />
                 ) : (
                     <StatusBadge status={quotation.status} />
                 )}

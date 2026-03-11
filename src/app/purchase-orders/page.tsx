@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Upload, Trash2, ImageIcon, Download } from "lucide-react";
-import { PageHeader, Button, Drawer, Input, Card, StatusBadge, Tabs } from "@/components/ui/shared";
+import { PageHeader, Button, Drawer, Input, Card, StatusBadge, Tabs, Select, InlineStatusSelect } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { PurchaseOrderDetail } from "@/components/details/purchase-order-detail";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -54,38 +54,7 @@ function emptyLineItem(): LineItem {
   return { id: Date.now().toString() + Math.random(), item: "", qty: 1, unit_cost: 0 };
 }
 
-const columns: ColumnDef<PurchaseOrder, unknown>[] = [
-  {
-    accessorKey: "po_number",
-    header: "PO #",
-    cell: ({ row }) => <span className="font-medium text-sm" style={{ color: "var(--primary)" }}>{row.original.po_number}</span>,
-  },
-  {
-    accessorKey: "vendor_name",
-    header: "Vendor",
-    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.vendor_name || row.original.vendor}</span>,
-  },
-  {
-    accessorKey: "order_date",
-    header: "Date",
-    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>{formatDate(row.original.order_date || row.original.date)}</span>,
-  },
-  {
-    accessorKey: "expected_delivery_date",
-    header: "Expected",
-    cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{formatDate(row.original.expected_delivery_date || row.original.expected_date)}</span>,
-  },
-  {
-    accessorKey: "total_amount",
-    header: "Total",
-    cell: ({ row }) => <span className="font-semibold text-sm" style={{ color: "var(--foreground)" }}>{formatCurrency(row.original.total_amount || row.original.total || 0)}</span>,
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => <StatusBadge status={row.original.status} />,
-  },
-];
+
 
 export default function PurchaseOrdersPage() {
   const { data: dbOrders, loading, create, update, remove, fetchAll } = useSupabaseTable<PurchaseOrder>("purchase_orders");
@@ -95,6 +64,51 @@ export default function PurchaseOrdersPage() {
   const [showImport, setShowImport] = useState(false);
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
   const { toast } = useToast();
+
+  const columns = React.useMemo<ColumnDef<PurchaseOrder, unknown>[]>(() => [
+    {
+      accessorKey: "po_number",
+      header: "PO #",
+      cell: ({ row }) => <span className="font-medium text-sm" style={{ color: "var(--primary)" }}>{row.original.po_number}</span>,
+    },
+    {
+      accessorKey: "vendor_name",
+      header: "Vendor",
+      cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{row.original.vendor_name || row.original.vendor}</span>,
+    },
+    {
+      accessorKey: "order_date",
+      header: "Date",
+      cell: ({ row }) => <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>{formatDate(row.original.order_date || row.original.date)}</span>,
+    },
+    {
+      accessorKey: "expected_delivery_date",
+      header: "Expected",
+      cell: ({ row }) => <span className="text-sm" style={{ color: "var(--foreground)" }}>{formatDate(row.original.expected_delivery_date || row.original.expected_date)}</span>,
+    },
+    {
+      accessorKey: "total_amount",
+      header: "Total",
+      cell: ({ row }) => <span className="font-semibold text-sm" style={{ color: "var(--foreground)" }}>{formatCurrency(row.original.total_amount || row.original.total || 0)}</span>,
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => (
+        <InlineStatusSelect
+          status={row.original.status}
+          options={["draft", "sent", "received", "closed", "cancelled"]}
+          onChange={async (newStatus) => {
+            const result = await update(row.original.id, { status: newStatus } as Partial<PurchaseOrder>);
+            if (result) {
+              toast("success", "Status updated", `PO ${row.original.po_number} is now ${newStatus}`);
+              fetchAll();
+            }
+          }}
+        />
+      ),
+    },
+  ], [update, toast, fetchAll]);
 
   // Delete confirmation
   const [pendingDelete, setPendingDelete] = useState<PurchaseOrder | null>(null);
@@ -258,6 +272,7 @@ export default function PurchaseOrdersPage() {
         onClose={() => setShowDialog(false)}
         title="New Purchase Order"
         width="max-w-2xl"
+        preventCloseOnBackdrop
         footer={
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setShowDialog(false)}>Cancel</Button>
@@ -270,15 +285,15 @@ export default function PurchaseOrdersPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--foreground)" }}>Vendor</label>
-              <select
+              <Select
                 value={formVendor}
-                onChange={(e) => setFormVendor(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-                style={{ background: "var(--background)", borderColor: "var(--border)", color: formVendor ? "var(--foreground)" : "var(--muted-foreground)" }}
-              >
-                <option value="">Select vendor...</option>
-                {dbVendors.map((v) => (<option key={v.id} value={v.name}>{v.name}</option>))}
-              </select>
+                onChange={(e: any) => setFormVendor(e.target.value)}
+                options={[
+                  { value: "", label: "Select vendor..." },
+                  ...dbVendors.map((v) => ({ value: v.name, label: v.name }))
+                ]}
+                className="w-full h-9 px-3 rounded-lg border text-sm bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
+              />
             </div>
             <Input label="Expected Delivery" type="date" value={formExpectedDate} onChange={(e) => setFormExpectedDate(e.target.value)} />
           </div>

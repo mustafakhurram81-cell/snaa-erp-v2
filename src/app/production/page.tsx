@@ -2,15 +2,16 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Plus, LayoutGrid, List, Filter, Search, ClipboardList } from "lucide-react";
-import { PageHeader, Button, Card, StatusBadge, SearchInput, Drawer, Input } from "@/components/ui/shared";
+import { LayoutGrid, List, Plus } from "lucide-react";
+import { PageHeader, Button, Card, StatusBadge, InlineStatusSelect, SearchInput, Drawer, Input } from "@/components/ui/shared";
+import { Stepper } from "@/components/ui/stepper";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { formatDate } from "@/lib/utils";
 import { MANUFACTURING_STAGES, type JobStage, type StageStatus, getProgress, getCurrentStage } from "@/lib/stages";
 import { JobOrderDetail, type JobOrder } from "@/components/details/job-order-detail";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/toast";
-import { TableSkeleton } from "@/components/ui/skeleton";
+import { TableSkeleton, EmptyState } from "@/components/ui/shared";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 
 // DB types
@@ -125,10 +126,11 @@ export default function ProductionPage() {
     fetchJobOrders();
   };
 
-  // Form state
   const [formProduct, setFormProduct] = useState("");
   const [formQuantity, setFormQuantity] = useState("");
   const [formDueDate, setFormDueDate] = useState("");
+  const [createStep, setCreateStep] = useState(0);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const fetchJobOrders = useCallback(async () => {
     try {
@@ -153,7 +155,16 @@ export default function ProductionPage() {
   }, [fetchJobOrders]);
 
   const handleCreate = async () => {
-    if (!formProduct.trim()) { toast("error", "Product name is required"); return; }
+    const errors: Record<string, string> = {};
+    if (!formProduct.trim()) errors.formProduct = "Product name is required";
+    if (!formQuantity.trim() || parseInt(formQuantity) <= 0) errors.formQuantity = "Enter a valid quantity";
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast("error", "Please fix errors before creating");
+      return;
+    }
+    setFormErrors({});
 
     const joNumber = await getNextJONumber();
 
@@ -195,11 +206,12 @@ export default function ProductionPage() {
     } else {
       toast("success", `Job Order ${joNumber} created with 10 stages`);
     }
-
     setShowCreateDialog(false);
+    setCreateStep(0);
     setFormProduct("");
     setFormQuantity("");
     setFormDueDate("");
+    setFormErrors({});
     fetchJobOrders();
   };
 
@@ -230,7 +242,7 @@ export default function ProductionPage() {
     return groups;
   }, [filtered]);
 
-  const listColumns: ColumnDef<JobOrder, unknown>[] = [
+  const listColumns = useMemo<ColumnDef<JobOrder, unknown>[]>(() => [
     { accessorKey: "jo_number", header: "JO #", cell: ({ row }) => <span className="font-mono font-semibold" style={{ color: "var(--primary)" }}>{row.original.jo_number}</span> },
     { accessorKey: "product", header: "Product" },
     { accessorKey: "quantity", header: "Qty", cell: ({ row }) => <span>{row.original.quantity} pcs</span> },
@@ -256,8 +268,26 @@ export default function ProductionPage() {
       }
     },
     { accessorKey: "due_date", header: "Due Date", cell: ({ row }) => <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{row.original.due_date ? formatDate(row.original.due_date) : "—"}</span> },
-    { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusBadge status={row.original.status} /> },
-  ];
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => (
+        <InlineStatusSelect
+          status={row.original.status}
+          options={["planned", "in_progress", "completed", "cancelled"]}
+          onChange={async (newStatus) => {
+            const result = await supabase.from("production_orders").update({ status: newStatus }).eq("id", row.original.id);
+            if (!result.error) {
+              toast("success", "Status updated", `JO ${row.original.jo_number} is now ${newStatus}`);
+              fetchJobOrders();
+            } else {
+              toast("error", "Failed to update status");
+            }
+          }}
+        />
+      )
+    },
+  ], [toast, fetchJobOrders]);
 
   return (
     <motion.div variants={container} initial="hidden" animate="show">
@@ -377,14 +407,31 @@ export default function ProductionPage() {
           {/* List View */}
           {view === "list" && (
             <motion.div variants={item}>
-              <DataTable
-                columns={listColumns}
-                data={filtered}
-                emptyMessage="No job orders found"
-                searchPlaceholder="Search job orders..."
-                onRowClick={(item) => setSelectedJO(item)}
-                enableSelection
-              />
+              {filtered.length === 0 ? (
+                <div className="py-8">
+                  <EmptyState
+                    icon={<List className="w-8 h-8" />}
+                    title="No Job Orders Found"
+                    description="You haven't created or planned any production yet."
+                    action={
+                      <Button onClick={() => setShowCreateDialog(true)}>
+                        <Plus className="w-4 h-4" /> Create First Job Order
+                      </Button>
+                    }
+                  />
+                </div>
+              ) : (
+                <DataTable
+                  columns={listColumns}
+                  data={filtered}
+                  enableColumnFilters
+                  filterableColumns={["status"]}
+                  emptyMessage="No job orders found"
+                  searchPlaceholder="Search job orders..."
+                  onRowClick={(item) => setSelectedJO(item)}
+                  enableSelection
+                />
+              )}
             </motion.div>
           )}
         </>
@@ -401,24 +448,68 @@ export default function ProductionPage() {
       {/* Create Dialog */}
       <Drawer
         open={showCreateDialog}
-        onClose={() => setShowCreateDialog(false)}
+        onClose={() => { setShowCreateDialog(false); setCreateStep(0); }}
         title="New Job Order"
+        preventCloseOnBackdrop
         footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
-            <Button onClick={handleCreate}>Create Job Order</Button>
+          <div className="flex justify-between items-center w-full">
+            <Button variant="ghost" onClick={() => { setShowCreateDialog(false); setCreateStep(0); }}>Cancel</Button>
+            <div className="flex gap-2">
+              {createStep > 0 && <Button variant="secondary" onClick={() => setCreateStep(createStep - 1)}>Back</Button>}
+              {createStep < 2 ? (
+                <Button onClick={() => setCreateStep(createStep + 1)}>Next Step</Button>
+              ) : (
+                <Button onClick={handleCreate}>Create Job Order</Button>
+              )}
+            </div>
           </div>
         }
       >
-        <div className="space-y-4">
-          <Input label="Product Name *" placeholder="e.g. Mayo Scissors 6.5&quot; Straight" value={formProduct} onChange={(e) => setFormProduct(e.target.value)} />
-          <Input label="Quantity" type="number" placeholder="100" value={formQuantity} onChange={(e) => setFormQuantity(e.target.value)} />
-          <Input label="Due Date" type="date" value={formDueDate} onChange={(e) => setFormDueDate(e.target.value)} />
-          <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)", background: "var(--secondary)" }}>
-            <p className="text-xs font-semibold mb-1" style={{ color: "var(--foreground)" }}>Default Stages</p>
-            <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
-              10 manufacturing stages will be automatically created: Die Making → Forging → Grinding → Filing → Heat Treatment → Electroplating → Assembly → QC → Finishing → Packaging
-            </p>
+        <div className="space-y-6">
+          <Stepper steps={["Basic Info", "Quantities & Dates", "Review Stages"]} currentStep={createStep} className="px-4" />
+
+          <div className="mt-8 px-2">
+            {createStep === 0 && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                <Input label="Product Name *" placeholder="e.g. Mayo Scissors 6.5&quot; Straight" error={formErrors.formProduct} value={formProduct} onChange={(e) => { setFormProduct(e.target.value); if (formErrors.formProduct) setFormErrors({ ...formErrors, formProduct: "" }); }} />
+                <div className="rounded-xl border p-4 bg-blue-50/50 dark:bg-blue-900/10" style={{ borderColor: 'var(--border)' }}>
+                  <p className="text-sm font-semibold text-blue-700 dark:text-blue-400 mb-1">Standardized Production</p>
+                  <p className="text-xs text-blue-600/80 dark:text-blue-300/80">
+                    By default, this Job Order will be initialized with the 10 standard manufacturing stages for surgical instruments.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {createStep === 1 && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="grid grid-cols-2 gap-4">
+                  <Input label="Target Quantity *" type="number" placeholder="100" error={formErrors.formQuantity} value={formQuantity} onChange={(e) => { setFormQuantity(e.target.value); if (formErrors.formQuantity) setFormErrors({ ...formErrors, formQuantity: "" }); }} />
+                  <Input label="Expected Completion Date" type="date" value={formDueDate} onChange={(e) => setFormDueDate(e.target.value)} />
+                </div>
+              </div>
+            )}
+
+            {createStep === 2 && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--secondary)" }}>
+                  <p className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>Manufacturing Stages Overview</p>
+                  <div className="space-y-2">
+                    {MANUFACTURING_STAGES.map((stage, idx) => (
+                      <div key={stage.id} className="flex justify-between items-center text-xs p-2 rounded-lg bg-[var(--background)] border" style={{ borderColor: 'var(--border)' }}>
+                        <span className="font-semibold" style={{ color: 'var(--foreground)' }}>{idx + 1}. {stage.name}</span>
+                        <span className="px-2 py-0.5 rounded-full uppercase tracking-wider text-[9px] font-bold" style={{
+                          background: stage.defaultType === 'vendor' ? 'var(--secondary)' : 'var(--primary)',
+                          color: stage.defaultType === 'vendor' ? 'var(--foreground)' : 'white'
+                        }}>
+                          {stage.defaultType}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </Drawer>

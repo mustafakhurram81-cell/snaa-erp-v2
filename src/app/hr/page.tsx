@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/toast";
 import { useSupabaseTable } from "@/lib/supabase-hooks";
 import { supabase } from "@/lib/supabase";
 import { exportToCSV } from "@/lib/csv-export";
-import { TableSkeleton } from "@/components/ui/skeleton";
+import { TableSkeleton, EmptyState } from "@/components/ui/shared";
 import { CSVImportDialog } from "@/components/shared/csv-import";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 import { validateEmail } from "@/lib/form-validation";
@@ -188,9 +188,13 @@ export default function HRPage() {
   const { toast } = useToast();
   const [showImport, setShowImport] = useState(false);
 
-  // Form state
+  // Form state & Validation
   const [formData, setFormData] = useState({ first_name: "", last_name: "", email: "", phone: "", department: "", position: "", salary: "", hire_date: "" });
-  const resetForm = () => setFormData({ first_name: "", last_name: "", email: "", phone: "", department: "", position: "", salary: "", hire_date: "" });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const resetForm = () => {
+    setFormData({ first_name: "", last_name: "", email: "", phone: "", department: "", position: "", salary: "", hire_date: "" });
+    setFormErrors({});
+  };
 
   const activeEmployees = employees.filter((e) => e.status === "active");
   const totalPayroll = activeEmployees.reduce((sum, e) => sum + (e.salary || 0), 0);
@@ -207,10 +211,22 @@ export default function HRPage() {
   };
 
   const handleCreate = async () => {
-    if (!formData.first_name.trim()) { toast("error", "First name is required"); return; }
-    if (!formData.email.trim()) { toast("error", "Email is required"); return; }
-    const emailErr = validateEmail(formData.email);
-    if (emailErr) { toast("error", emailErr); return; }
+    const errors: Record<string, string> = {};
+    if (!formData.first_name.trim()) errors.first_name = "First name is required";
+    if (!formData.last_name.trim()) errors.last_name = "Last name is required";
+    if (!formData.email.trim()) {
+      errors.email = "Email is required";
+    } else {
+      const emailErr = validateEmail(formData.email);
+      if (emailErr) errors.email = emailErr;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast("error", "Please fix the errors in the form");
+      return;
+    }
+    setFormErrors({});
 
     // Auto-generate employee_id: EMP-XXX
     const empCount = employees.length + 1;
@@ -304,10 +320,25 @@ export default function HRPage() {
       {activeTab === "employees" && (
         loading ? (
           <TableSkeleton rows={5} columns={5} />
+        ) : filtered.length === 0 ? (
+          <div className="py-8">
+            <EmptyState
+              icon={<Users className="w-8 h-8" />}
+              title="No Employees Found"
+              description="Your employee directory is empty for this filters."
+              action={
+                <Button onClick={() => { resetForm(); setShowDialog(true); }}>
+                  <Plus className="w-4 h-4" /> Add First Employee
+                </Button>
+              }
+            />
+          </div>
         ) : (
           <DataTable
             columns={employeeColumns}
             data={filtered}
+            enableColumnFilters
+            filterableColumns={["department", "status"]}
             emptyMessage="No employees found"
             searchPlaceholder="Search employees..."
             onRowClick={(item) => setSelectedEmployee(item)}
@@ -319,6 +350,8 @@ export default function HRPage() {
         <DataTable
           columns={payrollColumns}
           data={displayPayroll}
+          enableColumnFilters
+          filterableColumns={["status"]}
           emptyMessage="No payroll runs"
           searchPlaceholder="Search payroll..."
           enablePagination={false}
@@ -402,13 +435,13 @@ export default function HRPage() {
           </div>
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
-            <Input label="First Name *" placeholder="John" value={formData.first_name} onChange={(e) => setFormData({ ...formData, first_name: e.target.value })} />
-            <Input label="Last Name *" placeholder="Doe" value={formData.last_name} onChange={(e) => setFormData({ ...formData, last_name: e.target.value })} />
+            <Input label="First Name *" placeholder="John" error={formErrors.first_name} value={formData.first_name} onChange={(e) => { setFormData({ ...formData, first_name: e.target.value }); if (formErrors.first_name) setFormErrors({ ...formErrors, first_name: "" }); }} />
+            <Input label="Last Name *" placeholder="Doe" error={formErrors.last_name} value={formData.last_name} onChange={(e) => { setFormData({ ...formData, last_name: e.target.value }); if (formErrors.last_name) setFormErrors({ ...formErrors, last_name: "" }); }} />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Email *" type="email" placeholder="email@smithinst.com" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+            <Input label="Email *" type="email" placeholder="email@smithinst.com" error={formErrors.email} value={formData.email} onChange={(e) => { setFormData({ ...formData, email: e.target.value }); if (formErrors.email) setFormErrors({ ...formErrors, email: "" }); }} />
             <Input label="Phone" placeholder="+92-300-0000000" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
           </div>
           <div className="grid grid-cols-2 gap-4">

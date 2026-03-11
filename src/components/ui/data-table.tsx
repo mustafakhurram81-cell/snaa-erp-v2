@@ -16,20 +16,11 @@ import {
 } from "@tanstack/react-table";
 import { cn } from "@/lib/utils";
 import { getStatusColor } from "@/lib/utils";
-import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Columns3, Search, X, Filter, LayoutGrid, Table2 } from "lucide-react";
+import { Input, Button, StatusBadge, Select, Tooltip, TooltipProvider, Checkbox } from "@/components/ui/shared";
+import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Columns3, Search, X, Filter, ChevronsLeft, ChevronsRight, Trash2, Download, Bookmark, Save, Printer } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
-// --- Mobile viewport hook ---
-function useIsMobile(breakpoint = 768) {
-    const [isMobile, setIsMobile] = useState(false);
-    useEffect(() => {
-        const mql = window.matchMedia(`(max-width: ${breakpoint}px)`);
-        setIsMobile(mql.matches);
-        const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-        mql.addEventListener("change", handler);
-        return () => mql.removeEventListener("change", handler);
-    }, [breakpoint]);
-    return isMobile;
-}
+// --- DataTable ---
 
 // --- DataTable ---
 
@@ -41,6 +32,7 @@ interface DataTableProps<TData> {
     enableSelection?: boolean;
     enablePagination?: boolean;
     enableColumnVisibility?: boolean;
+    enableColumnResizing?: boolean;
     enableColumnFilters?: boolean;
     filterableColumns?: string[]; // column IDs that can be filtered (e.g. ["status"])
     searchPlaceholder?: string;
@@ -48,6 +40,7 @@ interface DataTableProps<TData> {
     onBulkDelete?: (items: TData[]) => void;
     onBulkStatusUpdate?: (items: TData[], status: string) => void;
     bulkStatusOptions?: string[];
+    tableId?: string;
 }
 
 export function DataTable<TData>({
@@ -58,6 +51,7 @@ export function DataTable<TData>({
     enableSelection = false,
     enablePagination = true,
     enableColumnVisibility = false,
+    enableColumnResizing = true,
     enableColumnFilters = false,
     filterableColumns = [],
     searchPlaceholder = "Search...",
@@ -65,10 +59,8 @@ export function DataTable<TData>({
     onBulkDelete,
     onBulkStatusUpdate,
     bulkStatusOptions,
+    tableId,
 }: DataTableProps<TData>) {
-    const isMobile = useIsMobile();
-    const [forceView, setForceView] = useState<"auto" | "table" | "cards">("auto");
-    const showCards = forceView === "cards" || (forceView === "auto" && isMobile);
     const [sorting, setSorting] = useState<SortingState>([]);
     const [globalFilter, setGlobalFilter] = useState("");
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -76,34 +68,72 @@ export function DataTable<TData>({
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
     const [showColumnMenu, setShowColumnMenu] = useState(false);
 
-    const allColumns: ColumnDef<TData, unknown>[] = enableSelection
-        ? [
-            {
-                id: "select",
-                header: ({ table }) => (
-                    <input
-                        type="checkbox"
-                        checked={table.getIsAllPageRowsSelected()}
-                        onChange={table.getToggleAllPageRowsSelectedHandler()}
-                        className="w-3.5 h-3.5 rounded cursor-pointer accent-blue-600"
-                    />
-                ),
-                cell: ({ row }) => (
-                    <input
-                        type="checkbox"
-                        checked={row.getIsSelected()}
-                        onChange={row.getToggleSelectedHandler()}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-3.5 h-3.5 rounded cursor-pointer accent-blue-600"
-                    />
-                ),
-                enableSorting: false,
-                enableHiding: false,
-                size: 40,
-            },
-            ...columns,
-        ]
-        : columns;
+    // Clear row selection when data changes
+    React.useEffect(() => {
+        setRowSelection({});
+    }, [data]);
+
+    const allColumns = useMemo(() => {
+        const cols = enableSelection
+            ? [
+                {
+                    id: "select",
+                    header: ({ table }: any) => (
+                        <Checkbox
+                            checked={table.getIsAllPageRowsSelected()}
+                            onCheckedChange={(checked: boolean) => table.toggleAllPageRowsSelected(!!checked)}
+                            aria-label="Select all"
+                        />
+                    ),
+                    cell: ({ row }: any) => (
+                        <Checkbox
+                            checked={row.getIsSelected()}
+                            onCheckedChange={(checked: boolean) => row.toggleSelected(!!checked)}
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                            aria-label="Select row"
+                        />
+                    ),
+                    enableSorting: false,
+                    enableHiding: false,
+                    size: 40,
+                },
+                ...columns,
+            ]
+            : columns;
+        return cols;
+    }, [enableSelection, columns]);
+
+    const myCustomFilterFn = useCallback((row: any, columnId: string, filterValue: any) => {
+        const value = row.getValue(columnId);
+        if (value == null) return false;
+
+        if (Array.isArray(filterValue)) {
+            const [start, end] = filterValue;
+            if (!start && !end) return true;
+
+            const isDate = typeof value === "string" && value.length >= 10 && (value.includes("-") || value.includes("/"));
+            if (isDate) {
+                const dateVal = new Date(value).getTime();
+                if (!isNaN(dateVal)) {
+                    if (start && new Date(start).getTime() > dateVal) return false;
+
+                    // Add 24h to end date to hit the end of the day bounds
+                    if (end && (new Date(end).getTime() + 86400000) < dateVal) return false;
+                    return true;
+                }
+            }
+
+            const numVal = Number(value);
+            if (!isNaN(numVal)) {
+                if (start && numVal < Number(start)) return false;
+                if (end && numVal > Number(end)) return false;
+                return true;
+            }
+            return true;
+        }
+
+        return String(value).toLowerCase().includes(String(filterValue).toLowerCase());
+    }, []);
 
     const table = useReactTable({
         data,
@@ -120,19 +150,25 @@ export function DataTable<TData>({
         onColumnFiltersChange: setColumnFilters,
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
+        filterFns: { custom: myCustomFilterFn },
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: enablePagination ? getPaginationRowModel() : undefined,
         enableRowSelection: enableSelection,
+        enableColumnResizing,
+        columnResizeMode: "onChange",
+        defaultColumn: {
+            filterFn: "custom" as any
+        },
         initialState: {
             pagination: {
                 pageSize,
             },
         },
     });
-
     const selectedRows = table.getFilteredSelectedRowModel().rows.map((r) => r.original);
+    const selectedCount = selectedRows.length;
 
     const exportCSV = () => {
         const items = selectedRows.length > 0 ? selectedRows : data;
@@ -186,80 +222,75 @@ export function DataTable<TData>({
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {/* View toggle */}
-                    <div className="flex items-center rounded-lg border overflow-hidden" style={{ borderColor: "var(--border)" }}>
-                        <button
-                            onClick={() => setForceView(forceView === "table" ? "auto" : "table")}
-                            className={cn("p-2 transition-colors", !showCards && "bg-[var(--secondary)]")}
-                            style={{ color: !showCards ? "var(--foreground)" : "var(--muted-foreground)" }}
-                            title="Table view"
-                        >
-                            <Table2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                            onClick={() => setForceView(forceView === "cards" ? "auto" : "cards")}
-                            className={cn("p-2 transition-colors", showCards && "bg-[var(--secondary)]")}
-                            style={{ color: showCards ? "var(--foreground)" : "var(--muted-foreground)" }}
-                            title="Card view"
-                        >
-                            <LayoutGrid className="w-3.5 h-3.5" />
-                        </button>
-                    </div>
-                    {enableColumnFilters && filterableColumns.length > 0 && (
-                        <ColumnFilterMenu
-                            table={table}
-                            data={data}
-                            filterableColumns={filterableColumns}
-                            columnFilters={columnFilters}
-                            setColumnFilters={setColumnFilters}
-                        />
-                    )}
-                    {enableColumnVisibility && (
-                        <div className="relative">
+                    <TooltipProvider>
+                        {enableColumnFilters && filterableColumns.length > 0 && (
+                            <ColumnFilterMenu
+                                table={table}
+                                data={data}
+                                filterableColumns={filterableColumns}
+                                columnFilters={columnFilters}
+                                setColumnFilters={setColumnFilters}
+                            />
+                        )}
+
+                        <Tooltip content="Print & Export PDF">
                             <button
-                                onClick={() => setShowColumnMenu(!showColumnMenu)}
+                                onClick={() => window.print()}
                                 className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border text-xs font-medium transition-all hover:bg-[var(--secondary)]"
                                 style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
                             >
-                                <Columns3 className="w-3.5 h-3.5" />
-                                Columns
+                                <Printer className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">Print</span>
                             </button>
-                            {showColumnMenu && (
-                                <>
-                                    <div className="fixed inset-0 z-40" onClick={() => setShowColumnMenu(false)} />
-                                    <div
-                                        className="absolute right-0 top-full mt-1 z-50 w-48 rounded-xl border shadow-xl p-1.5"
-                                        style={{ background: "var(--card)", borderColor: "var(--border)" }}
+                        </Tooltip>
+
+                        {enableColumnVisibility && (
+                            <div className="relative">
+                                <Tooltip content="Toggle Columns">
+                                    <button
+                                        onClick={() => setShowColumnMenu(!showColumnMenu)}
+                                        className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border text-xs font-medium transition-all hover:bg-[var(--secondary)]"
+                                        style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
                                     >
-                                        {table
-                                            .getAllLeafColumns()
-                                            .filter((col) => col.id !== "select" && col.getCanHide())
-                                            .map((col) => (
-                                                <label
-                                                    key={col.id}
-                                                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-[var(--secondary)] transition-colors"
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={col.getIsVisible()}
-                                                        onChange={col.getToggleVisibilityHandler()}
-                                                        className="w-3.5 h-3.5 rounded accent-blue-600 cursor-pointer"
-                                                    />
-                                                    <span
-                                                        className="text-xs font-medium capitalize"
-                                                        style={{ color: "var(--foreground)" }}
+                                        <Columns3 className="w-3.5 h-3.5" />
+                                        Columns
+                                    </button>
+                                </Tooltip>
+                                {showColumnMenu && (
+                                    <>
+                                        <div className="fixed inset-0 z-40" onClick={() => setShowColumnMenu(false)} />
+                                        <div
+                                            className="absolute right-0 top-full mt-1 z-50 w-48 rounded-xl border shadow-xl p-1.5"
+                                            style={{ background: "var(--card)", borderColor: "var(--border)" }}
+                                        >
+                                            {table
+                                                .getAllLeafColumns()
+                                                .filter((col) => col.id !== "select" && col.getCanHide())
+                                                .map((col) => (
+                                                    <label
+                                                        key={col.id}
+                                                        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-[var(--secondary)] transition-colors"
                                                     >
-                                                        {typeof col.columnDef.header === "string"
-                                                            ? col.columnDef.header
-                                                            : col.id.replace(/_/g, " ")}
-                                                    </span>
-                                                </label>
-                                            ))}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    )}
+                                                        <Checkbox
+                                                            checked={col.getIsVisible()}
+                                                            onCheckedChange={(checked: boolean) => col.toggleVisibility(!!checked)}
+                                                        />
+                                                        <span
+                                                            className="text-xs font-medium capitalize"
+                                                            style={{ color: "var(--foreground)" }}
+                                                        >
+                                                            {typeof col.columnDef.header === "string"
+                                                                ? col.columnDef.header
+                                                                : col.id.replace(/_/g, " ")}
+                                                        </span>
+                                                    </label>
+                                                ))}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </TooltipProvider>
                 </div>
             </div>
 
@@ -292,150 +323,94 @@ export function DataTable<TData>({
                 </div>
             )}
 
-            {/* Table (desktop) / Card View (mobile) */}
-            {showCards ? (
-                /* ═══════ CARD VIEW ═══════ */
-                <div className="space-y-3 data-card-view">
-                    {table.getRowModel().rows.length === 0 ? (
-                        <div
-                            className="rounded-xl border text-center py-12 text-sm"
-                            style={{ borderColor: "var(--border)", color: "var(--muted-foreground)", background: "var(--card)" }}
-                        >
-                            {emptyMessage}
-                        </div>
-                    ) : (
-                        table.getRowModel().rows.map((row) => {
-                            const cells = row.getVisibleCells().filter(c => c.column.id !== "select");
-                            const titleCell = cells[0];
-                            const statusCell = cells.find(c => c.column.id === "status");
-                            const restCells = cells.filter(c => c !== titleCell && c !== statusCell);
-                            return (
-                                <div
-                                    key={row.id}
-                                    className={cn(
-                                        "rounded-xl border p-4 transition-all",
-                                        onRowClick && "cursor-pointer hover:shadow-md active:scale-[0.99]",
-                                        row.getIsSelected() && "ring-2 ring-blue-500/40"
-                                    )}
-                                    style={{ background: "var(--card)", borderColor: "var(--border)" }}
-                                    onClick={() => onRowClick?.(row.original)}
+            {/* Table View */}
+            <div
+                className="rounded-xl overflow-hidden shadow-sm"
+                style={{ background: "var(--card)" }}
+            >
+                <div className="overflow-x-auto max-h-[600px] overflow-y-auto relative">
+                    <table className="w-full">
+                        <thead className="sticky top-0 z-10" style={{ background: "var(--secondary)" }}>
+                            {table.getHeaderGroups().map((headerGroup) => (
+                                <tr
+                                    key={headerGroup.id}
+                                    className="border-b"
+                                    style={{ borderColor: "var(--border)" }}
                                 >
-                                    {/* Header: Title + Status badge */}
-                                    <div className="flex items-start justify-between gap-2 mb-3">
-                                        <div className="font-semibold text-sm" style={{ color: "var(--foreground)" }}>
-                                            {titleCell && flexRender(titleCell.column.columnDef.cell, titleCell.getContext())}
-                                        </div>
-                                        {statusCell && (
-                                            <div className="flex-shrink-0">
-                                                {flexRender(statusCell.column.columnDef.cell, statusCell.getContext())}
-                                            </div>
-                                        )}
-                                    </div>
-                                    {/* Key-value pairs */}
-                                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                                        {restCells.slice(0, 6).map((cell) => {
-                                            const header = typeof cell.column.columnDef.header === "string"
-                                                ? cell.column.columnDef.header
-                                                : cell.column.id.replace(/_/g, " ");
-                                            return (
-                                                <div key={cell.id}>
-                                                    <div className="text-[10px] font-medium uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
-                                                        {header}
-                                                    </div>
-                                                    <div className="text-xs mt-0.5" style={{ color: "var(--foreground)" }}>
-                                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                    {/* Selection checkbox */}
-                                    {enableSelection && (
-                                        <div className="mt-3 pt-2 border-t flex items-center gap-2" style={{ borderColor: "var(--border)" }}>
-                                            <input
-                                                type="checkbox"
-                                                checked={row.getIsSelected()}
-                                                onChange={row.getToggleSelectedHandler()}
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="w-3.5 h-3.5 rounded cursor-pointer accent-blue-600"
-                                            />
-                                            <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Select</span>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })
-                    )}
-                </div>
-            ) : (
-                /* ═══════ TABLE VIEW (existing) ═══════ */
-                <div
-                    className="rounded-xl border overflow-hidden"
-                    style={{ background: "var(--card)", borderColor: "var(--border)" }}
-                >
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                {table.getHeaderGroups().map((headerGroup) => (
-                                    <tr
-                                        key={headerGroup.id}
-                                        className="border-b"
-                                        style={{ borderColor: "var(--border)" }}
-                                    >
-                                        {headerGroup.headers.map((header) => (
-                                            <th
-                                                key={header.id}
-                                                className={cn(
-                                                    "text-left text-[11px] font-semibold uppercase tracking-wider px-4 py-3",
-                                                    header.column.getCanSort() && "cursor-pointer select-none hover:text-[var(--foreground)] transition-colors"
-                                                )}
-                                                style={{
-                                                    color: "var(--muted-foreground)",
-                                                    background: "var(--secondary)",
-                                                    width: header.column.id === "select" ? "40px" : undefined,
-                                                }}
-                                                onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
-                                            >
-                                                <div className="flex items-center gap-1">
-                                                    {header.isPlaceholder
-                                                        ? null
-                                                        : flexRender(header.column.columnDef.header, header.getContext())}
-                                                    {header.column.getCanSort() && (
-                                                        <span className="inline-flex flex-col ml-0.5">
-                                                            {header.column.getIsSorted() === "asc" ? (
-                                                                <ChevronUp className="w-3.5 h-3.5 text-blue-500" />
-                                                            ) : header.column.getIsSorted() === "desc" ? (
-                                                                <ChevronDown className="w-3.5 h-3.5 text-blue-500" />
-                                                            ) : (
-                                                                <ChevronsUpDown className="w-3 h-3 opacity-40" />
-                                                            )}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </th>
-                                        ))}
-                                    </tr>
-                                ))}
-                            </thead>
-                            <tbody>
-                                {table.getRowModel().rows.length === 0 ? (
-                                    <tr>
-                                        <td
-                                            colSpan={allColumns.length}
-                                            className="text-center py-12 text-sm"
-                                            style={{ color: "var(--muted-foreground)" }}
-                                        >
-                                            {emptyMessage}
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    table.getRowModel().rows.map((row) => (
-                                        <tr
-                                            key={row.id}
+                                    {headerGroup.headers.map((header) => (
+                                        <th
+                                            key={header.id}
                                             className={cn(
-                                                "border-b last:border-b-0 transition-colors",
-                                                onRowClick && "cursor-pointer hover:bg-[var(--secondary)]",
-                                                row.getIsSelected() && "bg-blue-50/50 dark:bg-blue-900/10"
+                                                "text-left text-[11px] font-bold uppercase tracking-[0.05em] px-4 py-3",
+                                                header.column.getCanSort() && "cursor-pointer select-none hover:text-[var(--foreground)] transition-colors"
+                                            )}
+                                            style={{
+                                                color: "var(--muted-foreground)",
+                                                background: "var(--secondary)",
+                                                width: header.getSize() !== 150 ? header.getSize() : (header.column.id === "select" ? 40 : undefined),
+                                                position: "relative",
+                                            }}
+                                            onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
+                                        >
+                                            <div className="flex items-center gap-1">
+                                                {header.isPlaceholder
+                                                    ? null
+                                                    : flexRender(header.column.columnDef.header, header.getContext())}
+                                                {header.column.getCanSort() && (
+                                                    <span className="inline-flex flex-col ml-1">
+                                                        {header.column.getIsSorted() === "asc" ? (
+                                                            <ChevronUp className="w-3.5 h-3.5 text-foreground" />
+                                                        ) : header.column.getIsSorted() === "desc" ? (
+                                                            <ChevronDown className="w-3.5 h-3.5 text-foreground" />
+                                                        ) : (
+                                                            <ChevronsUpDown className="w-3 h-3 opacity-40" />
+                                                        )}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {enableColumnResizing && header.column.getCanResize() && (
+                                                <div
+                                                    onMouseDown={header.getResizeHandler()}
+                                                    onTouchStart={header.getResizeHandler()}
+                                                    className={cn(
+                                                        "absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-blue-500/50 touch-none",
+                                                        header.column.getIsResizing() ? "bg-blue-500" : "bg-transparent"
+                                                    )}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
+                                            )}
+                                        </th>
+                                    ))}
+                                </tr>
+                            ))}
+                        </thead>
+                        <tbody>
+                            {table.getRowModel().rows.length === 0 ? (
+                                <motion.tr
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                >
+                                    <td
+                                        colSpan={allColumns.length}
+                                        className="text-center py-12 text-sm"
+                                        style={{ color: "var(--muted-foreground)" }}
+                                    >
+                                        {emptyMessage}
+                                    </td>
+                                </motion.tr>
+                            ) : (
+                                <AnimatePresence mode="popLayout">
+                                    {table.getRowModel().rows.map((row, index) => (
+                                        <motion.tr
+                                            key={row.id}
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95 }}
+                                            transition={{ duration: 0.2, delay: Math.min(index * 0.03, 0.3) }}
+                                            className={cn(
+                                                "border-b last:border-b-0 transition-all duration-200 relative",
+                                                onRowClick && "cursor-pointer hover:bg-[var(--secondary)] hover:text-foreground hover:-translate-y-[1px] hover:shadow-md hover:z-10",
+                                                row.getIsSelected() && "bg-secondary/50 dark:bg-secondary/20"
                                             )}
                                             style={{ borderColor: "var(--border)" }}
                                             onClick={() => onRowClick?.(row.original)}
@@ -443,118 +418,156 @@ export function DataTable<TData>({
                                             {row.getVisibleCells().map((cell) => (
                                                 <td
                                                     key={cell.id}
-                                                    className={cn("px-4 py-3 text-sm")}
-                                                    style={{ color: "var(--foreground)" }}
+                                                    className="px-4 text-[13px] transition-all py-2.5"
+                                                    style={{
+                                                        color: "var(--foreground)",
+                                                        width: cell.column.getSize() !== 150 ? cell.column.getSize() : undefined
+                                                    }}
                                                 >
                                                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                                 </td>
                                             ))}
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                        </motion.tr>
+                                    ))}
+                                </AnimatePresence>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-            )}
+            </div>
 
             {/* Pagination */}
-            {enablePagination && table.getPageCount() > 1 && (
+            {enablePagination && (
                 <div className="flex items-center justify-between px-1">
-                    <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-                        Showing{" "}
-                        {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}
-                        –
-                        {Math.min(
-                            (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                            table.getFilteredRowModel().rows.length
-                        )}{" "}
-                        of {table.getFilteredRowModel().rows.length}
-                    </p>
-                    <div className="flex items-center gap-1">
-                        <button
-                            onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-all hover:bg-[var(--secondary)] disabled:opacity-40 disabled:pointer-events-none"
-                            style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
-                        >
-                            <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        {Array.from({ length: table.getPageCount() }, (_, i) => i).map((pageIdx) => (
-                            <button
-                                key={pageIdx}
-                                onClick={() => table.setPageIndex(pageIdx)}
-                                className={cn(
-                                    "inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-medium transition-all",
-                                    pageIdx === table.getState().pagination.pageIndex
-                                        ? "bg-blue-600 text-white shadow-sm"
-                                        : "hover:bg-[var(--secondary)]"
-                                )}
-                                style={
-                                    pageIdx !== table.getState().pagination.pageIndex
-                                        ? { color: "var(--muted-foreground)" }
-                                        : undefined
-                                }
-                            >
-                                {pageIdx + 1}
-                            </button>
-                        ))}
-                        <button
-                            onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-all hover:bg-[var(--secondary)] disabled:opacity-40 disabled:pointer-events-none"
-                            style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
-                        >
-                            <ChevronRight className="w-4 h-4" />
-                        </button>
+                    {/* Mobile footer optimization */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
+                        {/* Selected items & Rows per page */}
+                        <div className="flex items-center gap-4 text-xs font-semibold w-full sm:w-auto justify-between sm:justify-start" style={{ color: "var(--muted-foreground)" }}>
+                            {enableSelection && (
+                                <span>
+                                    {table.getFilteredSelectedRowModel().rows.length} of{" "}
+                                    {table.getFilteredRowModel().rows.length} selected
+                                </span>
+                            )}
+
+                            <div className="flex items-center gap-2">
+                                <span>Rows per page:</span>
+                                <Select
+                                    value={String(table.getState().pagination.pageSize)}
+                                    onChange={(e: any) => table.setPageSize(Number(e.target.value))}
+                                    options={[10, 20, 50, 100].map(pageSize => ({ value: String(pageSize), label: String(pageSize) }))}
+                                    className="h-7 w-[70px] min-w-0 pr-2 pl-2 rounded-md border text-xs bg-transparent focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Pagination controls */}
+                        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+                            <span className="text-xs font-semibold whitespace-nowrap" style={{ color: "var(--foreground)" }}>
+                                Page {table.getState().pagination.pageIndex + 1} of{" "}
+                                {table.getPageCount() || 1}
+                            </span>
+
+                            <div className="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-start">
+                                {/* First/Prev group */}
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => table.setPageIndex(0)}
+                                        disabled={!table.getCanPreviousPage()}
+                                        className="h-8 w-8 inline-flex justify-center items-center rounded-lg border transition-colors hover:bg-[var(--secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                        style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
+                                    >
+                                        <span className="sr-only">Go to first page</span>
+                                        <ChevronsLeft className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => table.previousPage()}
+                                        disabled={!table.getCanPreviousPage()}
+                                        className="h-8 w-8 inline-flex justify-center items-center rounded-lg border transition-colors hover:bg-[var(--secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                        style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
+                                    >
+                                        <span className="sr-only">Go to previous page</span>
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </button>
+                                </div>
+
+                                {/* Next/Last group */}
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => table.nextPage()}
+                                        disabled={!table.getCanNextPage()}
+                                        className="h-8 w-8 inline-flex justify-center items-center rounded-lg border transition-colors hover:bg-[var(--secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                        style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
+                                    >
+                                        <span className="sr-only">Go to next page</span>
+                                        <ChevronRight className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                                        disabled={!table.getCanNextPage()}
+                                        className="h-8 w-8 inline-flex justify-center items-center rounded-lg border transition-colors hover:bg-[var(--secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                        style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
+                                    >
+                                        <span className="sr-only">Go to last page</span>
+                                        <ChevronsRight className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
 
-            {/* Floating bulk action bar */}
-            {enableSelection && Object.keys(rowSelection).length > 0 && (
-                <div
-                    className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-xl border shadow-xl backdrop-blur-sm"
-                    style={{ background: "var(--card)", borderColor: "var(--border)" }}
-                >
-                    <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
-                        {selectedRows.length} selected
-                    </span>
-                    <div className="w-px h-5" style={{ background: "var(--border)" }} />
-                    <button
-                        onClick={exportCSV}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors hover:bg-[var(--secondary)]"
-                        style={{ color: "var(--primary)" }}
+            {/* Floating Bulk Action Bar */}
+            {enableSelection && selectedCount > 0 && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
+                    <div
+                        className="flex items-center gap-4 px-4 py-3 rounded-full border shadow-2xl backdrop-blur-md"
+                        style={{ background: "var(--card)", borderColor: "var(--border)" }}
                     >
-                        Export CSV
-                    </button>
-                    {onBulkStatusUpdate && bulkStatusOptions && (
-                        <BulkStatusDropdown
-                            options={bulkStatusOptions}
-                            onSelect={(status) => {
-                                onBulkStatusUpdate(selectedRows, status);
-                                setRowSelection({});
-                            }}
-                        />
-                    )}
-                    {onBulkDelete && (
-                        <button
-                            onClick={() => {
-                                onBulkDelete(selectedRows);
-                                setRowSelection({});
-                            }}
-                            className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
-                        >
-                            Delete
-                        </button>
-                    )}
-                    <button
-                        onClick={() => setRowSelection({})}
-                        className="text-xs px-2 py-1.5 rounded-lg transition-colors hover:bg-[var(--secondary)]"
-                        style={{ color: "var(--muted-foreground)" }}
-                    >
-                        Clear
-                    </button>
+                        <span className="text-sm font-semibold whitespace-nowrap px-2" style={{ color: "var(--foreground)" }}>
+                            {selectedCount} item{selectedCount > 1 ? 's' : ''} selected
+                        </span>
+
+                        <div className="w-px h-5" style={{ background: "var(--border)" }}></div>
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={exportCSV}
+                                className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors hover:bg-[var(--secondary)]"
+                                style={{ color: "var(--foreground)" }}
+                            >
+                                Export CSV
+                            </button>
+                            {onBulkStatusUpdate && bulkStatusOptions && (
+                                <BulkStatusDropdown
+                                    options={bulkStatusOptions}
+                                    onSelect={(status) => {
+                                        onBulkStatusUpdate(selectedRows, status);
+                                        setRowSelection({});
+                                    }}
+                                />
+                            )}
+                            {onBulkDelete && (
+                                <button
+                                    onClick={() => {
+                                        onBulkDelete(selectedRows);
+                                        setRowSelection({});
+                                    }}
+                                    className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
+                                >
+                                    Delete
+                                </button>
+                            )}
+                            <button
+                                onClick={() => setRowSelection({})}
+                                className="text-xs px-2 py-1.5 rounded-lg transition-colors hover:bg-[var(--secondary)]"
+                                style={{ color: "var(--muted-foreground)" }}
+                            >
+                                Clear
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
@@ -629,17 +642,33 @@ function ColumnFilterMenu<TData>({
         return () => document.removeEventListener("mousedown", handler);
     }, []);
 
-    // Extract unique values for each filterable column
-    const columnValues = useMemo(() => {
-        const vals: Record<string, string[]> = {};
+    const columnTypes = useMemo(() => {
+        const types: Record<string, "text" | "number" | "date"> = {};
         filterableColumns.forEach(colId => {
-            const uniqueVals = [...new Set(data.map(row => String((row as any)[colId] || "")).filter(Boolean))];
-            vals[colId] = uniqueVals.sort();
+            const firstValid = data.find(row => (row as any)[colId] != null);
+            if (firstValid) {
+                const val = (firstValid as any)[colId];
+                if (typeof val === "number" || colId.includes("amount") || colId.includes("price") || colId.includes("total")) types[colId] = "number";
+                else if (val instanceof Date || colId.includes("date") || colId.includes("created_at") || colId.match(/_at$/)) types[colId] = "date";
+                else types[colId] = "text";
+            } else {
+                types[colId] = "text";
+            }
         });
-        return vals;
+        return types;
     }, [data, filterableColumns]);
 
     const activeFilterCount = columnFilters.length;
+
+    const handleRangeChange = (colId: string, index: 0 | 1, val: string) => {
+        setColumnFilters(prev => {
+            const existing = prev.find(f => f.id === colId);
+            const tuple = Array.isArray(existing?.value) ? [...(existing?.value as any[])] : ["", ""];
+            tuple[index] = val;
+            if (!tuple[0] && !tuple[1]) return prev.filter(f => f.id !== colId);
+            return [...prev.filter(f => f.id !== colId), { id: colId, value: tuple }];
+        });
+    };
 
     return (
         <div ref={ref} className="relative">
@@ -666,37 +695,82 @@ function ColumnFilterMenu<TData>({
                         const headerName = col && typeof col.columnDef.header === "string"
                             ? col.columnDef.header
                             : colId.replace(/_/g, " ");
-                        const activeValue = columnFilters.find(f => f.id === colId)?.value;
+                        const activeValue = columnFilters.find(f => f.id === colId)?.value as any;
 
                         return (
-                            <div key={colId} className="mb-2 last:mb-0">
-                                <div className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 capitalize" style={{ color: "var(--muted-foreground)" }}>
-                                    {headerName}
+                            <div key={colId} className="mb-3 last:mb-0 pb-3 last:pb-0 border-b last:border-0" style={{ borderColor: "var(--border)" }}>
+                                <div className="flex justify-between items-center mb-1.5 px-1">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider capitalize" style={{ color: "var(--muted-foreground)" }}>
+                                        {headerName}
+                                    </span>
+                                    {activeValue && (
+                                        <button
+                                            onClick={() => setColumnFilters((prev) => prev.filter((f) => f.id !== colId))}
+                                            className="text-[10px] text-red-500 hover:text-red-600 transition-colors"
+                                        >
+                                            Clear
+                                        </button>
+                                    )}
                                 </div>
-                                <button
-                                    className={`w-full text-left text-xs px-2.5 py-1.5 rounded-lg transition-colors ${!activeValue ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600" : "hover:bg-[var(--secondary)]"}`}
-                                    style={{ color: !activeValue ? undefined : "var(--foreground)" }}
-                                    onClick={() => {
-                                        setColumnFilters(prev => prev.filter(f => f.id !== colId));
-                                    }}
-                                >
-                                    All
-                                </button>
-                                {(columnValues[colId] || []).map(val => (
-                                    <button
-                                        key={val}
-                                        className={`w-full text-left text-xs px-2.5 py-1.5 rounded-lg transition-colors capitalize ${activeValue === val ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 font-medium" : "hover:bg-[var(--secondary)]"}`}
-                                        style={{ color: activeValue === val ? undefined : "var(--foreground)" }}
-                                        onClick={() => {
+
+                                {columnTypes[colId] === "number" && (
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            placeholder="Min"
+                                            value={Array.isArray(activeValue) ? activeValue[0] : ""}
+                                            onChange={(e) => handleRangeChange(colId, 0, e.target.value)}
+                                            className="w-1/2 h-8 px-2 text-xs rounded-lg border bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                            style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
+                                        />
+                                        <input
+                                            type="number"
+                                            placeholder="Max"
+                                            value={Array.isArray(activeValue) ? activeValue[1] : ""}
+                                            onChange={(e) => handleRangeChange(colId, 1, e.target.value)}
+                                            className="w-1/2 h-8 px-2 text-xs rounded-lg border bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                            style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
+                                        />
+                                    </div>
+                                )}
+
+                                {columnTypes[colId] === "date" && (
+                                    <div className="flex flex-col gap-1.5">
+                                        <input
+                                            type="date"
+                                            title="Start Date"
+                                            value={Array.isArray(activeValue) ? activeValue[0] : ""}
+                                            onChange={(e) => handleRangeChange(colId, 0, e.target.value)}
+                                            className="w-full h-8 px-2 text-xs rounded-lg border bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                            style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
+                                        />
+                                        <input
+                                            type="date"
+                                            title="End Date"
+                                            value={Array.isArray(activeValue) ? activeValue[1] : ""}
+                                            onChange={(e) => handleRangeChange(colId, 1, e.target.value)}
+                                            className="w-full h-8 px-2 text-xs rounded-lg border bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                            style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
+                                        />
+                                    </div>
+                                )}
+
+                                {columnTypes[colId] === "text" && (
+                                    <input
+                                        type="text"
+                                        placeholder={`Filter ${headerName.toLowerCase()}...`}
+                                        value={typeof activeValue === "string" ? activeValue : ""}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
                                             setColumnFilters(prev => {
-                                                const without = prev.filter(f => f.id !== colId);
-                                                return [...without, { id: colId, value: val }];
+                                                if (!val) return prev.filter(f => f.id !== colId);
+                                                return [...prev.filter(f => f.id !== colId), { id: colId, value: val }];
                                             });
                                         }}
-                                    >
-                                        {val.replace(/_/g, " ")}
-                                    </button>
-                                ))}
+                                        className="w-full h-8 px-2.5 text-xs rounded-lg border bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
+                                    />
+                                )}
                             </div>
                         );
                     })}

@@ -4,14 +4,14 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Plus, Upload, ArrowRight, Copy, Send, Trash2, ImageIcon } from "lucide-react";
-import { PageHeader, Button, Drawer, Input, Card, StatusBadge, Tabs } from "@/components/ui/shared";
+import { PageHeader, Button, Drawer, Input, Card, StatusBadge, Tabs, Select } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { QuotationDetail } from "@/components/details/quotation-detail";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { useSupabaseTable } from "@/lib/supabase-hooks";
 import { supabase } from "@/lib/supabase";
-import { TableSkeleton } from "@/components/ui/skeleton";
+import { TableSkeleton, EmptyState } from "@/components/ui/shared";
 import { CSVImportDialog } from "@/components/shared/csv-import";
 import { DeleteConfirmation } from "@/components/shared/delete-confirmation";
 import { logActivity } from "@/lib/activity-logger";
@@ -145,11 +145,13 @@ function QuotationsContent() {
   const [formCustomer, setFormCustomer] = useState("");
   const [formValidUntil, setFormValidUntil] = useState("");
   const [formLineItems, setFormLineItems] = useState<LineItem[]>([emptyLineItem()]);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const resetForm = () => {
     setFormCustomer("");
     setFormValidUntil("");
     setFormLineItems([emptyLineItem()]);
+    setFormErrors({});
   };
 
   const addLineItem = () => setFormLineItems([...formLineItems, emptyLineItem()]);
@@ -168,8 +170,22 @@ function QuotationsContent() {
   const formTotal = formLineItems.reduce((sum, li) => sum + li.qty * li.unit_price, 0);
 
   const handleCreate = async (asDraft: boolean) => {
-    if (!formCustomer.trim()) { toast("error", "Please enter a customer name"); return; }
-    if (formLineItems.some((li) => !li.product.trim())) { toast("error", "Please fill in all line item products"); return; }
+    const errors: Record<string, string> = {};
+    if (!formCustomer.trim()) errors.formCustomer = "Please select a customer";
+
+    // We could add more specific line-item level validation if needed,
+    // but a global check is fine for now
+    if (formLineItems.some((li) => !li.product.trim())) {
+      toast("error", "Please fill in all line item products");
+      return;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast("error", "Please fix the errors in the form");
+      return;
+    }
+    setFormErrors({});
 
     const quoteNumber = await getNextQTNumber();
     const result = await create({
@@ -289,10 +305,26 @@ function QuotationsContent() {
 
       {loading ? (
         <TableSkeleton rows={5} columns={5} />
+      ) : filtered.length === 0 ? (
+        <div className="py-8">
+          <EmptyState
+            icon={<Send className="w-8 h-8" />}
+            title="No Quotations Found"
+            description="You haven't created any quotations yet."
+            action={
+              <Button onClick={() => { resetForm(); setShowDialog(true); }}>
+                <Plus className="w-4 h-4" /> Create First Quotation
+              </Button>
+            }
+          />
+        </div>
       ) : (
         <DataTable
+          tableId="quotations"
           columns={columns}
           data={filtered}
+          enableColumnFilters
+          filterableColumns={["status"]}
           emptyMessage="No quotations found"
           searchPlaceholder="Search quotations..."
           onRowClick={(item) => setSelectedQuotation(item)}
@@ -326,15 +358,16 @@ function QuotationsContent() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--foreground)" }}>Customer *</label>
-              <select
+              <Select
+                error={formErrors.formCustomer}
                 value={formCustomer}
-                onChange={(e) => setFormCustomer(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-                style={{ background: "var(--background)", borderColor: "var(--border)", color: formCustomer ? "var(--foreground)" : "var(--muted-foreground)" }}
-              >
-                <option value="">Select customer...</option>
-                {dbCustomers.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-              </select>
+                onChange={(e: any) => { setFormCustomer(e.target.value); if (formErrors.formCustomer) setFormErrors({ ...formErrors, formCustomer: "" }); }}
+                options={[
+                  { value: "", label: "Select customer..." },
+                  ...dbCustomers.map(c => ({ value: c.name, label: c.name }))
+                ]}
+                className="w-full h-9 px-3 rounded-lg border text-sm bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
+              />
             </div>
             <Input label="Valid Until" type="date" value={formValidUntil} onChange={(e) => setFormValidUntil(e.target.value)} />
           </div>
@@ -371,15 +404,15 @@ function QuotationsContent() {
                     </div>
                   </div>
                   <div className="col-span-4">
-                    <select
+                    <Select
                       value={li.product}
-                      onChange={(e) => handleProductSelect(li.id, e.target.value)}
-                      className="w-full h-9 px-3 rounded-lg border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-                      style={{ background: "var(--background)", borderColor: "var(--border)", color: li.product ? "var(--foreground)" : "var(--muted-foreground)" }}
-                    >
-                      <option value="">Select product...</option>
-                      {dbProducts.map((p) => (<option key={p.id} value={p.name}>{p.name} — {formatCurrency(p.selling_price || 0)}</option>))}
-                    </select>
+                      onChange={(e: any) => handleProductSelect(li.id, e.target.value)}
+                      options={[
+                        { value: "", label: "Select product..." },
+                        ...dbProducts.map((p) => ({ value: p.name, label: `${p.name} — ${formatCurrency(p.selling_price || 0)}` }))
+                      ]}
+                      className="w-full h-9 px-3 rounded-lg border text-sm bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
+                    />
                   </div>
                   <div className="col-span-2">
                     <Input type="number" placeholder="1" value={String(li.qty)} onChange={(e) => updateLineItem(li.id, "qty", Math.max(1, parseInt(e.target.value) || 1))} />

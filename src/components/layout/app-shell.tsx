@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { Sidebar, SidebarProvider, useSidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { KeyboardShortcuts } from "@/components/shared/keyboard-shortcuts";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
+import { TooltipProvider } from "@/components/ui/shared";
 
 // Pages that don't need the full shell
 const PUBLIC_ROUTES = ["/login"];
@@ -98,8 +100,19 @@ function AppContent({ children }: { children: React.ReactNode }) {
                     collapsed && "md:ml-[var(--sidebar-collapsed-width)]"
                 )}
             >
-                <div className="p-4 md:p-6">
-                    {children}
+                <div className="p-6 md:p-8 max-w-[1400px] mx-auto w-full">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={pathname}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -12 }}
+                            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                            className="w-full h-full"
+                        >
+                            {children}
+                        </motion.div>
+                    </AnimatePresence>
                 </div>
             </main>
             <KeyboardShortcuts />
@@ -110,7 +123,9 @@ function AppContent({ children }: { children: React.ReactNode }) {
 export function AppShell({ children }: { children: React.ReactNode }) {
     return (
         <SidebarProvider>
-            <AppContent>{children}</AppContent>
+            <TooltipProvider>
+                <AppContent>{children}</AppContent>
+            </TooltipProvider>
         </SidebarProvider>
     );
 }

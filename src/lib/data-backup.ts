@@ -35,10 +35,9 @@ function toCSV(data: Record<string, unknown>[]): string {
  * Export a single table to CSV and trigger download.
  */
 export async function exportTable(tableName: string, filename?: string): Promise<boolean> {
-    const { data, error } = await supabase.from(tableName).select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from(tableName as any).select("*").order("created_at", { ascending: false });
     if (error || !data || data.length === 0) return false;
-
-    const csv = toCSV(data);
+    const csv = toCSV(data as any);
     downloadBlob(csv, `${filename || tableName}.csv`, "text/csv;charset=utf-8;");
     return true;
 }
@@ -51,7 +50,7 @@ export async function exportFullBackup(): Promise<boolean> {
     const timestamp = new Date().toISOString().split("T")[0];
 
     for (const table of EXPORTABLE_TABLES) {
-        const { data } = await supabase.from(table.name).select("*");
+        const { data } = await supabase.from(table.name as any).select("*");
         backup[table.name] = data || [];
     }
 
@@ -68,9 +67,9 @@ export async function exportAllCSV(): Promise<{ table: string; count: number }[]
     const results: { table: string; count: number }[] = [];
 
     for (const table of EXPORTABLE_TABLES) {
-        const { data } = await supabase.from(table.name).select("*");
+        const { data } = await supabase.from(table.name as any).select("*");
         if (data && data.length > 0) {
-            const csv = toCSV(data);
+            const csv = toCSV(data as any);
             downloadBlob(csv, `${table.name}.csv`, "text/csv;charset=utf-8;");
             results.push({ table: table.name, count: data.length });
         } else {

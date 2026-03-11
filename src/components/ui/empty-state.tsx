@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Package, FileText, Users, ShoppingCart, Truck, Factory, BarChart3, Inbox } from "lucide-react";
+import { Package, FileText, Users, ShoppingCart, Truck, Factory, BarChart3, Inbox, Plus } from "lucide-react";
 import { Button } from "@/components/ui/shared";
 
 const iconMap: Record<string, React.ElementType> = {
@@ -42,15 +42,18 @@ export function EmptyState({
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center py-16 px-4"
+            className="flex flex-col items-center justify-center py-20 px-4 rounded-2xl border-2 border-dashed bg-zinc-50/50 dark:bg-zinc-900/20"
+            style={{ borderColor: "var(--border)" }}
         >
-            {/* Icon circle */}
-            <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+            {/* Icon circle - Added subtle float animation */}
+            <motion.div
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-sm"
                 style={{ background: "var(--secondary)" }}
             >
                 <Icon className="w-7 h-7" style={{ color: "var(--muted-foreground)" }} />
-            </div>
+            </motion.div>
 
             {/* Text */}
             <h3
@@ -68,7 +71,8 @@ export function EmptyState({
 
             {/* CTA */}
             {actionLabel && onAction && (
-                <Button className="mt-4" onClick={onAction}>
+                <Button className="mt-6 font-semibold shadow-sm" onClick={onAction}>
+                    <Plus className="w-4 h-4 mr-2" />
                     {actionLabel}
                 </Button>
             )}

@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Warehouse, AlertTriangle, ArrowDownUp, Plus, Package, TrendingDown, TrendingUp } from "lucide-react";
-import { PageHeader, Button, Card, StatCard, StatusBadge, Tabs, Drawer, Input } from "@/components/ui/shared";
+import { PageHeader, Button, Card, StatCard, StatusBadge, Tabs, Drawer, Input, Select, TableSkeleton, EmptyState } from "@/components/ui/shared";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { formatNumber, formatCurrency } from "@/lib/utils";
 import { useSupabaseTable } from "@/lib/supabase-hooks";
@@ -114,9 +114,10 @@ export default function InventoryPage() {
   const [adjType, setAdjType] = useState<"add" | "remove">("add");
   const [adjQty, setAdjQty] = useState("");
   const [adjReason, setAdjReason] = useState("");
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
-  const resetAdjForm = () => { setAdjProduct(""); setAdjType("add"); setAdjQty(""); setAdjReason(""); };
+  const resetAdjForm = () => { setAdjProduct(""); setAdjType("add"); setAdjQty(""); setAdjReason(""); setFormErrors({}); };
 
   // Live movements from POs (in) and SOs (out)
   const [movements, setMovements] = useState<Movement[]>(fallbackMovements);
@@ -154,9 +155,19 @@ export default function InventoryPage() {
   }, []);
 
   const handleStockAdjust = async () => {
-    if (!adjProduct) { toast("error", "Please select a product"); return; }
+    const errors: Record<string, string> = {};
+    if (!adjProduct) errors.adjProduct = "Please select a product";
+
     const qty = parseInt(adjQty);
-    if (!qty || qty <= 0) { toast("error", "Enter a valid quantity"); return; }
+    if (!qty || qty <= 0) errors.adjQty = "Enter a valid quantity";
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast("error", "Please fix the errors in the form");
+      return;
+    }
+    setFormErrors({});
+
     const product = products.find(p => p.id === adjProduct);
     if (!product) return;
     const newStock = adjType === "add" ? (product.stock || 0) + qty : Math.max(0, (product.stock || 0) - qty);
@@ -219,18 +230,45 @@ export default function InventoryPage() {
       </div>
 
       {activeTab === "overview" && (
-        <DataTable
-          columns={columns}
-          data={inventory}
-          emptyMessage={loading ? "Loading inventory..." : "No inventory items"}
-          searchPlaceholder="Search products..."
-          enableColumnVisibility
-        />
+        loading ? (
+          <TableSkeleton rows={8} columns={6} />
+        ) : inventory.length === 0 ? (
+          <div className="py-8">
+            <EmptyState
+              icon={<Package className="w-8 h-8" />}
+              title="No Products Found"
+              description="Your inventory is currently empty."
+              action={
+                <Button onClick={() => window.location.href = '/products'}>
+                  <Plus className="w-4 h-4" /> Go to Products Directory
+                </Button>
+              }
+            />
+          </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={inventory}
+            enableColumnFilters
+            filterableColumns={["category", "status"]}
+            emptyMessage="No inventory items"
+            searchPlaceholder="Search products..."
+            enableColumnVisibility
+          />
+        )
       )}
 
       {activeTab === "movements" && (
         <div className="space-y-2">
-          {movements.map((m, idx) => (
+          {movements.length === 0 ? (
+            <div className="py-8">
+              <EmptyState
+                icon={<ArrowDownUp className="w-8 h-8" />}
+                title="No Stock Movements"
+                description="Buy or sell products to generate a history of stock movements."
+              />
+            </div>
+          ) : movements.map((m, idx) => (
             <div key={idx} className="flex items-center justify-between p-3 rounded-xl border" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
               <div className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${m.type === "in" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : m.type === "out" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"}`}>
@@ -260,33 +298,34 @@ export default function InventoryPage() {
           </div>
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
             <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--foreground)" }}>Product *</label>
-            <select
+            <Select
+              error={formErrors.adjProduct}
               value={adjProduct}
-              onChange={(e) => setAdjProduct(e.target.value)}
-              className="w-full h-9 px-3 rounded-lg border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-              style={{ background: "var(--background)", borderColor: "var(--border)", color: adjProduct ? "var(--foreground)" : "var(--muted-foreground)" }}
-            >
-              <option value="">Select product...</option>
-              {products.map(p => <option key={p.id} value={p.id}>{p.name} (Stock: {p.stock || 0})</option>)}
-            </select>
+              onChange={(e: any) => { setAdjProduct(e.target.value); if (formErrors.adjProduct) setFormErrors({ ...formErrors, adjProduct: "" }); }}
+              options={[
+                { value: "", label: "Select product..." },
+                ...products.map(p => ({ value: p.id, label: `${p.name} (Stock: ${p.stock || 0})` }))
+              ]}
+              className="w-full h-9 px-3 rounded-lg border text-sm bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--foreground)" }}>Type *</label>
-              <select
+              <Select
                 value={adjType}
-                onChange={(e) => setAdjType(e.target.value as "add" | "remove")}
-                className="w-full h-9 px-3 rounded-lg border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-                style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
-              >
-                <option value="add">Add Stock</option>
-                <option value="remove">Remove Stock</option>
-              </select>
+                onChange={(e: any) => setAdjType(e.target.value as "add" | "remove")}
+                options={[
+                  { value: "add", label: "Add Stock" },
+                  { value: "remove", label: "Remove Stock" }
+                ]}
+                className="w-full h-9 px-3 rounded-lg border text-sm bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
+              />
             </div>
-            <Input label="Quantity *" type="number" placeholder="0" value={adjQty} onChange={(e) => setAdjQty(e.target.value)} />
+            <Input label="Quantity *" type="number" placeholder="0" error={formErrors.adjQty} value={adjQty} onChange={(e) => { setAdjQty(e.target.value); if (formErrors.adjQty) setFormErrors({ ...formErrors, adjQty: "" }); }} />
           </div>
           <Input label="Reason" placeholder="Reason for adjustment..." value={adjReason} onChange={(e) => setAdjReason(e.target.value)} />
         </div>

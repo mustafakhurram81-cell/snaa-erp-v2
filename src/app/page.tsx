@@ -292,7 +292,7 @@ export default function DashboardPage() {
 
       {/* Activity Feed */}
       <motion.div variants={item}>
-        <div className="rounded-xl border p-5" style={{ borderColor: "var(--border)" }}>
+        <div className="rounded-2xl p-5 bg-white/50 dark:bg-zinc-900/30 backdrop-blur-xl border border-white/20 dark:border-white/5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Activity Feed</h3>
@@ -317,16 +317,23 @@ export default function DashboardPage() {
               </div>
             ) : activities.map((activity, idx) => {
               const Icon = activity.icon;
+              const isLast = idx === activities.length - 1;
               return (
                 <motion.div key={idx} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }}
-                  className="flex items-start gap-3 p-3 rounded-xl hover:bg-[var(--secondary)] transition-colors cursor-pointer group">
-                  <div className={`p-2 rounded-lg flex-shrink-0 ${activity.bg} transition-transform group-hover:scale-105`}>
+                  className="relative flex items-start gap-4 p-3 rounded-xl hover:bg-[var(--secondary)] transition-colors cursor-pointer group">
+                  {/* Connecting Line */}
+                  {!isLast && (
+                    <div className="absolute left-[27px] top-10 bottom-[-12px] w-px bg-border group-hover:bg-primary/20 transition-colors" />
+                  )}
+                  {/* Icon Node */}
+                  <div className={`relative z-10 p-2 rounded-lg flex-shrink-0 ${activity.bg} transition-transform group-hover:scale-105 shadow-sm`}>
                     <Icon className={`w-3.5 h-3.5 ${activity.color}`} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm" style={{ color: "var(--foreground)" }}>{activity.action}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{activity.actor}</span>
+                  {/* Content */}
+                  <div className="flex-1 min-w-0 pt-1">
+                    <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>{activity.action}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[11px] font-medium" style={{ color: "var(--muted-foreground)" }}>{activity.actor}</span>
                       <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>·</span>
                       <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{activity.time}</span>
                     </div>
